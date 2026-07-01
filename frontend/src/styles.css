@@ -674,6 +674,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
 .status-chip.draft { color: #b95d18; border: 1px solid #f3cf9d; background: #fff8ed; }
 .status-chip.returned { color: #6e56c7; border: 1px solid #d8cff7; background: #f6f2ff; }
 .status-chip.confirmed { color: #147a55; border: 1px solid #bee4d2; background: #edf9f3; }
+.status-chip.risk-flagged { color: #bf3f2c; border: 1px solid #f2b9ae; background: #fff4f1; }
 
 .detail-section { padding: 10px 13px; border-bottom: 1px solid #e8edf4; }
 .detail-section h3 {
@@ -773,6 +774,32 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
 .review-meta-list dd.low { color: #147a55; }
 .action-message { margin: 0 14px 14px; padding: 8px 9px; border: 1px solid #d8e4f6; border-radius: 8px; color: #53637a; background: #f8fbff; font-size: 8px; line-height: 1.5; }
 
+.review-audit-card { margin: 0 14px 14px; border: 1px solid #dde7f4; border-radius: 10px; background: #fbfdff; overflow: hidden; }
+.review-audit-card header { min-height: 43px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 10px; border-bottom: 1px solid #e5ebf4; background: white; }
+.review-audit-card header h3 { margin: 3px 0 0; display: flex; align-items: center; gap: 5px; color: #24324a; font-size: 11px; }
+.review-audit-card header svg { color: var(--human); }
+.review-audit-card header em { flex: 0 0 auto; padding: 4px 6px; border-radius: 999px; color: #1768e5; background: #edf5ff; font: normal 750 7px/1 'Manrope Variable', sans-serif; }
+.audit-timeline { display: grid; gap: 0; padding: 10px; }
+.audit-event { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; padding-bottom: 11px; }
+.audit-event:not(:last-child)::before { content: ''; position: absolute; top: 17px; bottom: 0; left: 6px; width: 1px; background: #d8e2ef; }
+.audit-dot { position: relative; z-index: 1; width: 13px; height: 13px; margin-top: 2px; border: 3px solid #f7fbff; border-radius: 50%; background: #9aa8bc; box-shadow: 0 0 0 1px #d5deea; }
+.audit-dot.confirm { background: #18a66d; }
+.audit-dot.return { background: #c97814; }
+.audit-dot.flag { background: #d34a35; }
+.audit-dot.guard { background: #1768e5; }
+.audit-event-body { min-width: 0; padding: 8px; border: 1px solid #dde7f2; border-radius: 9px; background: white; }
+.audit-event-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.audit-event-top strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #253349; font-size: 8.5px; }
+.audit-event-top time { flex: 0 0 auto; color: #8a96a8; font-size: 6.5px; }
+.audit-event-body p { margin: 5px 0 3px; color: #1768e5; font-size: 8px; font-weight: 800; }
+.audit-event-body small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b778a; font-size: 7px; }
+.audit-event-body dl { margin: 7px 0 0; display: grid; gap: 4px; }
+.audit-event-body dl div { min-width: 0; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 5px; }
+.audit-event-body dt { color: #8b97a8; font-size: 6.5px; }
+.audit-event-body dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #4d5a6e; font-size: 6.8px; font-weight: 650; }
+.audit-event-body blockquote { margin: 7px 0 0; padding: 6px 7px; border-left: 2px solid #a7c7f5; border-radius: 5px; color: #5d687a; background: #f6f9fd; font-size: 7px; line-height: 1.45; }
+.empty-audit { margin: 0; padding: 10px; color: #7c8798; font-size: 8px; }
+
 .trace-evidence-panel { margin-top: 11px; overflow: hidden; }
 .trace-header { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 13px; border-bottom: 1px solid #e8edf4; }
 .trace-header > div { display: flex; align-items: center; gap: 6px; }
@@ -830,6 +857,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
   .review-action-panel > .panel-header { grid-column: 1 / -1; }
   .review-meta-list { border-top: 0; border-left: 1px solid #e8edf4; align-content: start; }
   .action-message { align-self: end; }
+  .review-audit-card { grid-column: 1 / -1; }
   .trace-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .trace-step-card::after { display: none; }
   .compliance-principles > div { grid-template-columns: repeat(3, minmax(0, 1fr)); }

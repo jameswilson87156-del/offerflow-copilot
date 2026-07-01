@@ -42,7 +42,8 @@ public record HumanReviewCenter(
             List<TraceStep> traceEvidence,
             List<String> compliancePrinciples,
             boolean copyAllowed,
-            String lastAction) {
+            String lastAction,
+            List<AuditEvent> auditTrail) {
     }
 
     public record ReviewEvidence(
@@ -61,5 +62,22 @@ public record HumanReviewCenter(
             String label,
             String status,
             String detail) {
+    }
+
+    public record AuditEvent(
+            String id,
+            String reviewId,
+            String action,
+            String actionLabel,
+            String previousStatus,
+            String nextStatus,
+            String previousRiskLevel,
+            String nextRiskLevel,
+            String actor,
+            String actorRole,
+            String humanNote,
+            String traceId,
+            String traceHash,
+            String createdAt) {
     }
 }

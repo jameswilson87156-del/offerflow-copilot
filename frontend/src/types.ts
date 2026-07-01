@@ -118,7 +118,7 @@ export interface EvidenceCoverageData {
   note: string
 }
 
-export type HumanReviewStatus = 'Draft' | 'Returned' | 'Confirmed'
+export type HumanReviewStatus = 'Draft' | 'Returned' | 'Confirmed' | 'Risk Flagged'
 
 export interface HumanReviewGroup {
   key: string
@@ -156,6 +156,23 @@ export interface HumanReviewTraceStep {
   detail: string
 }
 
+export interface HumanReviewAuditEvent {
+  id: string
+  reviewId: string
+  action: 'CONFIRM' | 'RETURN' | 'FLAG_RISK' | 'ADD_NOTE' | 'AUTO_RISK_GUARD' | string
+  actionLabel: string
+  previousStatus: string
+  nextStatus: string
+  previousRiskLevel: string
+  nextRiskLevel: string
+  actor: string
+  actorRole: string
+  humanNote: string
+  traceId: string
+  traceHash: string
+  createdAt: string
+}
+
 export interface HumanReviewDetail extends HumanReviewSummary {
   reviewer: string
   humanNote: string
@@ -166,6 +183,7 @@ export interface HumanReviewDetail extends HumanReviewSummary {
   compliancePrinciples: string[]
   copyAllowed: boolean
   lastAction: string
+  auditTrail: HumanReviewAuditEvent[]
 }
 
 export interface HumanReviewCenterData {

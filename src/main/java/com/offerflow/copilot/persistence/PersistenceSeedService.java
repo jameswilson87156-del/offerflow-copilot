@@ -10,6 +10,7 @@ import com.offerflow.copilot.domain.InterviewPrepDemo;
 import com.offerflow.copilot.domain.MatchReportDemo;
 import com.offerflow.copilot.domain.ProviderTraceCenter;
 import com.offerflow.copilot.persistence.entity.ApplicationRecordEntity;
+import com.offerflow.copilot.persistence.entity.HumanReviewAuditEventEntity;
 import com.offerflow.copilot.persistence.entity.HumanReviewItemEntity;
 import com.offerflow.copilot.persistence.entity.InterviewPrepEntity;
 import com.offerflow.copilot.persistence.entity.JobPostEntity;
@@ -18,6 +19,7 @@ import com.offerflow.copilot.persistence.entity.ProviderTraceRunEntity;
 import com.offerflow.copilot.persistence.entity.ResumeEvidenceEntity;
 import com.offerflow.copilot.persistence.entity.TraceStepEntity;
 import com.offerflow.copilot.persistence.repository.ApplicationRecordRepository;
+import com.offerflow.copilot.persistence.repository.HumanReviewAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.HumanReviewItemRepository;
 import com.offerflow.copilot.persistence.repository.InterviewPrepRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
@@ -49,6 +51,7 @@ public class PersistenceSeedService implements ApplicationRunner {
     private final InterviewPrepRepository interviewPrepRepository;
     private final ApplicationRecordRepository applicationRecordRepository;
     private final HumanReviewItemRepository humanReviewItemRepository;
+    private final HumanReviewAuditEventRepository humanReviewAuditEventRepository;
     private final ProviderTraceRunRepository providerTraceRunRepository;
     private final TraceStepRepository traceStepRepository;
 
@@ -61,6 +64,7 @@ public class PersistenceSeedService implements ApplicationRunner {
             InterviewPrepRepository interviewPrepRepository,
             ApplicationRecordRepository applicationRecordRepository,
             HumanReviewItemRepository humanReviewItemRepository,
+            HumanReviewAuditEventRepository humanReviewAuditEventRepository,
             ProviderTraceRunRepository providerTraceRunRepository,
             TraceStepRepository traceStepRepository) {
         this.seedDemoData = seedDemoData;
@@ -71,6 +75,7 @@ public class PersistenceSeedService implements ApplicationRunner {
         this.interviewPrepRepository = interviewPrepRepository;
         this.applicationRecordRepository = applicationRecordRepository;
         this.humanReviewItemRepository = humanReviewItemRepository;
+        this.humanReviewAuditEventRepository = humanReviewAuditEventRepository;
         this.providerTraceRunRepository = providerTraceRunRepository;
         this.traceStepRepository = traceStepRepository;
     }
@@ -90,6 +95,7 @@ public class PersistenceSeedService implements ApplicationRunner {
         seedInterviewPrepIfEmpty();
         seedApplicationsIfEmpty();
         seedHumanReviewsIfEmpty();
+        seedHumanReviewAuditEventsIfEmpty();
         seedProviderTraceIfEmpty();
     }
 
@@ -424,6 +430,64 @@ public class PersistenceSeedService implements ApplicationRunner {
                 ts(2026, 7, 1, 14, 26)));
     }
 
+    private void seedHumanReviewAuditEventsIfEmpty() {
+        if (humanReviewAuditEventRepository.count() > 0) {
+            return;
+        }
+        humanReviewAuditEventRepository.save(auditEvent(
+                "audit-seed-star-risk-guard",
+                "review-star-mcp",
+                "AUTO_RISK_GUARD",
+                "Draft",
+                "Draft",
+                "中",
+                "中",
+                "local-rule risk guard",
+                "System guard",
+                "命中“生产级、真实用户、提升 Offer 率、自动投递、实时面试辅助”等风险词，复制保持禁用。",
+                "JD-042-STAR-9E4D",
+                ts(2026, 7, 1, 14, 22)));
+        humanReviewAuditEventRepository.save(auditEvent(
+                "audit-seed-match-risk-guard",
+                "review-match-java-ai",
+                "AUTO_RISK_GUARD",
+                "Draft",
+                "Draft",
+                "高",
+                "高",
+                "local-rule risk guard",
+                "System guard",
+                "匹配报告草稿包含真实用户和结果承诺类表述，必须进入人工复核。",
+                "JD-042-REP-21F3",
+                ts(2026, 7, 1, 14, 23)));
+        humanReviewAuditEventRepository.save(auditEvent(
+                "audit-seed-return-devops",
+                "review-returned-devops",
+                "RETURN",
+                "Draft",
+                "Returned",
+                "中",
+                "中",
+                "demo-reviewer",
+                "Human reviewer",
+                "不能把演示部署描述为生产 SLA，退回补充边界说明。",
+                "JD-042-REP-11A7",
+                ts(2026, 7, 1, 14, 25)));
+        humanReviewAuditEventRepository.save(auditEvent(
+                "audit-seed-confirm-resume",
+                "review-confirmed-resume",
+                "CONFIRM",
+                "Draft",
+                "Confirmed",
+                "低",
+                "低",
+                "demo-reviewer",
+                "Human reviewer",
+                "确认仅保留作品集级多模态检索演示，不声明真实客户或生产流量。",
+                "JD-039-HIL-5582",
+                ts(2026, 7, 1, 14, 26)));
+    }
+
     private void seedProviderTraceIfEmpty() {
         if (providerTraceRunRepository.count() == 0) {
             ProviderTraceRunEntity run = new ProviderTraceRunEntity();
@@ -583,6 +647,36 @@ public class PersistenceSeedService implements ApplicationRunner {
         entity.setLastAction("Confirmed".equals(status) ? "人工已确认，可复制使用" : "等待人工确认");
         entity.setCreatedAt(timestamp);
         entity.setUpdatedAt(timestamp);
+        return entity;
+    }
+
+    private HumanReviewAuditEventEntity auditEvent(
+            String id,
+            String reviewId,
+            String action,
+            String previousStatus,
+            String nextStatus,
+            String previousRiskLevel,
+            String nextRiskLevel,
+            String actor,
+            String actorRole,
+            String humanNote,
+            String traceId,
+            LocalDateTime createdAt) {
+        HumanReviewAuditEventEntity entity = new HumanReviewAuditEventEntity();
+        entity.setId(id);
+        entity.setReviewId(reviewId);
+        entity.setAction(action);
+        entity.setPreviousStatus(previousStatus);
+        entity.setNextStatus(nextStatus);
+        entity.setPreviousRiskLevel(previousRiskLevel);
+        entity.setNextRiskLevel(nextRiskLevel);
+        entity.setActor(actor);
+        entity.setActorRole(actorRole);
+        entity.setHumanNote(humanNote);
+        entity.setTraceId(traceId);
+        entity.setTraceHash("audit-" + Integer.toHexString((traceId + ":" + reviewId).hashCode()));
+        entity.setCreatedAt(createdAt);
         return entity;
     }
 

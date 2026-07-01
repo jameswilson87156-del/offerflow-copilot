@@ -1,6 +1,6 @@
 import { onMounted, shallowRef } from 'vue'
 import { humanReviewDetailsFallback, humanReviewFallback } from '../data/reviews'
-import type { HumanReviewCenterData, HumanReviewDetail } from '../types'
+import type { HumanReviewAuditEvent, HumanReviewCenterData, HumanReviewDetail } from '../types'
 
 export function useHumanReviews() {
   const center = shallowRef<HumanReviewCenterData>(humanReviewFallback)
@@ -44,7 +44,11 @@ export function useHumanReviews() {
       const response = await fetch(`/api/reviews/${id}/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ note }),
+        body: JSON.stringify({
+          actor: 'demo-reviewer',
+          actorRole: 'Human reviewer',
+          humanNote: note,
+        }),
       })
       if (!response.ok) throw new Error('Review action unavailable')
       const detail = await response.json() as HumanReviewDetail
@@ -53,13 +57,31 @@ export function useHumanReviews() {
       return detail
     } catch {
       const current = details.value[id] ?? humanReviewDetailsFallback[id]
-      const nextStatus = action === 'confirm' ? 'Confirmed' : action === 'return' ? 'Returned' : 'Draft'
+      const nextStatus = action === 'confirm' ? 'Confirmed' : action === 'return' ? 'Returned' : 'Risk Flagged'
+      const nextRiskLevel = action === 'flag-risk' ? '高风险' : current.riskLevel
+      const event: HumanReviewAuditEvent = {
+        id: `fallback-action-${Date.now()}`,
+        reviewId: id,
+        action: action === 'confirm' ? 'CONFIRM' : action === 'return' ? 'RETURN' : 'FLAG_RISK',
+        actionLabel: action === 'confirm' ? '确认可用' : action === 'return' ? '退回修改' : '标记风险',
+        previousStatus: current.status,
+        nextStatus,
+        previousRiskLevel: current.riskLevel,
+        nextRiskLevel,
+        actor: 'demo-reviewer',
+        actorRole: 'Human reviewer',
+        humanNote: note || current.humanNote,
+        traceId: current.traceId,
+        traceHash: `audit-${current.traceId.slice(-4).toLowerCase()}-${id.slice(-4)}`,
+        createdAt: '2026-07-01 14:35',
+      }
       const updated: HumanReviewDetail = {
         ...current,
         status: nextStatus,
-        riskLevel: action === 'flag-risk' ? '高风险' : current.riskLevel,
+        riskLevel: nextRiskLevel,
         copyAllowed: action === 'confirm',
         humanNote: note || current.humanNote,
+        auditTrail: [...(current.auditTrail ?? []), event],
         lastAction: action === 'confirm'
           ? '人工已确认，可复制使用'
           : action === 'return'

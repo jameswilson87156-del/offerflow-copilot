@@ -6,12 +6,16 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import com.offerflow.copilot.domain.HumanReviewCenter;
 import com.offerflow.copilot.persistence.JsonCodec;
+import com.offerflow.copilot.persistence.entity.HumanReviewAuditEventEntity;
 import com.offerflow.copilot.persistence.entity.HumanReviewItemEntity;
+import com.offerflow.copilot.persistence.repository.HumanReviewAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.HumanReviewItemRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -28,10 +32,15 @@ public class HumanReviewService {
             "不夸大模型能力");
 
     private final HumanReviewItemRepository humanReviewItemRepository;
+    private final HumanReviewAuditEventRepository auditEventRepository;
     private final JsonCodec jsonCodec;
 
-    public HumanReviewService(HumanReviewItemRepository humanReviewItemRepository, JsonCodec jsonCodec) {
+    public HumanReviewService(
+            HumanReviewItemRepository humanReviewItemRepository,
+            HumanReviewAuditEventRepository auditEventRepository,
+            JsonCodec jsonCodec) {
         this.humanReviewItemRepository = humanReviewItemRepository;
+        this.auditEventRepository = auditEventRepository;
         this.jsonCodec = jsonCodec;
     }
 
@@ -53,34 +62,55 @@ public class HumanReviewService {
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Review item not found"));
     }
 
-    public HumanReviewCenter.ReviewDetail confirm(String id, String note) {
+    public List<HumanReviewCenter.AuditEvent> auditEvents(String id) {
+        if (humanReviewItemRepository.findById(id).isEmpty()) {
+            throw new ResponseStatusException(NOT_FOUND, "Review item not found");
+        }
+        return auditEventRepository.findByReviewId(id).stream()
+                .map(this::auditEvent)
+                .toList();
+    }
+
+    @Transactional
+    public HumanReviewCenter.ReviewDetail confirm(String id, String actor, String actorRole, String note) {
         HumanReviewItemEntity entity = requireEntity(id);
+        String previousStatus = entity.getStatus();
+        String previousRiskLevel = entity.getRiskLevel();
         entity.setStatus("Confirmed");
         entity.setHumanNote(noteOrExisting(note, entity));
         entity.setLastAction("人工已确认，可复制使用");
         entity.setUpdatedAt(actionTimestamp());
         humanReviewItemRepository.update(entity);
+        audit(entity, "CONFIRM", previousStatus, previousRiskLevel, actor, actorRole, entity.getHumanNote());
         return detail(entity);
     }
 
-    public HumanReviewCenter.ReviewDetail returnForRevision(String id, String note) {
+    @Transactional
+    public HumanReviewCenter.ReviewDetail returnForRevision(String id, String actor, String actorRole, String note) {
         HumanReviewItemEntity entity = requireEntity(id);
+        String previousStatus = entity.getStatus();
+        String previousRiskLevel = entity.getRiskLevel();
         entity.setStatus("Returned");
         entity.setHumanNote(noteOrExisting(note, entity));
         entity.setLastAction("已退回修改，复制仍被禁用");
         entity.setUpdatedAt(actionTimestamp());
         humanReviewItemRepository.update(entity);
+        audit(entity, "RETURN", previousStatus, previousRiskLevel, actor, actorRole, entity.getHumanNote());
         return detail(entity);
     }
 
-    public HumanReviewCenter.ReviewDetail flagRisk(String id, String note) {
+    @Transactional
+    public HumanReviewCenter.ReviewDetail flagRisk(String id, String actor, String actorRole, String note) {
         HumanReviewItemEntity entity = requireEntity(id);
+        String previousStatus = entity.getStatus();
+        String previousRiskLevel = entity.getRiskLevel();
         entity.setRiskLevel("高风险");
-        entity.setStatus("Draft");
+        entity.setStatus("Risk Flagged");
         entity.setHumanNote(noteOrExisting(note, entity));
         entity.setLastAction("已标记风险，等待重新生成或人工改写");
         entity.setUpdatedAt(actionTimestamp());
         humanReviewItemRepository.update(entity);
+        audit(entity, "FLAG_RISK", previousStatus, previousRiskLevel, actor, actorRole, entity.getHumanNote());
         return detail(entity);
     }
 
@@ -124,7 +154,10 @@ public class HumanReviewService {
                 trace(),
                 COMPLIANCE_PRINCIPLES,
                 "Confirmed".equals(entity.getStatus()),
-                entity.getLastAction());
+                entity.getLastAction(),
+                auditEventRepository.findByReviewId(entity.getId()).stream()
+                        .map(this::auditEvent)
+                        .toList());
     }
 
     private List<HumanReviewCenter.ReviewGroup> groups(List<HumanReviewCenter.ReviewSummary> items) {
@@ -149,14 +182,79 @@ public class HumanReviewService {
         if ("Confirmed".equals(entity.getStatus())) {
             return "confirmed";
         }
+        if ("Risk Flagged".equals(entity.getStatus())) {
+            return "high-risk";
+        }
         if (entity.getRiskLevel().startsWith("高")) {
             return "high-risk";
         }
         return "pending";
     }
 
+    private void audit(
+            HumanReviewItemEntity entity,
+            String action,
+            String previousStatus,
+            String previousRiskLevel,
+            String actor,
+            String actorRole,
+            String note) {
+        HumanReviewAuditEventEntity event = new HumanReviewAuditEventEntity();
+        event.setId("audit-" + UUID.randomUUID());
+        event.setReviewId(entity.getId());
+        event.setAction(action);
+        event.setPreviousStatus(previousStatus);
+        event.setNextStatus(entity.getStatus());
+        event.setPreviousRiskLevel(previousRiskLevel);
+        event.setNextRiskLevel(entity.getRiskLevel());
+        event.setActor(defaultText(actor, "demo-reviewer"));
+        event.setActorRole(defaultText(actorRole, "Human reviewer"));
+        event.setHumanNote(note);
+        event.setTraceId(entity.getTraceId());
+        event.setTraceHash(traceHash(entity));
+        event.setCreatedAt(actionTimestamp());
+        auditEventRepository.save(event);
+    }
+
+    private HumanReviewCenter.AuditEvent auditEvent(HumanReviewAuditEventEntity entity) {
+        return new HumanReviewCenter.AuditEvent(
+                entity.getId(),
+                entity.getReviewId(),
+                entity.getAction(),
+                actionLabel(entity.getAction()),
+                entity.getPreviousStatus(),
+                entity.getNextStatus(),
+                entity.getPreviousRiskLevel(),
+                entity.getNextRiskLevel(),
+                entity.getActor(),
+                entity.getActorRole(),
+                entity.getHumanNote(),
+                entity.getTraceId(),
+                entity.getTraceHash(),
+                format(entity.getCreatedAt()));
+    }
+
+    private String actionLabel(String action) {
+        return switch (action) {
+            case "CONFIRM" -> "确认可用";
+            case "RETURN" -> "退回修改";
+            case "FLAG_RISK" -> "标记风险";
+            case "ADD_NOTE" -> "添加人工备注";
+            case "AUTO_RISK_GUARD" -> "自动风险扫描";
+            default -> action;
+        };
+    }
+
+    private String traceHash(HumanReviewItemEntity entity) {
+        return "audit-" + Integer.toHexString((entity.getTraceId() + ":" + entity.getId()).hashCode());
+    }
+
     private String noteOrExisting(String note, HumanReviewItemEntity entity) {
         return note == null || note.isBlank() ? entity.getHumanNote() : note;
+    }
+
+    private String defaultText(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 
     private String format(LocalDateTime timestamp) {

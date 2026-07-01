@@ -1,4 +1,4 @@
-import type { HumanReviewCenterData, HumanReviewDetail, HumanReviewProject, HumanReviewTraceStep } from '../types'
+import type { HumanReviewAuditEvent, HumanReviewCenterData, HumanReviewDetail, HumanReviewProject, HumanReviewTraceStep } from '../types'
 
 const riskTerms = ['生产级', '稳定接入', '真实用户', '提升 Offer 率', '保证通过', '自动投递', '实时面试辅助']
 const compliancePrinciples = ['不输出 Offer 概率', '不做实时面试作弊', '不虚构真实客户', '不保存真实隐私', '不夸大模型能力']
@@ -14,6 +14,35 @@ const traceEvidence: HumanReviewTraceStep[] = [
 
 function project(name: string, excerpt: string, sourceTypes: string[]): HumanReviewProject {
   return { name, excerpt, sourceTypes }
+}
+
+function audit(
+  reviewId: string,
+  action: HumanReviewAuditEvent['action'],
+  actionLabel: string,
+  previousStatus: string,
+  nextStatus: string,
+  previousRiskLevel: string,
+  nextRiskLevel: string,
+  humanNote: string,
+  traceId: string,
+): HumanReviewAuditEvent {
+  return {
+    id: `fallback-${reviewId}-${action}`,
+    reviewId,
+    action,
+    actionLabel,
+    previousStatus,
+    nextStatus,
+    previousRiskLevel,
+    nextRiskLevel,
+    actor: action === 'AUTO_RISK_GUARD' ? 'local-rule risk guard' : 'demo-reviewer',
+    actorRole: action === 'AUTO_RISK_GUARD' ? 'System guard' : 'Human reviewer',
+    humanNote,
+    traceId,
+    traceHash: `audit-${traceId.slice(-4).toLowerCase()}-${reviewId.slice(-4)}`,
+    createdAt: '2026-07-01 14:22',
+  }
 }
 
 function detail(
@@ -49,6 +78,23 @@ function detail(
     compliancePrinciples,
     copyAllowed: status === 'Confirmed',
     lastAction: '等待人工确认',
+    auditTrail: [
+      audit(
+        id,
+        status === 'Confirmed' ? 'CONFIRM' : status === 'Returned' ? 'RETURN' : 'AUTO_RISK_GUARD',
+        status === 'Confirmed' ? '确认可用' : status === 'Returned' ? '退回修改' : '自动风险扫描',
+        'Draft',
+        status,
+        riskLevel,
+        riskLevel,
+        status === 'Confirmed'
+          ? '确认仅保留作品集级表述，不声明真实客户或生产流量。'
+          : status === 'Returned'
+            ? '退回补充边界说明，复制保持禁用。'
+            : '命中风险词，复制保持禁用，等待人工确认。',
+        traceId,
+      ),
+    ],
   }
 }
 

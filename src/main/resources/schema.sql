@@ -102,6 +102,22 @@ CREATE TABLE IF NOT EXISTS human_review_item (
     updated_at TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS human_review_audit_event (
+    id VARCHAR(80) PRIMARY KEY,
+    review_id VARCHAR(80) NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    previous_status VARCHAR(40) NOT NULL,
+    next_status VARCHAR(40) NOT NULL,
+    previous_risk_level VARCHAR(40) NOT NULL,
+    next_risk_level VARCHAR(40) NOT NULL,
+    actor VARCHAR(120) NOT NULL,
+    actor_role VARCHAR(80) NOT NULL,
+    human_note TEXT NOT NULL,
+    trace_id VARCHAR(100) NOT NULL,
+    trace_hash VARCHAR(120) NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS provider_trace_run (
     id VARCHAR(80) PRIMARY KEY,
     run_id VARCHAR(100) NOT NULL UNIQUE,

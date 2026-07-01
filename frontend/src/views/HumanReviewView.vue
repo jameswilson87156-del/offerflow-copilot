@@ -9,6 +9,7 @@ import {
   FileText,
   Flag,
   GitBranch,
+  History,
   MessageSquarePlus,
   RefreshCw,
   RotateCcw,
@@ -62,6 +63,8 @@ const highlightedSuggestion = computed(() =>
   splitRiskTerms(selectedDetail.value.aiSuggestion, selectedDetail.value.riskTerms),
 )
 
+const auditTrail = computed(() => selectedDetail.value.auditTrail ?? [])
+
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? 'local-rule 审核流 · 无外部调用'
   : `${props.selectedProvider} 未配置，本页仍使用 local-rule 审核`)
@@ -112,7 +115,7 @@ function riskClass(riskLevel: string) {
 }
 
 function statusClass(status: HumanReviewStatus) {
-  return status.toLowerCase()
+  return status.toLowerCase().replace(/\s+/g, '-')
 }
 
 function formatRiskLevel(riskLevel: string) {
@@ -121,6 +124,20 @@ function formatRiskLevel(riskLevel: string) {
 
 function sourceLabel(item: HumanReviewSummary) {
   return `${item.sourcePage} · ${item.providerMode}`
+}
+
+function auditClass(action: string) {
+  if (action === 'CONFIRM') return 'confirm'
+  if (action === 'RETURN') return 'return'
+  if (action === 'FLAG_RISK') return 'flag'
+  if (action === 'AUTO_RISK_GUARD') return 'guard'
+  return 'note'
+}
+
+function riskFlow(event: { previousRiskLevel: string; nextRiskLevel: string }) {
+  return event.previousRiskLevel === event.nextRiskLevel
+    ? formatRiskLevel(event.nextRiskLevel)
+    : `${formatRiskLevel(event.previousRiskLevel)} → ${formatRiskLevel(event.nextRiskLevel)}`
 }
 
 async function applyAction(action: 'confirm' | 'return' | 'flag-risk') {
@@ -291,6 +308,37 @@ function rememberNote() {
         </dl>
 
         <p class="action-message">{{ actionMessage }}</p>
+
+        <section class="review-audit-card" aria-label="Review History">
+          <header>
+            <div>
+              <span class="panel-kicker">REVIEW HISTORY</span>
+              <h3><History :size="14" />审计记录</h3>
+            </div>
+            <em>{{ auditTrail.length }} 条</em>
+          </header>
+
+          <div class="audit-timeline">
+            <article v-for="event in auditTrail" :key="event.id" class="audit-event">
+              <span :class="['audit-dot', auditClass(event.action)]" />
+              <div class="audit-event-body">
+                <div class="audit-event-top">
+                  <strong>{{ event.actionLabel }}</strong>
+                  <time>{{ event.createdAt }}</time>
+                </div>
+                <p>{{ event.previousStatus }} → {{ event.nextStatus }}</p>
+                <small>{{ event.actor }} · {{ event.actorRole }}</small>
+                <dl>
+                  <div><dt>Risk</dt><dd>{{ riskFlow(event) }}</dd></div>
+                  <div><dt>Trace</dt><dd>{{ event.traceId }}</dd></div>
+                  <div><dt>Hash</dt><dd>{{ event.traceHash }}</dd></div>
+                </dl>
+                <blockquote>{{ event.humanNote }}</blockquote>
+              </div>
+            </article>
+            <p v-if="!auditTrail.length" class="empty-audit">暂无审计记录，状态变更后会自动写入。</p>
+          </div>
+        </section>
       </aside>
     </div>
 
@@ -331,7 +379,7 @@ function rememberNote() {
       <span>Risk Guard</span>
       <span>Schema Validate</span>
       <span>local-rule fallback</span>
-      <p>所有内容均为匿名化演示数据；确认按钮只改变内存 mock 状态。</p>
+      <p>所有内容均为匿名化 seed demo 数据；确认按钮只改变 H2 demo persistence 状态。</p>
     </footer>
   </main>
 </template>

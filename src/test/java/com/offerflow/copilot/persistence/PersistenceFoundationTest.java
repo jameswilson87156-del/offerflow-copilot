@@ -11,6 +11,7 @@ import java.util.List;
 import com.offerflow.copilot.OfferFlowCopilotApplication;
 import com.offerflow.copilot.domain.MatchReportDemo;
 import com.offerflow.copilot.persistence.repository.ApplicationRecordRepository;
+import com.offerflow.copilot.persistence.repository.HumanReviewAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.HumanReviewItemRepository;
 import com.offerflow.copilot.persistence.repository.InterviewPrepRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
@@ -53,6 +54,9 @@ class PersistenceFoundationTest {
     private HumanReviewItemRepository humanReviewItemRepository;
 
     @Autowired
+    private HumanReviewAuditEventRepository humanReviewAuditEventRepository;
+
+    @Autowired
     private ProviderTraceRunRepository providerTraceRunRepository;
 
     @Autowired
@@ -69,6 +73,7 @@ class PersistenceFoundationTest {
         assertThat(interviewPrepRepository.count()).isEqualTo(1);
         assertThat(applicationRecordRepository.count()).isEqualTo(3);
         assertThat(humanReviewItemRepository.count()).isEqualTo(6);
+        assertThat(humanReviewAuditEventRepository.count()).isGreaterThanOrEqualTo(4);
         assertThat(providerTraceRunRepository.count()).isEqualTo(1);
         assertThat(traceStepRepository.count()).isEqualTo(10);
     }
@@ -77,12 +82,14 @@ class PersistenceFoundationTest {
     void seedOnEmptyDoesNotDuplicateRows() {
         long evidenceCount = resumeEvidenceRepository.count();
         long reviewCount = humanReviewItemRepository.count();
+        long auditCount = humanReviewAuditEventRepository.count();
         long stepCount = traceStepRepository.count();
 
         seedService.seedIfEmpty();
 
         assertThat(resumeEvidenceRepository.count()).isEqualTo(evidenceCount);
         assertThat(humanReviewItemRepository.count()).isEqualTo(reviewCount);
+        assertThat(humanReviewAuditEventRepository.count()).isEqualTo(auditCount);
         assertThat(traceStepRepository.count()).isEqualTo(stepCount);
     }
 

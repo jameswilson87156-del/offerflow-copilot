@@ -12,10 +12,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-@SpringBootTest(classes = OfferFlowCopilotApplication.class)
+@SpringBootTest(
+        classes = OfferFlowCopilotApplication.class,
+        properties = "spring.datasource.url=jdbc:h2:mem:offerflow-api;MODE=MySQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=0;DB_CLOSE_ON_EXIT=false")
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class OfferFlowApiTest {
 
     @Autowired
@@ -192,32 +196,87 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.copyAllowed").value(false))
                 .andExpect(jsonPath("$.riskTerms", hasSize(7)))
                 .andExpect(jsonPath("$.traceEvidence", hasSize(6)))
-                .andExpect(jsonPath("$.evidence.resumeProjects", hasSize(3)));
+                .andExpect(jsonPath("$.evidence.resumeProjects", hasSize(3)))
+                .andExpect(jsonPath("$.auditTrail", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[0].action").value("AUTO_RISK_GUARD"));
     }
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void humanReviewActionsReturnUpdatedState() throws Exception {
         mockMvc.perform(post("/api/reviews/review-confirmed-resume/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"note\":\"人工确认后仅保留作品集级表述。\"}"))
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"人工确认后仅保留作品集级表述。\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("Confirmed"))
                 .andExpect(jsonPath("$.copyAllowed").value(true))
-                .andExpect(jsonPath("$.humanNote").value("人工确认后仅保留作品集级表述。"));
+                .andExpect(jsonPath("$.humanNote").value("人工确认后仅保留作品集级表述。"))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'CONFIRM')]", hasSize(2)));
 
         mockMvc.perform(post("/api/reviews/review-returned-devops/return")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"note\":\"需要补充部署证据边界。\"}"))
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"需要补充部署证据边界。\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("Returned"))
-                .andExpect(jsonPath("$.copyAllowed").value(false));
+                .andExpect(jsonPath("$.copyAllowed").value(false))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'RETURN')]", hasSize(2)));
 
         mockMvc.perform(post("/api/reviews/review-risk-model/flag-risk")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"note\":\"Provider 能力超出本轮边界。\"}"))
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"Provider 能力超出本轮边界。\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.riskLevel").value("高风险"))
-                .andExpect(jsonPath("$.status").value("Draft"))
-                .andExpect(jsonPath("$.copyAllowed").value(false));
+                .andExpect(jsonPath("$.status").value("Risk Flagged"))
+                .andExpect(jsonPath("$.copyAllowed").value(false))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'FLAG_RISK')]", hasSize(1)));
+    }
+
+    @Test
+    void humanReviewAuditEventsEndpointReturnsHistory() throws Exception {
+        mockMvc.perform(get("/api/reviews/review-star-mcp/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].reviewId").value("review-star-mcp"))
+                .andExpect(jsonPath("$[0].action").value("AUTO_RISK_GUARD"))
+                .andExpect(jsonPath("$[0].traceHash").exists());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void confirmWritesAuditEventWithActorAndStateFlow() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-opening-boss/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"确认开场白只引用作品集证据，不承诺回复或 Offer。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Confirmed"))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'CONFIRM')]", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[0].actor").value("demo-reviewer"))
+                .andExpect(jsonPath("$.auditTrail[0].previousStatus").value("Draft"))
+                .andExpect(jsonPath("$.auditTrail[0].nextStatus").value("Confirmed"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void returnWritesAuditEventWithHumanNote() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-returned-devops/return")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"继续退回，要求补充部署边界。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Returned"))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == '继续退回，要求补充部署边界。')]", hasSize(1)));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void flagRiskWritesAuditEventWithRiskLevelChange() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-star-mcp/flag-risk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"命中实时面试辅助与保证通过，标记风险。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Risk Flagged"))
+                .andExpect(jsonPath("$.riskLevel").value("高风险"))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'FLAG_RISK')]", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[1].previousRiskLevel").value("中"))
+                .andExpect(jsonPath("$.auditTrail[1].nextRiskLevel").value("高风险"));
     }
 }
