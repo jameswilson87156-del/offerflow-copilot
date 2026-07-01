@@ -50,6 +50,7 @@ public class ProviderTraceService {
                         boundary("不保存真实隐私", "输入输出使用匿名化演示数据，不保存 PII 原文。", "safe"),
                         boundary("Provider 未配置时必须显示 fallback", "OpenAI-compatible 与 DeepSeek 未配置时明确回退 local-rule。", "warning"),
                         boundary("模型失败时不伪装成成功", "Provider Call 步骤标记 fallback，Run Details 保留降级原因。", "warning"),
+                        boundary("未校验输出不可进入复制流程", "所有 ProviderResponse 必须通过 schema validate 与 risk guard。", "warning"),
                         boundary("所有输出进入 Human Review", "AI / 规则输出默认 Draft，人工确认前不可复制。", "safe")));
     }
 
@@ -113,7 +114,7 @@ public class ProviderTraceService {
     }
 
     private String currentStatus() {
-        return "local-rule active; external provider adapters are no-op in P4B";
+        return "local-rule active; provider contracts validate responses before Human Review";
     }
 
     private ProviderTraceCenter.SafetyBoundary boundary(String title, String description, String tone) {

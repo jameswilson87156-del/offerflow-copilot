@@ -17,7 +17,7 @@ import {
   Timer,
 } from 'lucide-vue-next'
 import { useProviderTrace } from '../composables/useProviderTrace'
-import type { ProviderCard, ProviderPipelineStep, ProviderTraceStepStatus } from '../types'
+import type { ProviderCard, ProviderContractSummary, ProviderPipelineStep, ProviderTraceStepStatus } from '../types'
 
 const props = defineProps<{
   searchQuery: string
@@ -27,15 +27,22 @@ const props = defineProps<{
 const {
   settings,
   configCheck,
+  contracts,
+  selectedContract,
   traceIndex,
   traceRun,
   sandboxResult,
+  validationResult,
   sandboxError,
+  validationError,
   loading,
   running,
+  validating,
   source,
   reload,
   runSandbox,
+  loadContract,
+  validateResponse,
 } = useProviderTrace()
 
 const providerOptions = [
@@ -56,8 +63,12 @@ const EMPTY_STEP: ProviderPipelineStep = {
 
 const selectedStepKey = shallowRef('provider-noop')
 const selectedSandboxProvider = shallowRef(props.selectedProvider || 'local-rule')
+const selectedContractTaskType = shallowRef('match-report')
 const simulateFailure = shallowRef(false)
 const simulateTimeout = shallowRef(false)
+const simulateMissingField = shallowRef(false)
+const simulateUnsafeClaim = shallowRef(false)
+const simulateSchemaMismatch = shallowRef(false)
 const sandboxInput = shallowRef('Java Spring Boot role with AI tooling evidence. Keep output local and require Human Review.')
 
 const filteredProviders = computed(() => {
@@ -95,6 +106,22 @@ const filteredSteps = computed(() => {
   )
 })
 
+const filteredContracts = computed(() => {
+  const query = props.searchQuery.trim().toLowerCase()
+  if (!query) return contracts.value
+  return contracts.value.filter((contract) =>
+    [
+      contract.taskType,
+      contract.displayName,
+      contract.promptVersion,
+      contract.schemaVersion,
+      contract.riskPolicyVersion,
+      contract.outputSchemaName,
+      contract.boundaryNotice,
+    ].join(' ').toLowerCase().includes(query),
+  )
+})
+
 const selectedStep = computed<ProviderPipelineStep>(() =>
   traceRun.value.pipeline.find((step) => step.key === selectedStepKey.value)
   ?? traceRun.value.pipeline[0]
@@ -126,6 +153,17 @@ const runDetailRows = computed(() => [
   ['Trace hash', traceRun.value.traceHash],
 ])
 
+const contractDetailRows = computed(() => [
+  ['Task type', selectedContract.value.taskType],
+  ['Prompt version', selectedContract.value.promptVersion],
+  ['Schema version', selectedContract.value.schemaVersion],
+  ['Risk policy', selectedContract.value.riskPolicyVersion],
+  ['Output schema', selectedContract.value.outputSchemaName],
+  ['Required inputs', selectedContract.value.requiredInputs.join(' / ')],
+  ['Forbidden claims', selectedContract.value.forbiddenClaims.join(' / ')],
+  ['Boundary notice', selectedContract.value.boundaryNotice],
+])
+
 const sandboxRows = computed(() => sandboxResult.value
   ? [
       ['Selected provider', sandboxResult.value.providerMode],
@@ -144,6 +182,16 @@ const sandboxRows = computed(() => sandboxResult.value
       ['Fallback reason', '运行后显示'],
     ])
 
+const validationRows = computed(() => [
+  ['Valid', String(validationResult.value.valid)],
+  ['Fallback required', String(validationResult.value.fallbackRequired)],
+  ['Human review required', String(validationResult.value.humanReviewRequired)],
+  ['Prompt version', validationResult.value.promptVersion],
+  ['Schema version', validationResult.value.schemaVersion],
+  ['Risk policy', validationResult.value.riskPolicyVersion],
+  ['Risk flags', validationResult.value.riskFlags.join(' / ')],
+])
+
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? 'local-rule active · no external calls'
   : `${props.selectedProvider} stays no-op and falls back when sandboxed`)
@@ -152,13 +200,17 @@ watch(() => props.selectedProvider, (nextProvider) => {
   if (providerOptions.some((option) => option.id === nextProvider)) selectedSandboxProvider.value = nextProvider
 })
 
+watch(() => selectedContract.value.taskType, (taskType) => {
+  if (taskType) selectedContractTaskType.value = taskType
+})
+
 watch(filteredSteps, (steps) => {
   if (steps.length && !steps.some((step) => step.key === selectedStepKey.value)) selectedStepKey.value = steps[0].key
 })
 
 async function submitSandboxRun() {
   await runSandbox({
-    taskType: 'provider-sandbox',
+    taskType: selectedContractTaskType.value,
     inputText: sandboxInput.value,
     providerMode: selectedSandboxProvider.value,
     simulateFailure: simulateFailure.value,
@@ -167,6 +219,22 @@ async function submitSandboxRun() {
     actorRole: 'Human reviewer',
   })
   selectedStepKey.value = 'fallback-decision'
+}
+
+async function selectContract(contract: ProviderContractSummary) {
+  selectedContractTaskType.value = contract.taskType
+  await loadContract(contract.taskType)
+}
+
+async function submitValidation() {
+  await validateResponse({
+    taskType: selectedContractTaskType.value,
+    providerMode: selectedSandboxProvider.value,
+    model: selectedContract.value.outputSchemaName,
+    simulateUnsafeClaim: simulateUnsafeClaim.value,
+    simulateMissingField: simulateMissingField.value,
+    simulateSchemaMismatch: simulateSchemaMismatch.value,
+  })
 }
 
 function providerStatusClass(provider: ProviderCard) {
@@ -279,6 +347,117 @@ function stepClass(status: ProviderTraceStepStatus) {
         <p v-if="sandboxError" class="sandbox-error"><AlertTriangle :size="12" />{{ sandboxError }}</p>
       </section>
     </div>
+
+    <div class="provider-contract-grid">
+      <section class="panel provider-contract-panel">
+        <header class="panel-header provider-panel-header">
+          <div>
+            <span class="panel-kicker">CONTRACT REGISTRY</span>
+            <h2>Provider Contract</h2>
+          </div>
+          <span class="count-chip">{{ filteredContracts.length }} 个</span>
+        </header>
+        <div class="contract-card-list">
+          <button
+            v-for="contract in filteredContracts"
+            :key="contract.taskType"
+            type="button"
+            :class="['contract-card', { selected: selectedContractTaskType === contract.taskType }]"
+            @click="selectContract(contract)"
+          >
+            <strong>{{ contract.displayName }}</strong>
+            <span>{{ contract.taskType }}</span>
+            <em>{{ contract.outputSchemaName }}</em>
+            <small>{{ contract.promptVersion }} · {{ contract.schemaVersion }}</small>
+            <small>Risk {{ contract.riskPolicyVersion }} · Human Review {{ contract.requireHumanReview }}</small>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel contract-detail-panel">
+        <header class="panel-header provider-panel-header">
+          <div>
+            <span class="panel-kicker">CONTRACT DETAIL</span>
+            <h2>Contract Detail</h2>
+          </div>
+          <ShieldCheck :size="17" class="header-icon" />
+        </header>
+        <dl class="contract-detail-grid">
+          <div v-for="[label, value] in contractDetailRows" :key="label">
+            <dt>{{ label }}</dt>
+            <dd>{{ value }}</dd>
+          </div>
+        </dl>
+        <div class="contract-instruction-block">
+          <strong>System Instruction</strong>
+          <p>{{ selectedContract.systemInstruction }}</p>
+          <strong>User Instruction Template</strong>
+          <p>{{ selectedContract.userInstructionTemplate }}</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel validation-sandbox-panel">
+      <header class="panel-header provider-panel-header">
+        <div>
+          <span class="panel-kicker">RESPONSE VALIDATION</span>
+          <h2>Response Validation Sandbox</h2>
+        </div>
+        <FileJson :size="17" class="header-icon" />
+      </header>
+      <div class="validation-layout">
+        <div class="validation-controls">
+          <div class="provider-mode-picker validation-task-picker" aria-label="Validation task type">
+            <button
+              v-for="contract in contracts"
+              :key="contract.taskType"
+              type="button"
+              :class="{ selected: selectedContractTaskType === contract.taskType }"
+              @click="selectContract(contract)"
+            >
+              {{ contract.displayName }}
+            </button>
+          </div>
+          <div class="sandbox-toggles">
+            <label><input v-model="simulateMissingField" type="checkbox" />simulate missing field</label>
+            <label><input v-model="simulateUnsafeClaim" type="checkbox" />simulate unsafe claim</label>
+            <label><input v-model="simulateSchemaMismatch" type="checkbox" />simulate schema mismatch</label>
+          </div>
+          <button type="button" class="primary-button sandbox-run-button" :disabled="validating" @click="submitValidation">
+            <RefreshCw :size="14" :class="{ spinning: validating }" />校验模拟响应
+          </button>
+          <p v-if="validationError" class="sandbox-error"><AlertTriangle :size="12" />{{ validationError }}</p>
+        </div>
+        <dl class="validation-result-grid">
+          <div v-for="[label, value] in validationRows" :key="label">
+            <dt>{{ label }}</dt>
+            <dd>{{ value }}</dd>
+          </div>
+        </dl>
+        <div class="violation-list">
+          <template v-if="validationResult.violations.length">
+            <article
+              v-for="violation in validationResult.violations"
+              :key="violation.code + violation.field"
+              class="violation-item warning"
+            >
+              <AlertTriangle :size="14" />
+              <div>
+                <strong>{{ violation.code }} · {{ violation.severity }}</strong>
+                <p>{{ violation.field }}：{{ violation.message }}</p>
+              </div>
+            </article>
+          </template>
+          <article v-else class="violation-item safe">
+            <CheckCircle2 :size="14" />
+            <div>
+              <strong>No contract violations</strong>
+              <p>{{ validationResult.sanitizedOutput }}</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
 
     <div class="provider-top-grid">
       <section class="panel provider-status-panel">

@@ -867,10 +867,10 @@ public class PersistenceSeedService implements ApplicationRunner {
             run.setProviderMode("local-rule fallback active");
             run.setFinalProvider("local-rule fallback");
             run.setModel("local-rule-engine v2.1");
-            run.setFallbackReason("OpenAI-compatible 与 DeepSeek 均未配置；本轮边界禁止真实 Provider 调用。");
-            run.setPromptVersion("v2.4.8");
-            run.setSchemaVersion("v1.4.3");
-            run.setRiskFlagsJson(jsonCodec.write(List.of("命中风险词：真实用户", "命中风险词：结果承诺")));
+            run.setFallbackReason("OpenAI-compatible 与 DeepSeek 均未配置；P4C contract sandbox 禁止真实 Provider 调用。");
+            run.setPromptVersion("match-report-prompt-v1");
+            run.setSchemaVersion("match-report-schema-v1");
+            run.setRiskFlagsJson(jsonCodec.write(List.of("contract-validated", "human-review-required", "raw-response-not-saved")));
             run.setEvidenceCount(12);
             run.setHumanReviewStatus("待人工确认");
             run.setDurationMs(842);
@@ -881,12 +881,13 @@ public class PersistenceSeedService implements ApplicationRunner {
                             new ProviderTraceCenter.ResumeEvidenceRef("RES-001", "MCP Tool Gateway", "Spring Boot 工具网关，包含注册、调用审计与 Trace 证据。", List.of("README", "后端测试", "Trace")),
                             new ProviderTraceCenter.ResumeEvidenceRef("RES-012", "DevFlow Copilot", "任务拆解、Provider fallback、Schema Validate、Human Review。", List.of("README", "截图", "Trace")),
                             new ProviderTraceCenter.ResumeEvidenceRef("RES-022", "Enterprise Ticket RAG Copilot", "带引用和复核链路的 RAG 演示，仍缺少大规模离线评测。", List.of("README", "截图", "Trace"))),
-                    "{\"provider\":\"local-rule fallback\",\"schema\":\"v1.4.3\",\"evidence_count\":12,\"copy_allowed\":false}",
+                    "{\"provider\":\"local-rule\",\"schemaVersion\":\"match-report-schema-v1\",\"summary\":\"contract validated local-rule output\",\"humanReviewRequired\":true,\"copyAllowed\":false}",
                     "OpenAI-compatible 未配置；DeepSeek 禁用；未发起任何外部网络请求。",
-                    "需要把结果承诺改成证据覆盖说明，所有输出进入 Human Review。")));
+                    "真实 Provider 接入前必须通过 schema validate 与 risk guard；所有输出进入 Human Review。")));
             run.setTechnicalTagsJson(jsonCodec.write(List.of(
-                    "OpenAI-compatible", "DeepSeek", "local-rule fallback", "Trace Evidence", "Schema Validate",
-                    "Risk Guard", "Human Review", "Spring Boot 3", "Vue 3", "TypeScript")));
+                    "OpenAI-compatible", "DeepSeek", "local-rule fallback", "Prompt Contract", "Response Validator",
+                    "Trace Evidence", "Schema Contract Validate", "Risk Policy Guard", "Human Review", "Spring Boot 3",
+                    "Vue 3", "TypeScript")));
             run.setCreatedAt(ts(2026, 7, 1, 14, 35));
             providerTraceRunRepository.save(run);
         }
@@ -896,14 +897,16 @@ public class PersistenceSeedService implements ApplicationRunner {
         List<ProviderTraceCenter.PipelineStep> steps = List.of(
                 new ProviderTraceCenter.PipelineStep("jd-input", "JD Input", "success", "62ms", "手动录入演示 JD", "抽取岗位、技能与风险要求", "JD-042"),
                 new ProviderTraceCenter.PipelineStep("pii-redaction", "PII Redaction", "success", "34ms", "匿名化候选材料摘要", "未保存 PII 原文", "PII Guard"),
-                new ProviderTraceCenter.PipelineStep("prompt-template", "Prompt Template", "success", "88ms", "Prompt v2.4.8", "生成结构化提示摘要", "Template Registry"),
+                new ProviderTraceCenter.PipelineStep("prompt-contract-load", "Prompt Contract Load", "success", "28ms", "taskType=match-report", "match-report-prompt-v1 / match-report-schema-v1", "PromptContractRegistry"),
+                new ProviderTraceCenter.PipelineStep("risk-policy-load", "Risk Policy Load", "success", "19ms", "provider-risk-policy-v1", "禁止 Offer 概率、录取概率、保证通过", "RiskPolicyRegistry"),
+                new ProviderTraceCenter.PipelineStep("prompt-template", "Prompt Build", "success", "88ms", "Prompt match-report-prompt-v1", "生成结构化提示摘要", "Template Registry"),
                 new ProviderTraceCenter.PipelineStep("provider-call", "Provider Call", "fallback", "0ms", "Provider 未配置", "未发起网络请求，回退 local-rule", "Provider Boundary"),
-                new ProviderTraceCenter.PipelineStep("json-parse", "JSON Parse", "success", "41ms", "local-rule JSON snapshot", "解析为结构化对象", "Parser"),
-                new ProviderTraceCenter.PipelineStep("schema-validate", "Schema Validate", "success", "55ms", "Schema v1.4.3", "36 条字段通过", "Schema Guard"),
-                new ProviderTraceCenter.PipelineStep("risk-guard", "Risk Guard", "warning", "64ms", "禁用风险词扫描", "命中 2 项，复制仍禁用", "Risk Guard"),
+                new ProviderTraceCenter.PipelineStep("provider-response-validate", "Provider Response Validate", "success", "41ms", "ProviderResponseValidator", "响应字段存在且 rawResponseSaved=false", "Response Validator"),
+                new ProviderTraceCenter.PipelineStep("schema-contract-validate", "Schema Contract Validate", "success", "55ms", "Schema match-report-schema-v1", "required fields 通过", "Schema Guard"),
+                new ProviderTraceCenter.PipelineStep("risk-policy-guard", "Risk Policy Guard", "warning", "64ms", "禁用风险词扫描", "无高危承诺，复制仍禁用", "Risk Guard"),
+                new ProviderTraceCenter.PipelineStep("contract-violation-check", "Contract Violation Check", "success", "18ms", "contract violations", "No contract violations", "Contract Guard"),
                 new ProviderTraceCenter.PipelineStep("evidence-binding", "Evidence Binding", "success", "97ms", "JD + Resume Evidence", "绑定 12 条证据", "RES-001 / RES-012"),
-                new ProviderTraceCenter.PipelineStep("human-review", "Human Review", "warning", "401ms", "Draft 输出", "等待人工确认", "review-star-mcp"),
-                new ProviderTraceCenter.PipelineStep("confirmed-result", "Confirmed Result", "warning", "0ms", "人工确认前", "尚无可复制结果", "copyAllowed=false"));
+                new ProviderTraceCenter.PipelineStep("human-review", "Human Review Required", "warning", "401ms", "Draft 输出", "等待人工确认", "review-star-mcp"));
         for (int index = 0; index < steps.size(); index++) {
             ProviderTraceCenter.PipelineStep step = steps.get(index);
             TraceStepEntity entity = new TraceStepEntity();

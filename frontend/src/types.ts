@@ -507,6 +507,62 @@ export interface ProviderTraceRun {
   technicalTags: string[]
 }
 
+export interface ProviderContractSummary {
+  taskType: string
+  displayName: string
+  promptVersion: string
+  schemaVersion: string
+  riskPolicyVersion: string
+  requireHumanReview: boolean
+  outputSchemaName: string
+  boundaryNotice: string
+}
+
+export interface ProviderPromptContract {
+  taskType: string
+  promptVersion: string
+  schemaVersion: string
+  riskPolicyVersion: string
+  systemInstruction: string
+  userInstructionTemplate: string
+  requiredInputs: string[]
+  forbiddenClaims: string[]
+  outputSchemaName: string
+  boundaryNotice: string
+}
+
+export interface ProviderContractViolation {
+  code: string
+  message: string
+  field: string
+  severity: string
+  fallbackRequired: boolean
+  humanReviewRequired: boolean
+}
+
+export interface ProviderValidatedResult {
+  valid: boolean
+  violations: ProviderContractViolation[]
+  sanitizedOutput: string
+  fallbackRequired: boolean
+  humanReviewRequired: boolean
+  riskFlags: string[]
+  schemaVersion: string
+  promptVersion: string
+  riskPolicyVersion: string
+}
+
+export interface ProviderValidationPayload {
+  taskType: string
+  providerMode: string
+  model: string
+  structuredJson?: string
+  outputText?: string
+  simulateUnsafeClaim: boolean
+  simulateMissingField: boolean
+  simulateSchemaMismatch: boolean
+}
+
 export interface MatchReportSummary {
   jobTitle: string
   recommendedResumeVersions: string[]

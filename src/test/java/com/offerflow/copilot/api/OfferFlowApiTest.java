@@ -54,7 +54,7 @@ class OfferFlowApiTest {
         mockMvc.perform(get("/api/provider/settings"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mode").value("local-rule"))
-                .andExpect(jsonPath("$.currentStatus").value("local-rule active; external provider adapters are no-op in P4B"))
+                .andExpect(jsonPath("$.currentStatus").value("local-rule active; provider contracts validate responses before Human Review"))
                 .andExpect(jsonPath("$.providers", hasSize(3)))
                 .andExpect(jsonPath("$.providers[0].displayName").value("local-rule"))
                 .andExpect(jsonPath("$.providers[0].configured").value(true))
@@ -63,7 +63,7 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.providers[1].apiKeyStatus").value("not configured"))
                 .andExpect(jsonPath("$.providers[2].configured").value(false))
                 .andExpect(jsonPath("$.providers[2].realCallEnabled").value(false))
-                .andExpect(jsonPath("$.safetyBoundaries", hasSize(5)));
+                .andExpect(jsonPath("$.safetyBoundaries", hasSize(6)));
     }
 
     @Test
@@ -84,11 +84,11 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.runId").value("JD-20260701-143522-9E4D"))
                 .andExpect(jsonPath("$.finalProvider").value("local-rule fallback"))
                 .andExpect(jsonPath("$.model").value("local-rule-engine v2.1"))
-                .andExpect(jsonPath("$.riskFlags", hasSize(2)))
-                .andExpect(jsonPath("$.pipeline", hasSize(10)))
-                .andExpect(jsonPath("$.pipeline[3].status").value("fallback"))
+                .andExpect(jsonPath("$.riskFlags", hasSize(3)))
+                .andExpect(jsonPath("$.pipeline", hasSize(12)))
+                .andExpect(jsonPath("$.pipeline[5].status").value("fallback"))
                 .andExpect(jsonPath("$.evidenceDetail.resumeEvidence", hasSize(3)))
-                .andExpect(jsonPath("$.technicalTags", hasSize(10)));
+                .andExpect(jsonPath("$.technicalTags", hasSize(12)));
     }
 
     @Test

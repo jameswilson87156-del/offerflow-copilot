@@ -16,12 +16,13 @@
 - Match Report、Human Review、Evidence Library 的审计事件允许在本地页面展开查看；copy-check 结果会作为审计历史保留。
 - 允许使用 Flyway 管理 H2/MySQL 共用 schema，并用 Docker Compose 启动仅供本地开发/演示的 MySQL 8。
 - 允许使用 Provider SPI 和 sandbox run 演示配置校验、no-op adapter、失败/超时模拟、fallback 和 Trace Evidence 写入。
+- 允许使用 Provider contract sandbox 演示 PromptContract、RiskPolicy、ProviderResponseSchema 和本地 Response Validator。
 
 ## 明确不做
 
 - 不接真实 LLM，不调用 DeepSeek，不调用中转站。
 - 不保存 API Key 明文，也不把 Provider 配置伪装为已稳定接入。
-- 不因 `realCallEnabled=true` 配置项就发起真实外部请求；P4B adapter 仍然是 no-op。
+- 不因 `realCallEnabled=true` 配置项就发起真实外部请求；P4C adapter 仍然是 no-op。
 - 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
 - 不采集或保存真实手机号、邮箱、身份证、聊天记录等隐私。
 - 不自动投递，不自动私信 HR，不抓取平台聊天。
@@ -68,5 +69,7 @@ JD 分析台只接受用户手动粘贴的岗位描述或脱敏 seed demo，不�
 Provider SPI 只建立抽象和审计基础，不代表已经接入真实模型网关。默认 provider 是 `local-rule`；OpenAI-compatible 和 DeepSeek 当前是 no-op adapter，用于读取配置状态、展示 descriptor、模拟失败/超时并触发 fallback。
 
 `GET /api/provider/config-check` 和 `GET /api/provider/settings` 不返回 API Key 明文，只显示 `masked`、`not configured` 或 `disabled`。`POST /api/provider/sandbox-run` 不发起真实外部 Provider 调用，任何未配置、失败或超时都必须 fallback 到 local-rule，并写入 `provider_trace_run` 与 `trace_step`。
+
+`GET /api/provider/contracts`、`GET /api/provider/contracts/{taskType}` 和 `POST /api/provider/validate-response` 只用于本地 contract/validation 演示。真实 Provider 接入前，任何输出都必须通过 schema validate、risk guard 和 Human Review；未校验输出不得进入页面复制流程。
 
 所有 Provider 输出仍需 Human Review；模型失败不能伪装成成功，fallback reason 必须保留在响应和 Trace Evidence 中。

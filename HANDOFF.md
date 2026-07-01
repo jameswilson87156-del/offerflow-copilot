@@ -2,7 +2,7 @@
 
 ## 当前交付
 
-P4B 已完成 Provider SPI & Sandbox Resilience。P4A 的 Flyway Migration、H2/MySQL 兼容和 Docker Compose 说明保持有效；本轮新增 Provider 抽象、配置校验、no-op adapter、sandbox run、fallback trace 写入和 `/provider-settings` 页面升级。
+P4C 已完成 Provider Prompt / Schema Contract Hardening。P4A 的 Flyway Migration、H2/MySQL 兼容和 Docker Compose 说明保持有效；P4B 的 Provider SPI 继续保留；本轮新增 Prompt Contract、Risk Policy、Provider Response Schema、Response Validator、validate-response sandbox 和 `/provider-settings` contract/validation 面板。
 
 Match Report、Human Review、Evidence Library 的审计事件均可卡内展开，展示 action、状态变化、actor/role、human note、trace、changed fields 和时间。copy-check 的 `allowed`、reason、version status、Human Review status 和 Boundary Notice 会随 `COPY_ENABLED` / `COPY_BLOCKED` 保存在 `match_report_audit_event`。
 
@@ -24,9 +24,11 @@ Match Report、Human Review、Evidence Library 的审计事件均可卡内展开
 - 数据库 JSON 字段先用 `TEXT` 保存字符串，通过 `JsonCodec` 统一序列化/反序列化。
 - Provider SPI 位于 `com.offerflow.copilot.provider`，核心类型包括 `AiProviderClient`、`ProviderRequest`、`ProviderResponse`、`ProviderDescriptor`、`ProviderHealth`、`ProviderRouter` 和 `ProviderExecutionService`。
 - `AiProviderProperties` 默认 `mode=local-rule`、`realCallEnabled=false`、`rawResponseSave=false`、`timeoutMs=8000`。API Key 通过环境变量占位读取，不写入仓库配置，不在响应中明文展示。
-- OpenAI-compatible 与 DeepSeek adapter 是 `NoOpOpenAiCompatibleProviderClient` / `NoOpDeepSeekProviderClient`。即使配置存在，P4B 仍不发起真实网络请求。
-- 新增 `GET /api/provider/config-check` 与 `POST /api/provider/sandbox-run`。Sandbox run 支持 `simulateFailure`、`simulateTimeout`，外部 provider 未配置或失败时必须 fallback 到 `local-rule`。
-- 每次 sandbox run 都写入 `provider_trace_run` 和 8 条 `trace_step`：Provider Config Check、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Schema Validate、Risk Guard、Human Review Required。
+- OpenAI-compatible 与 DeepSeek adapter 是 `NoOpOpenAiCompatibleProviderClient` / `NoOpDeepSeekProviderClient`。即使配置存在，P4C 仍不发起真实网络请求。
+- Provider contracts 位于 `com.offerflow.copilot.provider.contract`，核心类型包括 `ProviderTaskType`、`PromptContract`、`PromptContractRegistry`、`RiskPolicy`、`RiskPolicyRegistry`、`ProviderResponseSchema`、`ProviderResponseSchemaRegistry`、`ProviderResponseValidator` 和 `ProviderValidatedResult`。
+- `GET /api/provider/contracts` 返回 taskType 合同摘要；`GET /api/provider/contracts/{taskType}` 返回 PromptContract detail；`POST /api/provider/validate-response` 只验证本地模拟 ProviderResponse，不发网络、不保存 raw model response。
+- `POST /api/provider/sandbox-run` 会先加载 PromptContract 和 RiskPolicy，再执行 local-rule/no-op provider，随后通过 ProviderResponseValidator。Sandbox run 支持 `simulateFailure`、`simulateTimeout`，外部 provider 未配置或失败时必须 fallback 到 `local-rule`。
+- 每次 sandbox run 都写入 `provider_trace_run` 和 12 条 `trace_step`：Provider Config Check、Prompt Contract Load、Risk Policy Load、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Provider Response Validate、Schema Contract Validate、Risk Policy Guard、Contract Violation Check、Human Review Required。
 - 新增 JD Intake 表为 `jd_parse_version`、`jd_evidence_binding` 和 `jd_audit_event`，由 `JobIntakeService` 在 JD 创建、更新、解析和绑定证据时写入。
 - `GET /api/jobs/{id}` 已包含当前 parse version、版本历史、evidence bindings 和 audit trail；也可通过 `GET /api/jobs/{id}/parse-versions`、`GET /api/jobs/{id}/evidence-bindings`、`GET /api/jobs/{id}/audit-events` 单独读取。
 - JD 写接口支持 `actor`、`actorRole`、`humanNote`；当前 actor 是 demo user，不是生产鉴权。
@@ -59,7 +61,7 @@ Match Report、Human Review、Evidence Library 的审计事件均可卡内展开
 
 - 后端覆盖 COPY_ENABLED / COPY_BLOCKED 结构化详情、Archived send-to-review block、Archived copy block、restore to Draft 和审计详情字段。
 - 前端覆盖 Match Report、Human Review、Evidence Library 的 1366x768、1440x900、1920x1080 截图与横向溢出检查。
-- `mvn test`：72 tests，0 failures / errors；包含 Flyway history、关键表存在性、Provider SPI 默认值、fallback、trace 写入和 key masking 检查。
+- `mvn test`：当前包含 Provider SPI 与 Provider Contract hardening 测试；覆盖 Flyway history、关键表存在性、Provider SPI 默认值、fallback、trace 写入、key masking、contract registry、response validation 和风险策略检查。
 - `npm run build`：Vue TypeScript 与 Vite production build 通过。
 - `npm run screenshots`：18 tests 通过。
 - MySQL smoke：MySQL 8 上 V1 migration 成功，15 张业务表存在；连续两次后端启动的 seed 计数稳定。

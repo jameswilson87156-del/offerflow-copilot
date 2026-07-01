@@ -133,7 +133,7 @@ class PersistenceFoundationTest {
         assertThat(jdEvidenceBindingRepository.count()).isEqualTo(4);
         assertThat(jdAuditEventRepository.count()).isEqualTo(3);
         assertThat(providerTraceRunRepository.count()).isEqualTo(1);
-        assertThat(traceStepRepository.count()).isEqualTo(10);
+        assertThat(traceStepRepository.count()).isEqualTo(12);
     }
 
     @Test
@@ -203,7 +203,7 @@ class PersistenceFoundationTest {
 
         mockMvc.perform(get("/api/provider/traces/" + PersistenceSeedService.DEMO_RUN_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pipeline", hasSize(10)))
-                .andExpect(jsonPath("$.pipeline[3].status").value("fallback"));
+                .andExpect(jsonPath("$.pipeline", hasSize(12)))
+                .andExpect(jsonPath("$.pipeline[5].status").value("fallback"));
     }
 }

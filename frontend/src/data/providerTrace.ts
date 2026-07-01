@@ -1,8 +1,16 @@
-import type { ProviderConfigCheck, ProviderSettingsData, ProviderTraceIndex, ProviderTraceRun } from '../types'
+import type {
+  ProviderConfigCheck,
+  ProviderContractSummary,
+  ProviderPromptContract,
+  ProviderSettingsData,
+  ProviderTraceIndex,
+  ProviderTraceRun,
+  ProviderValidatedResult,
+} from '../types'
 
 export const providerSettingsFallback: ProviderSettingsData = {
   mode: 'local-rule',
-  currentStatus: 'local-rule active; external provider adapters are no-op in P4B',
+  currentStatus: 'local-rule active; provider contracts validate responses before Human Review',
   providers: [
     {
       providerMode: 'local-rule',
@@ -30,7 +38,7 @@ export const providerSettingsFallback: ProviderSettingsData = {
       realCallEnabled: false,
       rawResponseSave: false,
       fallbackPolicy: 'fallback to local-rule when disabled, unconfigured, failed, or timed out',
-      boundaryNotice: 'Adapter structure exists, but P4B does not perform real OpenAI-compatible calls.',
+      boundaryNotice: 'Adapter structure exists, but P4C does not perform real OpenAI-compatible calls.',
     },
     {
       providerMode: 'deepseek',
@@ -44,7 +52,7 @@ export const providerSettingsFallback: ProviderSettingsData = {
       realCallEnabled: false,
       rawResponseSave: false,
       fallbackPolicy: 'fallback to local-rule when disabled, unconfigured, failed, or timed out',
-      boundaryNotice: 'Adapter structure exists, but P4B does not perform real DeepSeek calls.',
+      boundaryNotice: 'Adapter structure exists, but P4C does not perform real DeepSeek calls.',
     },
   ],
   safetyBoundaries: [
@@ -52,13 +60,14 @@ export const providerSettingsFallback: ProviderSettingsData = {
     { title: '不保存真实隐私', description: '输入输出使用匿名化演示数据，不保存 PII 原文。', tone: 'safe' },
     { title: 'Provider 未配置时必须显示 fallback', description: 'OpenAI-compatible 与 DeepSeek 未配置时明确回退 local-rule。', tone: 'warning' },
     { title: '模型失败时不伪装成成功', description: 'Provider Call 步骤标记 fallback，Run Details 保留降级原因。', tone: 'warning' },
+    { title: '未校验输出不可进入复制流程', description: '所有 ProviderResponse 必须通过 schema validate 与 risk guard。', tone: 'warning' },
     { title: '所有输出进入 Human Review', description: 'AI / 规则输出默认 Draft，人工确认前不可复制。', tone: 'safe' },
   ],
 }
 
 export const providerTraceIndexFallback: ProviderTraceIndex = {
   mode: 'local-rule',
-  currentStatus: 'local-rule active; external provider adapters are no-op in P4B',
+  currentStatus: 'local-rule active; provider contracts validate responses before Human Review',
   items: [
     {
       runId: 'JD-20260701-143522-9E4D',
@@ -89,7 +98,110 @@ export const providerConfigCheckFallback: ProviderConfigCheck = {
     'OpenAI-compatible is not configured; sandbox runs fallback to local-rule.',
     'DeepSeek is not configured; sandbox runs fallback to local-rule.',
   ],
-  boundaryNotice: 'P4B sandbox uses local-rule/no-op providers only; no real external model calls are made.',
+  boundaryNotice: 'P4C contract sandbox uses local-rule/no-op providers only; no real external model calls are made.',
+}
+
+export const providerContractsFallback: ProviderContractSummary[] = [
+  {
+    taskType: 'jd-analysis',
+    displayName: 'JD Analysis',
+    promptVersion: 'jd-analysis-prompt-v1',
+    schemaVersion: 'jd-analysis-schema-v1',
+    riskPolicyVersion: 'provider-risk-policy-v1',
+    requireHumanReview: true,
+    outputSchemaName: 'JdAnalysisResponse',
+    boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+  },
+  {
+    taskType: 'evidence-binding',
+    displayName: 'Evidence Binding',
+    promptVersion: 'evidence-binding-prompt-v1',
+    schemaVersion: 'evidence-binding-schema-v1',
+    riskPolicyVersion: 'provider-risk-policy-v1',
+    requireHumanReview: true,
+    outputSchemaName: 'EvidenceBindingResponse',
+    boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+  },
+  {
+    taskType: 'match-report',
+    displayName: 'Match Report',
+    promptVersion: 'match-report-prompt-v1',
+    schemaVersion: 'match-report-schema-v1',
+    riskPolicyVersion: 'provider-risk-policy-v1',
+    requireHumanReview: true,
+    outputSchemaName: 'MatchReportResponse',
+    boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+  },
+  {
+    taskType: 'interview-prep',
+    displayName: 'Interview Prep',
+    promptVersion: 'interview-prep-prompt-v1',
+    schemaVersion: 'interview-prep-schema-v1',
+    riskPolicyVersion: 'provider-risk-policy-v1',
+    requireHumanReview: true,
+    outputSchemaName: 'InterviewPrepResponse',
+    boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+  },
+  {
+    taskType: 'opening-message',
+    displayName: 'Opening Message',
+    promptVersion: 'opening-message-prompt-v1',
+    schemaVersion: 'opening-message-schema-v1',
+    riskPolicyVersion: 'provider-risk-policy-v1',
+    requireHumanReview: true,
+    outputSchemaName: 'OpeningMessageResponse',
+    boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+  },
+  {
+    taskType: 'human-review-rewrite',
+    displayName: 'Human Review Rewrite',
+    promptVersion: 'human-review-rewrite-prompt-v1',
+    schemaVersion: 'human-review-rewrite-schema-v1',
+    riskPolicyVersion: 'provider-risk-policy-v1',
+    requireHumanReview: true,
+    outputSchemaName: 'HumanReviewRewriteResponse',
+    boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+  },
+  {
+    taskType: 'provider-sandbox',
+    displayName: 'Provider Sandbox',
+    promptVersion: 'provider-sandbox-prompt-v1',
+    schemaVersion: 'provider-sandbox-schema-v1',
+    riskPolicyVersion: 'provider-risk-policy-v1',
+    requireHumanReview: true,
+    outputSchemaName: 'ProviderSandboxResponse',
+    boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+  },
+]
+
+export const providerContractDetailFallback: ProviderPromptContract = {
+  taskType: 'match-report',
+  promptVersion: 'match-report-prompt-v1',
+  schemaVersion: 'match-report-schema-v1',
+  riskPolicyVersion: 'provider-risk-policy-v1',
+  systemInstruction: 'You are OfferFlow Copilot running in local-rule/no-op mode. Return only review-gated structured output.',
+  userInstructionTemplate: 'Create a draft match report with evidence coverage, not admission predictions.',
+  requiredInputs: ['jobRequirements', 'evidenceBindings', 'reviewStatus'],
+  forbiddenClaims: [
+    'Offer 概率',
+    '录取概率',
+    '保证通过',
+    '生产级稳定接入真实模型',
+  ],
+  outputSchemaName: 'MatchReportResponse',
+  boundaryNotice: 'Provider contract sandbox only; no real external model calls and all output requires Human Review.',
+}
+
+export const providerValidationFallback: ProviderValidatedResult = {
+  valid: true,
+  violations: [],
+  sanitizedOutput: 'Local validation sandbox output. No external model call was made; Human Review is required.',
+  fallbackRequired: false,
+  humanReviewRequired: true,
+  riskFlags: ['validation-sandbox', 'no-external-model-call', 'contract-validated', 'human-review-required'],
+  schemaVersion: 'match-report-schema-v1',
+  promptVersion: 'match-report-prompt-v1',
+  riskPolicyVersion: 'provider-risk-policy-v1',
 }
 
 export const providerTraceRunFallback: ProviderTraceRun = {
@@ -98,10 +210,10 @@ export const providerTraceRunFallback: ProviderTraceRun = {
   providerMode: 'local-rule fallback active',
   finalProvider: 'local-rule fallback',
   model: 'local-rule-engine v2.1',
-  fallbackReason: 'OpenAI-compatible 与 DeepSeek 均未配置；本轮边界禁止真实 Provider 调用。',
-  promptVersion: 'v2.4.8',
-  schemaVersion: 'v1.4.3',
-  riskFlags: ['命中风险词：真实用户', '命中风险词：保证通过'],
+  fallbackReason: 'OpenAI-compatible 与 DeepSeek 均未配置；P4C contract sandbox 禁止真实 Provider 调用。',
+  promptVersion: 'match-report-prompt-v1',
+  schemaVersion: 'match-report-schema-v1',
+  riskFlags: ['contract-validated', 'human-review-required', 'raw-response-not-saved'],
   evidenceCount: 12,
   humanReviewStatus: '待人工确认',
   duration: '842ms',
@@ -109,14 +221,16 @@ export const providerTraceRunFallback: ProviderTraceRun = {
   pipeline: [
     { key: 'jd-input', label: 'JD Input', status: 'success', duration: '62ms', inputSummary: '手动录入演示 JD', outputSummary: '抽取岗位、技能与风险要求', linkedEvidence: 'JD-042' },
     { key: 'pii-redaction', label: 'PII Redaction', status: 'success', duration: '34ms', inputSummary: '匿名化候选材料摘要', outputSummary: '未保存 PII 原文', linkedEvidence: 'PII Guard' },
-    { key: 'prompt-template', label: 'Prompt Template', status: 'success', duration: '88ms', inputSummary: 'Prompt v2.4.8', outputSummary: '生成结构化提示摘要', linkedEvidence: 'Template Registry' },
+    { key: 'prompt-contract-load', label: 'Prompt Contract Load', status: 'success', duration: '28ms', inputSummary: 'taskType=match-report', outputSummary: 'match-report-prompt-v1 / match-report-schema-v1', linkedEvidence: 'PromptContractRegistry' },
+    { key: 'risk-policy-load', label: 'Risk Policy Load', status: 'success', duration: '19ms', inputSummary: 'provider-risk-policy-v1', outputSummary: '禁止 Offer 概率、录取概率、保证通过', linkedEvidence: 'RiskPolicyRegistry' },
+    { key: 'prompt-template', label: 'Prompt Build', status: 'success', duration: '88ms', inputSummary: 'Prompt match-report-prompt-v1', outputSummary: '生成结构化提示摘要', linkedEvidence: 'Template Registry' },
     { key: 'provider-call', label: 'Provider Call', status: 'fallback', duration: '0ms', inputSummary: 'Provider 未配置', outputSummary: '未发起网络请求，回退 local-rule', linkedEvidence: 'Provider Boundary' },
-    { key: 'json-parse', label: 'JSON Parse', status: 'success', duration: '41ms', inputSummary: 'local-rule JSON snapshot', outputSummary: '解析为结构化对象', linkedEvidence: 'Parser' },
-    { key: 'schema-validate', label: 'Schema Validate', status: 'success', duration: '55ms', inputSummary: 'Schema v1.4.3', outputSummary: '36 条字段通过', linkedEvidence: 'Schema Guard' },
-    { key: 'risk-guard', label: 'Risk Guard', status: 'warning', duration: '64ms', inputSummary: '禁用风险词扫描', outputSummary: '命中 2 项，复制仍禁用', linkedEvidence: 'Risk Guard' },
+    { key: 'provider-response-validate', label: 'Provider Response Validate', status: 'success', duration: '41ms', inputSummary: 'ProviderResponseValidator', outputSummary: '响应字段存在且 rawResponseSaved=false', linkedEvidence: 'Response Validator' },
+    { key: 'schema-contract-validate', label: 'Schema Contract Validate', status: 'success', duration: '55ms', inputSummary: 'Schema match-report-schema-v1', outputSummary: 'required fields 通过', linkedEvidence: 'Schema Guard' },
+    { key: 'risk-policy-guard', label: 'Risk Policy Guard', status: 'warning', duration: '64ms', inputSummary: '禁用风险词扫描', outputSummary: '无高危承诺，复制仍禁用', linkedEvidence: 'Risk Guard' },
+    { key: 'contract-violation-check', label: 'Contract Violation Check', status: 'success', duration: '18ms', inputSummary: 'contract violations', outputSummary: 'No contract violations', linkedEvidence: 'Contract Guard' },
     { key: 'evidence-binding', label: 'Evidence Binding', status: 'success', duration: '97ms', inputSummary: 'JD + Resume Evidence', outputSummary: '绑定 12 条证据', linkedEvidence: 'RES-001 / RES-012' },
-    { key: 'human-review', label: 'Human Review', status: 'warning', duration: '401ms', inputSummary: 'Draft 输出', outputSummary: '等待人工确认', linkedEvidence: 'review-star-mcp' },
-    { key: 'confirmed-result', label: 'Confirmed Result', status: 'warning', duration: '0ms', inputSummary: '人工确认前', outputSummary: '尚无可复制结果', linkedEvidence: 'copyAllowed=false' },
+    { key: 'human-review', label: 'Human Review Required', status: 'warning', duration: '401ms', inputSummary: 'Draft 输出', outputSummary: '等待人工确认', linkedEvidence: 'review-star-mcp' },
   ],
   evidenceDetail: {
     jdSnippet: '熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；有 RAG、MCP 等相关实践优先。',
@@ -125,17 +239,19 @@ export const providerTraceRunFallback: ProviderTraceRun = {
       { id: 'RES-012', title: 'DevFlow Copilot', excerpt: '任务拆解、Provider fallback、Schema Validate、Human Review。', sources: ['README', '截图', 'Trace'] },
       { id: 'RES-022', title: 'Enterprise Ticket RAG Copilot', excerpt: '带引用和复核链路的 RAG 演示，仍缺少大规模离线评测。', sources: ['README', '截图', 'Trace'] },
     ],
-    jsonSummary: '{"provider":"local-rule fallback","schema":"v1.4.3","evidence_count":12,"copy_allowed":false}',
+    jsonSummary: '{"provider":"local-rule","schemaVersion":"match-report-schema-v1","summary":"contract validated local-rule output","humanReviewRequired":true,"copyAllowed":false}',
     fallbackReason: 'OpenAI-compatible 未配置；DeepSeek 禁用；未发起任何外部网络请求。',
-    humanNote: '需要把结果承诺改成证据覆盖说明，所有输出进入 Human Review。',
+    humanNote: '真实 Provider 接入前必须通过 schema validate 与 risk guard；所有输出进入 Human Review。',
   },
   technicalTags: [
     'OpenAI-compatible',
     'DeepSeek',
     'local-rule fallback',
+    'Prompt Contract',
+    'Response Validator',
     'Trace Evidence',
-    'Schema Validate',
-    'Risk Guard',
+    'Schema Contract Validate',
+    'Risk Policy Guard',
     'Human Review',
     'Spring Boot 3',
     'Vue 3',

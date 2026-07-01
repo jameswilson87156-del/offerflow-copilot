@@ -1184,6 +1184,79 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
 .sandbox-result-grid { margin: 0; padding: 9px 12px 11px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; }
 .sandbox-error { margin: 0 12px 11px; display: flex; align-items: center; gap: 5px; color: #9b5a17; font-size: 7.5px; font-weight: 700; }
 
+.provider-contract-grid {
+  display: grid;
+  grid-template-columns: minmax(540px, .9fr) minmax(430px, .72fr);
+  gap: 11px;
+  align-items: stretch;
+  margin-bottom: 11px;
+}
+.provider-contract-panel, .contract-detail-panel, .validation-sandbox-panel { overflow: hidden; }
+.contract-card-list {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.contract-card {
+  min-width: 0;
+  min-height: 96px;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 10px;
+  border: 1px solid #dce4ef;
+  border-radius: 9px;
+  color: inherit;
+  background: #fbfdff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+.contract-card:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(34, 69, 122, .06); }
+.contract-card.selected { border-color: #4a8df0; box-shadow: inset 0 3px #1768e5, 0 0 0 2px rgba(23, 104, 229, .07); background: white; }
+.contract-card strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #324155; font-size: 9px; }
+.contract-card span { color: #1768e5; font-size: 7px; font-weight: 800; }
+.contract-card em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #46566d; font: normal 700 7.2px/1.2 'Manrope Variable', sans-serif; }
+.contract-card small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #7c8ba1; font-size: 6.8px; line-height: 1.35; }
+.contract-detail-grid, .validation-result-grid {
+  margin: 0;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+.contract-detail-grid div, .validation-result-grid div { min-width: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 7px; align-items: baseline; }
+.contract-detail-grid dt, .validation-result-grid dt { color: #7c8ba1; font-size: 7.3px; }
+.contract-detail-grid dd, .validation-result-grid dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #3f4e64; font-size: 7.7px; font-weight: 700; }
+.contract-instruction-block {
+  margin: 0 12px 12px;
+  padding: 9px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid #dce6f3;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+.contract-instruction-block strong { color: #334155; font-size: 8px; }
+.contract-instruction-block p { margin: 0; color: #66768c; font-size: 7.3px; line-height: 1.5; }
+.validation-sandbox-panel { margin-bottom: 11px; }
+.validation-layout {
+  display: grid;
+  grid-template-columns: minmax(390px, .72fr) minmax(360px, .55fr) minmax(260px, .48fr);
+  gap: 0;
+}
+.validation-controls { min-width: 0; padding: 10px 12px; border-right: 1px solid #e7edf5; }
+.validation-task-picker { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 9px; }
+.validation-task-picker button { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.validation-result-grid { border-right: 1px solid #e7edf5; }
+.violation-list { min-width: 0; padding: 10px 12px; display: grid; gap: 8px; align-content: start; }
+.violation-item { min-width: 0; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 7px; padding: 8px; border: 1px solid #e2e8f1; border-radius: 8px; background: #fbfcfe; }
+.violation-item > svg { margin-top: 1px; color: #d97706; }
+.violation-item.safe > svg { color: #16875d; }
+.violation-item strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #334155; font-size: 8px; }
+.violation-item p { margin: 3px 0 0; color: #69778c; font-size: 7.2px; line-height: 1.5; }
+
 .provider-top-grid {
   display: grid;
   grid-template-columns: minmax(650px, 1fr) minmax(310px, .42fr);
@@ -1338,16 +1411,17 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
 }
 
 @media (max-width: 1180px) {
-  .provider-sandbox-grid, .provider-top-grid, .provider-bottom-grid { grid-template-columns: 1fr; }
+  .provider-sandbox-grid, .provider-contract-grid, .provider-top-grid, .provider-bottom-grid, .validation-layout { grid-template-columns: 1fr; }
   .provider-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .safety-boundary-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .run-pipeline-track { overflow-x: auto; grid-template-columns: repeat(8, minmax(112px, 1fr)); padding-bottom: 13px; }
+  .run-pipeline-track { overflow-x: auto; grid-template-columns: repeat(12, minmax(112px, 1fr)); padding-bottom: 13px; }
+  .validation-controls, .validation-result-grid { border-right: 0; border-bottom: 1px solid #e7edf5; }
   .pipeline-step::after { display: none; }
 }
 
 @media (max-width: 860px) {
   .provider-context-meta { display: none; }
-  .provider-config-grid, .sandbox-form, .sandbox-result-grid, .provider-card-grid, .safety-boundary-list, .trace-detail-layout { grid-template-columns: 1fr; }
+  .provider-config-grid, .sandbox-form, .sandbox-result-grid, .contract-card-list, .contract-detail-grid, .validation-result-grid, .provider-card-grid, .safety-boundary-list, .trace-detail-layout { grid-template-columns: 1fr; }
   .trace-detail-block:nth-child(odd) { border-right: 0; }
   .run-detail-grid { grid-template-columns: 1fr; }
   .sandbox-run-button { justify-self: stretch; }

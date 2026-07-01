@@ -26,7 +26,7 @@ public class LocalRuleProviderClient implements AiProviderClient {
                 MODE,
                 MODEL,
                 "Local-rule sandbox output. No external model call was made; every result requires Human Review.",
-                "{\"provider\":\"local-rule\",\"copyAllowed\":false,\"humanReviewRequired\":true}",
+                structuredJson(request),
                 false,
                 "",
                 "",
@@ -64,5 +64,18 @@ public class LocalRuleProviderClient implements AiProviderClient {
                 false,
                 "primary local fallback",
                 "Default deterministic provider; no external network calls.");
+    }
+
+    private String structuredJson(ProviderRequest request) {
+        return "{\"provider\":\"local-rule\","
+                + "\"schemaVersion\":\"" + escape(request.schemaVersion()) + "\","
+                + "\"summary\":\"Local-rule sandbox output requires Human Review.\","
+                + "\"humanReviewRequired\":true,"
+                + "\"copyAllowed\":false,"
+                + "\"boundaryNotice\":\"No external model call was made.\"}";
+    }
+
+    private String escape(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

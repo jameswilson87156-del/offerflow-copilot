@@ -110,7 +110,7 @@ class ProviderSpiSandboxTest {
         mockMvc.perform(get("/api/provider/traces/" + response.get("traceId").asText()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fallbackReason").value(containsString("simulated failure")))
-                .andExpect(jsonPath("$.pipeline[4].status").value("FALLBACK"));
+                .andExpect(jsonPath("$.pipeline[6].status").value("FALLBACK"));
     }
 
     @Test
@@ -120,7 +120,7 @@ class ProviderSpiSandboxTest {
         mockMvc.perform(get("/api/provider/traces/" + response.get("traceId").asText()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fallbackReason").value(containsString("simulated timeout")))
-                .andExpect(jsonPath("$.pipeline[4].status").value("FALLBACK"));
+                .andExpect(jsonPath("$.pipeline[6].status").value("FALLBACK"));
     }
 
     @Test
@@ -133,11 +133,11 @@ class ProviderSpiSandboxTest {
     }
 
     @Test
-    void sandboxRunWritesEightTraceSteps() throws Exception {
+    void sandboxRunWritesContractTraceSteps() throws Exception {
         JsonNode response = sandbox("deepseek", false, false);
 
         org.assertj.core.api.Assertions.assertThat(traceStepRepository.findByRunId(response.get("traceId").asText()))
-                .hasSize(8);
+                .hasSize(12);
     }
 
     @Test
@@ -146,15 +146,19 @@ class ProviderSpiSandboxTest {
 
         mockMvc.perform(get("/api/provider/traces/" + response.get("traceId").asText()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pipeline", hasSize(8)))
+                .andExpect(jsonPath("$.pipeline", hasSize(12)))
                 .andExpect(jsonPath("$.pipeline[0].label").value("Provider Config Check"))
-                .andExpect(jsonPath("$.pipeline[1].label").value("Prompt Build"))
-                .andExpect(jsonPath("$.pipeline[2].label").value("Provider Select"))
-                .andExpect(jsonPath("$.pipeline[3].label").value("Provider No-op"))
-                .andExpect(jsonPath("$.pipeline[4].label").value("Fallback Decision"))
-                .andExpect(jsonPath("$.pipeline[5].label").value("Schema Validate"))
-                .andExpect(jsonPath("$.pipeline[6].label").value("Risk Guard"))
-                .andExpect(jsonPath("$.pipeline[7].label").value("Human Review Required"));
+                .andExpect(jsonPath("$.pipeline[1].label").value("Prompt Contract Load"))
+                .andExpect(jsonPath("$.pipeline[2].label").value("Risk Policy Load"))
+                .andExpect(jsonPath("$.pipeline[3].label").value("Prompt Build"))
+                .andExpect(jsonPath("$.pipeline[4].label").value("Provider Select"))
+                .andExpect(jsonPath("$.pipeline[5].label").value("Provider No-op"))
+                .andExpect(jsonPath("$.pipeline[6].label").value("Fallback Decision"))
+                .andExpect(jsonPath("$.pipeline[7].label").value("Provider Response Validate"))
+                .andExpect(jsonPath("$.pipeline[8].label").value("Schema Contract Validate"))
+                .andExpect(jsonPath("$.pipeline[9].label").value("Risk Policy Guard"))
+                .andExpect(jsonPath("$.pipeline[10].label").value("Contract Violation Check"))
+                .andExpect(jsonPath("$.pipeline[11].label").value("Human Review Required"));
     }
 
     @Test
@@ -173,8 +177,8 @@ class ProviderSpiSandboxTest {
 
         mockMvc.perform(get("/api/provider/traces/" + response.get("traceId").asText()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pipeline[3].outputSummary").value("No external request sent."))
-                .andExpect(jsonPath("$.technicalTags[2]").value("No external model call"));
+                .andExpect(jsonPath("$.pipeline[5].outputSummary").value("No external request sent."))
+                .andExpect(jsonPath("$.technicalTags[3]").value("Sandbox Run"));
     }
 
     @Test
