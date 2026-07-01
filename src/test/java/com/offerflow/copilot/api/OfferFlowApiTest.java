@@ -91,6 +91,9 @@ class OfferFlowApiTest {
         mockMvc.perform(get("/api/match-report/demo"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.versionId").value("match-java-ai-demo-v1"))
+                .andExpect(jsonPath("$.parseVersionId").value("job-java-ai-intern-parse-v1"))
+                .andExpect(jsonPath("$.providerMode").value("local-rule"))
                 .andExpect(jsonPath("$.summary.jobTitle").value("Java 后端 / AI 应用开发实习生"))
                 .andExpect(jsonPath("$.summary.totalScore").value(82))
                 .andExpect(jsonPath("$.summary.status").value("Draft，需要人工复核"))
@@ -99,6 +102,131 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.skillGaps", hasSize(5)))
                 .andExpect(jsonPath("$.recommendedActions", hasSize(4)))
                 .andExpect(jsonPath("$.traceEvidence", hasSize(6)));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void generateMatchReportCreatesVersion() throws Exception {
+        mockMvc.perform(post("/api/jobs/job-java-ai-intern/match-reports/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-report-generator\",\"actorRole\":\"System\",\"humanNote\":\"generate local rule\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.versionId").value("match-java-ai-demo-v2"))
+                .andExpect(jsonPath("$.versionNo").value(2))
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.parseVersionId").value("job-java-ai-intern-parse-v1"))
+                .andExpect(jsonPath("$.evidenceBindingCount").value(4))
+                .andExpect(jsonPath("$.providerMode").value("local-rule"))
+                .andExpect(jsonPath("$.summary.totalScore").value(82))
+                .andExpect(jsonPath("$.riskNotes", hasSize(5)));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void generateMatchReportWritesAuditEvents() throws Exception {
+        mockMvc.perform(post("/api/jobs/job-java-ai-intern/match-reports/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"generate audit\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v2/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].action").value("GENERATE_LOCAL_RULE"))
+                .andExpect(jsonPath("$[0].changedFields", hasSize(3)))
+                .andExpect(jsonPath("$[1].action").value("CREATE_DRAFT"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void generateMatchReportCreatesHumanReviewItem() throws Exception {
+        mockMvc.perform(post("/api/jobs/job-java-ai-intern/match-reports/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"handoff report\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.humanReviewId").value("review-match-java-ai-demo-v2"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("Draft"));
+
+        mockMvc.perform(get("/api/reviews/review-match-java-ai-demo-v2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("匹配报告：Java 后端 / AI 应用开发实习生"))
+                .andExpect(jsonPath("$.sourcePage").value("Match Report"))
+                .andExpect(jsonPath("$.providerMode").value("local-rule"))
+                .andExpect(jsonPath("$.status").value("Draft"))
+                .andExpect(jsonPath("$.evidence.resumeProjects", hasSize(4)));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void jobMatchReportsEndpointReturnsVersionList() throws Exception {
+        mockMvc.perform(post("/api/jobs/job-java-ai-intern/match-reports/generate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"list reports\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/jobs/job-java-ai-intern/match-reports"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].versionNo").value(1))
+                .andExpect(jsonPath("$[0].status").value("DRAFT"))
+                .andExpect(jsonPath("$[1].versionNo").value(2))
+                .andExpect(jsonPath("$[1].humanReviewId").value("review-match-java-ai-demo-v2"));
+    }
+
+    @Test
+    void matchReportVersionDetailEndpointReturnsVersionDetail() throws Exception {
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.versionId").value("match-java-ai-demo-v1"))
+                .andExpect(jsonPath("$.reportId").value("match-java-ai-demo"))
+                .andExpect(jsonPath("$.parseVersionNo").value(1))
+                .andExpect(jsonPath("$.humanReviewId").value("review-match-java-ai"))
+                .andExpect(jsonPath("$.evidenceSources", hasSize(4)))
+                .andExpect(jsonPath("$.score.items", hasSize(4)));
+    }
+
+    @Test
+    void matchReportAuditEventsEndpointReturnsAuditHistory() throws Exception {
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].reportVersionId").value("match-java-ai-demo-v1"))
+                .andExpect(jsonPath("$[0].action").value("GENERATE_LOCAL_RULE"))
+                .andExpect(jsonPath("$[1].action").value("CREATE_DRAFT"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void sendMatchReportToReviewUpdatesStatusAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/send-to-review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"send to review\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_REVIEW"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("In Review"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[2].action").value("SEND_TO_REVIEW"))
+                .andExpect(jsonPath("$[2].previousStatus").value("DRAFT"))
+                .andExpect(jsonPath("$[2].nextStatus").value("IN_REVIEW"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void archiveMatchReportUpdatesStatusAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"archive version\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ARCHIVED"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("Archived"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[2].action").value("ARCHIVE"))
+                .andExpect(jsonPath("$[2].previousStatus").value("DRAFT"))
+                .andExpect(jsonPath("$[2].nextStatus").value("ARCHIVED"));
     }
 
     @Test

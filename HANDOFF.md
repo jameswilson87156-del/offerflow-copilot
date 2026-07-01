@@ -2,9 +2,9 @@
 
 ## 当前交付
 
-P3D 已完成 Structured JD Intake。JD 分析台现在支持用户手动粘贴 JD、保存 JD、更新 JD、使用 local-rule 生成解析版本、基于简历证据库生成 evidence bindings，并持久化 `jd_audit_event`，记录操作者、角色、动作、前后状态、changed fields、before/after snapshot、人工备注和时间。
+P3E 已完成 Match Report Versioning & Human Review Handoff。匹配报告现在基于当前最新 `jd_parse_version` 与 `jd_evidence_binding` 生成 `match_report_version`，每次生成形成一个独立 version，默认 `DRAFT`，写入 `match_report_audit_event`，并创建或关联 `MATCH_REPORT` 类型的 `human_review_item`。
 
-P3C Resume Evidence Editable Workflow 和 P3B Human Review Audit Trail 仍然保留。核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
+P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human Review Audit Trail 仍然保留。核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
 
 ## 启动顺序
 
@@ -22,6 +22,12 @@ P3C Resume Evidence Editable Workflow 和 P3B Human Review Audit Trail 仍然保
 - `GET /api/jobs/{id}` 已包含当前 parse version、版本历史、evidence bindings 和 audit trail；也可通过 `GET /api/jobs/{id}/parse-versions`、`GET /api/jobs/{id}/evidence-bindings`、`GET /api/jobs/{id}/audit-events` 单独读取。
 - JD 写接口支持 `actor`、`actorRole`、`humanNote`；当前 actor 是 demo user，不是生产鉴权。
 - JD 来源固定为用户手动粘贴和脱敏 seed demo，不接招聘平台 API，不爬取网页。
+- 新增匹配报告版本表为 `match_report_version`，审计表为 `match_report_audit_event`。
+- `GET /api/match-report/demo` 继续兼容旧前端字段，但数据来自当前最新 match report version。
+- `POST /api/jobs/{id}/match-reports/generate` 会生成新版本、写审计事件，并创建 Human Review handoff item。
+- `GET /api/jobs/{id}/match-reports`、`GET /api/match-reports/{versionId}`、`GET /api/match-reports/{versionId}/audit-events` 分别读取版本列表、详情和审计历史。
+- `POST /api/match-reports/{versionId}/send-to-review` 和 `/archive` 会更新版本状态并写入 match report audit event。
+- 当前 scoring 是 deterministic local-rule，不是 Offer 概率、录取概率或真实 LLM 推理。
 - 新增证据审计表为 `resume_evidence_audit_event`，由 `EvidenceLibraryService` 在证据写操作事务内写入。
 - `GET /api/evidence/{id}` 已包含 `auditTrail`，也可通过 `GET /api/evidence/{id}/audit-events` 单独读取。
 - Evidence 写接口支持 `actor`、`actorRole`、`humanNote` 和证据 payload；当前 actor 是 demo user，不是生产鉴权。
@@ -34,6 +40,6 @@ P3C Resume Evidence Editable Workflow 和 P3B Human Review Audit Trail 仍然保
 
 ## 已验证
 
-- `mvn test`：38 个测试通过，包含 JD Intake 创建/更新/解析/绑定、JD audit endpoint、API 合约、evidence audit event 写入、human review audit event 写入、seed 幂等和 JSON 字段验证。
-- `npm run build`：P3D 已通过。
-- `npm run screenshots`：待本轮最终验收刷新，会更新 JD Analyzer 截图。
+- `mvn test`：47 个测试通过，包含 Match Report version 生成、审计、Human Review handoff、版本列表、详情、send-to-review、archive、seed 幂等，以及既有 JD/evidence/review/API 合约。
+- `npm run build`：P3E 已通过。
+- `npm run screenshots`：15 个 Playwright 截图/溢出检查通过，已刷新 Match Report 与 Human Review 等页面截图。

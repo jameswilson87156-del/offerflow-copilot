@@ -6,6 +6,7 @@
 - 使用确定性的 `local-rule` 和 H2 seeded demo data 生成演示拆解、匹配报告、面试前准备和投递跟踪。
 - 由用户主动粘贴、确认和修改非敏感内容。
 - JD 只支持用户手动粘贴或脱敏 seed demo；解析和证据绑定使用 deterministic local-rule，并保留版本历史与审计记录。
+- 匹配报告可以基于当前 JD parse version 和 evidence bindings 生成版本化 Draft，并自动进入 Human Review 队列。
 - 生成内容默认进入 `Draft`，必须经过人工复核后才可复制使用。
 - 简历证据可以先作为 `Draft` 维护，人工确认后进入 `Confirmed`，每次编辑和状态流转都保留审计历史。
 - 手动记录投递状态与复盘，不自动对外执行动作。
@@ -43,3 +44,9 @@ P3B 已将 Human Review 状态和 audit trail 保存在 H2 demo persistence 中�
 JD 分析台只接受用户手动粘贴的岗位描述或脱敏 seed demo，不接招聘平台 API，不爬取网页，不抓取 HR 聊天记录。每次 JD 创建、更新、local-rule 解析和证据绑定都会写入 `jd_audit_event`，每次解析都会生成新的 `jd_parse_version`，每次绑定都会生成或刷新 `jd_evidence_binding`。
 
 当前 JD 解析是 local-rule parsing，不是真实 LLM Provider 推理；证据绑定是关键词匹配和脱敏 demo 证据组合，不代表生产级招聘系统能力。
+
+## Match Report 原则
+
+匹配报告是可版本化 AI 输出资产，不是一次性 mock 分数。每个 `match_report_version` 必须绑定一个 JD parse version 和一组 resume evidence bindings，并记录 provider mode、prompt/schema version、Trace ID、状态和审计事件。
+
+当前匹配报告 scoring 是 local-rule，不是真实 LLM 推理，不是 Offer 概率、录取概率或保证通过。报告默认 `DRAFT`，生成后进入 Human Review；只有人工确认后的内容才可以作为可复制建议使用。归档版本不应继续作为当前建议。

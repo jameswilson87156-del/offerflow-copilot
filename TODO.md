@@ -12,10 +12,11 @@
 - [x] P3B：Human Review 审计日志与状态流转历史
 - [x] P3C：证据库人工编辑草稿、确认、回滚与审计
 - [x] P3D：结构化 JD Intake、JD 解析版本历史与证据绑定审计
+- [x] P3E：基于 JD parse version 与 evidence binding 生成可版本化 Match Report，并进入 Human Review
 
 ## 下一阶段候选
 
-- [ ] P3E：基于 JD parse version 与 evidence binding 生成可复核 Match Report 版本，并进入 Human Review
+- [ ] P3F：将 Match Report 的 Confirm / Return 状态与 Human Review 操作双向同步
 - [ ] 增加 MySQL migration 脚本和本地 Docker Compose 示例
 - [ ] 引入 Provider SPI、超时、审计与失败回退；仍需显式配置后才允许沙箱调用
 - [ ] 增加 service 层单元测试、前端组件测试和无障碍自动检查

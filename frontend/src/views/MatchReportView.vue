@@ -2,12 +2,19 @@
 import { computed } from 'vue'
 import {
   AlertTriangle,
+  Archive,
   BarChart3,
   Check,
   ChevronRight,
+  Clock3,
+  Database,
   FileText,
+  Fingerprint,
   GitBranch,
+  History,
+  PlusCircle,
   RefreshCw,
+  Send,
   ShieldCheck,
   SlidersHorizontal,
   Target,
@@ -19,7 +26,20 @@ const props = defineProps<{
   selectedProvider: string
 }>()
 
-const { report, loading, source, reload } = useMatchReport()
+const {
+  report,
+  versions,
+  auditEvents,
+  loading,
+  actionBusy,
+  actionMessage,
+  source,
+  reload,
+  loadVersion,
+  generateVersion,
+  sendToReview,
+  archiveVersion,
+} = useMatchReport()
 
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? 'local-rule 匹配报告 · 无外部调用'
@@ -33,6 +53,17 @@ const filteredEvidence = computed(() => {
   )
 })
 
+const versionHistory = computed(() =>
+  [...versions.value].sort((a, b) => b.versionNo - a.versionNo),
+)
+
+const sourceStats = computed(() => [
+  { label: 'JD parse version', value: `v${report.value.parseVersionNo}`, detail: report.value.parseVersionId, icon: Database },
+  { label: 'Evidence bindings', value: `${report.value.evidenceBindingCount}`, detail: '绑定证据数量', icon: GitBranch },
+  { label: 'Provider mode', value: report.value.providerMode, detail: report.value.generatedBy, icon: SlidersHorizontal },
+  { label: 'Trace ID', value: report.value.traceId, detail: report.value.schemaVersion, icon: Fingerprint },
+])
+
 function scorePercent(value: number, maximum: number) {
   return `${Math.max(0, Math.round((Math.abs(value) / maximum) * 100))}%`
 }
@@ -42,6 +73,27 @@ function severityClass(severity: string) {
   if (severity === '中') return 'medium'
   return 'low'
 }
+
+function statusClass(status: string) {
+  return status.toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-')
+}
+
+function statusLabel(status: string) {
+  return ({
+    DRAFT: 'Draft',
+    IN_REVIEW: 'In Review',
+    CONFIRMED: 'Confirmed',
+    RETURNED: 'Returned',
+    ARCHIVED: 'Archived',
+  } as Record<string, string>)[status] ?? status
+}
+
+function auditTone(action: string) {
+  if (action === 'ARCHIVE') return 'archive'
+  if (action === 'SEND_TO_REVIEW') return 'review'
+  if (action === 'CREATE_DRAFT') return 'draft'
+  return 'generate'
+}
 </script>
 
 <template>
@@ -50,13 +102,16 @@ function severityClass(severity: string) {
       <div class="intro-copy">
         <div class="breadcrumbs"><span>匹配报告</span><ChevronRight :size="13" /><strong>Evidence Match</strong></div>
         <h1>匹配报告 <span class="title-mark workflow-title-mark"><BarChart3 :size="20" /></span></h1>
-        <p>基于岗位 JD、简历证据和项目证明，展示可解释、可复核的岗位匹配分析。</p>
+        <p>基于岗位 JD、简历证据和项目证明，生成可版本化、可解释、可复核的岗位匹配分析。</p>
       </div>
       <div class="intro-actions">
         <div class="mode-note workflow-mode" :class="{ warning: props.selectedProvider !== 'local-rule' }">
           <span><Check v-if="props.selectedProvider === 'local-rule'" :size="13" /><SlidersHorizontal v-else :size="13" /></span>
           {{ providerNotice }}
         </div>
+        <button type="button" class="secondary-button match-generate-button" :disabled="actionBusy || loading" @click="generateVersion">
+          <PlusCircle :size="15" />生成新匹配报告
+        </button>
         <button type="button" class="secondary-button" :disabled="loading" @click="reload">
           <RefreshCw :size="15" :class="{ spinning: loading }" />刷新报告
         </button>
@@ -67,11 +122,83 @@ function severityClass(severity: string) {
       <div class="workflow-context-main">
         <span class="workflow-ready-icon"><ShieldCheck :size="16" /></span>
         <strong>{{ report.summary.jobTitle }}</strong>
-        <span>{{ report.summary.status }}</span>
+        <span>v{{ report.versionNo }} · {{ statusLabel(report.status) }} · Human Review: {{ report.humanReviewStatus }}</span>
       </div>
       <div class="workflow-context-meta">
         <span :class="source">{{ source === 'api' ? 'LOCAL API LIVE' : 'DEMO SNAPSHOT' }}</span>
         <small>{{ report.disclaimer }}</small>
+      </div>
+    </section>
+
+    <section class="match-source-grid" aria-label="报告来源">
+      <article v-for="item in sourceStats" :key="item.label">
+        <component :is="item.icon" :size="15" />
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+        <small>{{ item.detail }}</small>
+      </article>
+    </section>
+
+    <section class="panel match-version-panel">
+      <header class="panel-header workflow-panel-header">
+        <div>
+          <span class="panel-kicker">VERSION HISTORY</span>
+          <h2>版本历史</h2>
+        </div>
+        <span class="count-chip">{{ versions.length }} 个版本</span>
+      </header>
+      <div class="match-version-layout">
+        <div class="match-version-list" aria-label="版本列表">
+          <button
+            v-for="version in versionHistory"
+            :key="version.id"
+            type="button"
+            class="match-version-item"
+            :class="{ active: version.id === report.versionId }"
+            @click="loadVersion(version.id)"
+          >
+            <strong>v{{ version.versionNo }} {{ version.providerMode }}</strong>
+            <span>{{ version.createdAt }} · {{ statusLabel(version.status) }}</span>
+            <small>JD parse v{{ version.parseVersionNo }} · {{ version.evidenceBindingCount }} bindings</small>
+            <em>{{ version.humanReviewStatus }}</em>
+          </button>
+        </div>
+
+        <div class="match-handoff-box">
+          <div class="handoff-state">
+            <Clock3 :size="16" />
+            <div>
+              <span>当前版本</span>
+              <strong>v{{ report.versionNo }} · {{ statusLabel(report.status) }}</strong>
+              <small>{{ report.humanReviewId }}</small>
+            </div>
+          </div>
+          <div class="report-action-row">
+            <button type="button" class="report-action-button review" :disabled="actionBusy || report.status === 'ARCHIVED'" @click="sendToReview">
+              <Send :size="15" />送入人工复核
+            </button>
+            <button type="button" class="report-action-button archive" :disabled="actionBusy || report.status === 'ARCHIVED'" @click="archiveVersion">
+              <Archive :size="15" />归档当前版本
+            </button>
+          </div>
+          <p>{{ actionMessage }}</p>
+        </div>
+
+        <div class="match-audit-mini">
+          <header>
+            <History :size="15" />
+            <strong>审计历史</strong>
+            <em>{{ auditEvents.length }} 条</em>
+          </header>
+          <article v-for="event in auditEvents" :key="event.id" :class="auditTone(event.action)">
+            <span />
+            <div>
+              <strong>{{ event.actionLabel }}</strong>
+              <small>{{ event.previousStatus }} → {{ event.nextStatus }} · {{ event.createdAt }}</small>
+              <p>{{ event.humanNote }}</p>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -87,8 +214,8 @@ function severityClass(severity: string) {
       </div>
       <div class="report-status-box">
         <span>当前状态</span>
-        <strong>{{ report.summary.status }}</strong>
-        <p>复制、投递或外发前必须经过人工确认。</p>
+        <strong>{{ statusLabel(report.status) }}</strong>
+        <p>这是匹配分析，不是 Offer 概率；所有建议需经人工复核后使用。</p>
       </div>
     </section>
 
@@ -172,13 +299,29 @@ function severityClass(severity: string) {
       </section>
     </div>
 
+    <section class="panel match-risk-note-panel">
+      <header class="panel-header workflow-panel-header">
+        <div>
+          <span class="panel-kicker">RISK NOTES</span>
+          <h2>风险提醒</h2>
+        </div>
+        <span :class="['status-chip', statusClass(report.status)]">{{ statusLabel(report.status) }}</span>
+      </header>
+      <div class="risk-note-list">
+        <article v-for="note in report.riskNotes" :key="note">
+          <AlertTriangle :size="14" />
+          <span>{{ note }}</span>
+        </article>
+      </div>
+    </section>
+
     <section class="panel workflow-trace-panel">
       <header class="trace-header">
         <div>
           <GitBranch :size="15" />
           <h2>Trace Evidence</h2>
         </div>
-        <span>JD 输入 -> 关键词解析 -> 证据检索 -> 评分拆解 -> 风险校验 -> Human Review</span>
+        <span>JD parse version -> Evidence bindings -> local-rule scoring -> Versioned asset -> Human Review</span>
       </header>
       <div class="workflow-trace-steps">
         <article v-for="(step, index) in report.traceEvidence" :key="step.label" :class="step.status">
@@ -190,7 +333,7 @@ function severityClass(severity: string) {
     </section>
 
     <footer class="tag-footer">
-      <span>Match Report</span>
+      <span>Match Report Versioning</span>
       <span>Trace Evidence</span>
       <span>Risk Guard</span>
       <span>Human Review</span>

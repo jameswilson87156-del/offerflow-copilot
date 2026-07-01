@@ -2,9 +2,9 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P3D Structured JD Intake
+## 当前阶段：P3E Match Report Versioning & Human Review Handoff
 
-当前版本在 P3A H2/MyBatis-Plus 持久化基础层、P3B 人工复核审计链路和 P3C 简历证据编辑工作流上，新增了结构化 JD Intake。JD 分析台现在支持用户手动粘贴 JD、保存 JD、生成 local-rule 解析版本、绑定简历证据，并记录 JD 审计历史。核心页面仍然使用 `mock/local-rule` 语义，但数据来源优先读取 H2 seeded demo database；每次 JD 创建、更新、解析和证据绑定都会留下可追溯记录。
+当前版本在 P3A H2/MyBatis-Plus 持久化基础层、P3B 人工复核审计链路、P3C 简历证据编辑工作流和 P3D 结构化 JD Intake 上，新增了 P3E 匹配报告版本化。每次生成匹配报告都会基于当前 `jd_parse_version` 与 `jd_evidence_binding` 写入一个 `match_report_version`，默认 `DRAFT`，并创建或关联 `MATCH_REPORT` 类型的 Human Review item。匹配报告现在是可版本化、可解释、可复核、可审计的 AI 输出资产；当前 scoring 仍为 `local-rule`，不是 Offer/录取概率。
 
 关键边界：
 
@@ -60,7 +60,13 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | GET | `/api/provider/settings` | 组合 service，静态边界状态 |
 | GET | `/api/provider/traces` | H2 seeded demo data |
 | GET | `/api/provider/traces/{runId}` | H2 seeded demo data |
-| GET | `/api/match-report/demo` | H2 seeded demo data |
+| GET | `/api/match-report/demo` | H2 latest match_report_version，兼容旧报告字段 |
+| POST | `/api/jobs/{id}/match-reports/generate` | H2 基于最新 JD parse/evidence bindings 生成报告版本 + Human Review handoff |
+| GET | `/api/jobs/{id}/match-reports` | H2 匹配报告版本历史 |
+| GET | `/api/match-reports/{versionId}` | H2 单个匹配报告版本详情 |
+| GET | `/api/match-reports/{versionId}/audit-events` | H2 匹配报告版本审计历史 |
+| POST | `/api/match-reports/{versionId}/send-to-review` | H2 版本状态更新 + audit event |
+| POST | `/api/match-reports/{versionId}/archive` | H2 版本归档 + audit event |
 | GET | `/api/interview-prep/demo` | H2 seeded demo data |
 | GET | `/api/applications` | H2 seeded demo data |
 
@@ -68,7 +74,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 
 - `/jd-analyzer`：结构化 JD Intake、解析版本、证据绑定与 JD Audit Trail
 - `/evidence-library`：简历证据库、Evidence Coverage Map、编辑工作流与 Audit Trail
-- `/match-report`：匹配报告
+- `/match-report`：匹配报告、版本历史、来源元数据、Human Review handoff 与报告审计
 - `/interview-prep`：面试前准备
 - `/application-tracker`：投递跟踪
 - `/human-review`：人工复核中心，包含 Review History / Audit Trail
@@ -86,7 +92,7 @@ npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md) 和 [docs/jd-intake.md](docs/jd-intake.md)。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md) 和 [docs/match-report-versioning.md](docs/match-report-versioning.md)。
 
 ## 验收
 
@@ -98,4 +104,4 @@ npm run screenshots
 git diff --check
 ```
 
-更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md) 和 [docs/design/README.md](docs/design/README.md)。
+更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/design/README.md](docs/design/README.md)。

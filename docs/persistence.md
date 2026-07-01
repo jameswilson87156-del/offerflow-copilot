@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-P3D 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
+P3E 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
 
 当前数据仍然是 `mock/local-rule` 演示数据，不是真实招聘数据，也不代表真实 Provider 能力。
 
@@ -15,6 +15,8 @@ P3D 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `jd_evidence_binding`：JD requirement 与简历证据的绑定关系，记录 evidence strength、binding reason、source 和 review status。
 - `jd_audit_event`：JD 创建、更新、解析、绑定、归档和恢复的审计事件，记录 changed fields 与 before/after snapshot。
 - `match_report`：匹配报告摘要、评分拆解、证据来源、技能差距和 Trace。
+- `match_report_version`：可版本化匹配报告输出资产，绑定 JD parse version、score breakdown、evidence refs、Human Review item 和 trace id。
+- `match_report_audit_event`：匹配报告版本生成、创建 Draft、送审、归档等动作的审计事件。
 - `interview_prep`：面试前准备重点、问题分组、STAR 草稿、风险提醒和复盘 Timeline。
 - `application_record`：手动投递记录与沟通 Timeline。
 - `human_review_item`：人工复核队列、风险词、证据引用、人工备注和当前状态。
@@ -53,6 +55,12 @@ P3D 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `GET /api/provider/traces`
 - `GET /api/provider/traces/{runId}`
 - `GET /api/match-report/demo`
+- `POST /api/jobs/{id}/match-reports/generate`
+- `GET /api/jobs/{id}/match-reports`
+- `GET /api/match-reports/{versionId}`
+- `GET /api/match-reports/{versionId}/audit-events`
+- `POST /api/match-reports/{versionId}/send-to-review`
+- `POST /api/match-reports/{versionId}/archive`
 - `GET /api/interview-prep/demo`
 - `GET /api/applications`
 
@@ -102,6 +110,51 @@ P3D 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `created_at`
 
 当前 actor 默认是 `demo-jd-editor`，用于演示 JD Intake 状态流转，不是生产鉴权主体。
+
+## 匹配报告版本字段
+
+`match_report_version` 当前保存：
+
+- `report_id`
+- `job_id`
+- `parse_version_id`
+- `version_no`
+- `score`
+- `skill_score`
+- `evidence_score`
+- `risk_score`
+- `interview_score`
+- `recommended_resume`
+- `status`
+- `summary_json`
+- `score_breakdown_json`
+- `evidence_refs_json`
+- `skill_gaps_json`
+- `recommended_actions_json`
+- `risk_notes_json`
+- `generated_by`
+- `provider_mode`
+- `prompt_version`
+- `schema_version`
+- `trace_id`
+- `human_review_id`
+- `created_at`
+- `updated_at`
+
+`match_report_audit_event` 当前保存：
+
+- `report_version_id`
+- `action`
+- `previous_status`
+- `next_status`
+- `actor`
+- `actor_role`
+- `changed_fields_json`
+- `human_note`
+- `trace_id`
+- `created_at`
+
+当前 actor 默认是 `local-rule report generator` 或 `demo-reviewer`，用于演示报告版本状态流转，不是生产鉴权主体。
 
 ## 简历证据审计事件字段
 

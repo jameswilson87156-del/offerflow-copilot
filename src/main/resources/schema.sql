@@ -112,6 +112,49 @@ CREATE TABLE IF NOT EXISTS match_report (
     updated_at TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS match_report_version (
+    id VARCHAR(80) PRIMARY KEY,
+    report_id VARCHAR(80) NOT NULL,
+    job_id VARCHAR(80) NOT NULL,
+    parse_version_id VARCHAR(80) NOT NULL,
+    version_no INT NOT NULL,
+    score INT NOT NULL,
+    skill_score INT NOT NULL,
+    evidence_score INT NOT NULL,
+    risk_score INT NOT NULL,
+    interview_score INT NOT NULL,
+    recommended_resume VARCHAR(160) NOT NULL,
+    status VARCHAR(40) NOT NULL,
+    summary_json TEXT NOT NULL,
+    score_breakdown_json TEXT NOT NULL,
+    evidence_refs_json TEXT NOT NULL,
+    skill_gaps_json TEXT NOT NULL,
+    recommended_actions_json TEXT NOT NULL,
+    risk_notes_json TEXT NOT NULL,
+    generated_by VARCHAR(120) NOT NULL,
+    provider_mode VARCHAR(80) NOT NULL,
+    prompt_version VARCHAR(80) NOT NULL,
+    schema_version VARCHAR(80) NOT NULL,
+    trace_id VARCHAR(100) NOT NULL,
+    human_review_id VARCHAR(80) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS match_report_audit_event (
+    id VARCHAR(80) PRIMARY KEY,
+    report_version_id VARCHAR(80) NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    previous_status VARCHAR(40) NOT NULL,
+    next_status VARCHAR(40) NOT NULL,
+    actor VARCHAR(120) NOT NULL,
+    actor_role VARCHAR(80) NOT NULL,
+    changed_fields_json TEXT NOT NULL,
+    human_note TEXT NOT NULL,
+    trace_id VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS interview_prep (
     id VARCHAR(80) PRIMARY KEY,
     job_id VARCHAR(80) NOT NULL,

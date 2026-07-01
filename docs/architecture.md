@@ -1,6 +1,6 @@
 # 架构说明
 
-## P3D 结构
+## P3E 结构
 
 ```text
 Vue 3 Workbench
@@ -26,6 +26,8 @@ H2 demo persistence
   |-- jd_evidence_binding
   |-- jd_audit_event
   |-- match_report
+  |-- match_report_version
+  |-- match_report_audit_event
   |-- interview_prep
   |-- application_record
   |-- human_review_item
@@ -45,6 +47,20 @@ OfferFlow 不从招聘平台抓取 JD，也不接 Boss、牛客、实习僧等�
 5. 组合返回 JD detail，包含当前解析版本、版本历史、证据绑定和 audit trail。
 
 当前解析不是 LLM 推理，不调用真实 Provider，不保存 API Key。解析文本会做基础脱敏，例如邮箱和手机号会替换为 redacted 标记。
+
+## Match Report Versioning 链路
+
+匹配报告在 P3E 中从一次性 demo 结果升级为可版本化输出资产。`MatchReportVersionService` 在同一个事务内完成：
+
+1. 读取目标 `job_post`、当前最新 `jd_parse_version` 和该版本下的 `jd_evidence_binding`。
+2. 使用 deterministic local-rule scoring 生成 summary、score breakdown、evidence refs、skill gaps、recommended actions 和 risk notes。
+3. 写入 `match_report_version`，默认状态为 `DRAFT`。
+4. 写入 `match_report_audit_event`，记录 `GENERATE_LOCAL_RULE` 与 `CREATE_DRAFT`。
+5. 创建或更新 `MATCH_REPORT` 类型的 `human_review_item`，让报告进入人工复核队列。
+
+`GET /api/match-report/demo` 继续返回旧页面需要的 summary、score、evidenceSources、skillGaps、recommendedActions 和 traceEvidence 字段，但来源改为最新 report version。新增的版本列表、详情、审计、送审和归档接口围绕 `match_report_version` 工作。
+
+当前 scoring 不调用真实 LLM、DeepSeek 或中转站，不输出 Offer 概率或录取概率。报告建议只有进入 Human Review 并经人工确认后，才可作为可复制建议使用。
 
 ## Resume Evidence 审计链路
 
@@ -77,7 +93,7 @@ OfferFlow 不从招聘平台抓取 JD，也不接 Boss、牛客、实习僧等�
 - MySQL profile 只保留可切换配置，不在本阶段连接真实 MySQL。
 - 响应层继续使用 Java record，数据库 entity 与 API DTO 分离，便于后续审计、权限和状态机扩展。
 - JSON 字段暂存为 `TEXT`，由 `JsonCodec` 管理；审计事件先用结构化列保存关键字段，便于后续查询。
-- Provider 设置和 Dashboard 暂时仍为组合 service；核心 JD Intake、证据、复核、Trace、报告、面试准备和投递跟踪已优先读库。
+- Provider 设置和 Dashboard 暂时仍为组合 service；核心 JD Intake、证据、复核、Trace、报告版本、面试准备和投递跟踪已优先读库。
 
 ## 边界
 

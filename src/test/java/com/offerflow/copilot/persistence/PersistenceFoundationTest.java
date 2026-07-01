@@ -18,7 +18,9 @@ import com.offerflow.copilot.persistence.repository.JdAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.JdEvidenceBindingRepository;
 import com.offerflow.copilot.persistence.repository.JdParseVersionRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
+import com.offerflow.copilot.persistence.repository.MatchReportAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.MatchReportRepository;
+import com.offerflow.copilot.persistence.repository.MatchReportVersionRepository;
 import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceRepository;
@@ -47,6 +49,12 @@ class PersistenceFoundationTest {
 
     @Autowired
     private MatchReportRepository matchReportRepository;
+
+    @Autowired
+    private MatchReportVersionRepository matchReportVersionRepository;
+
+    @Autowired
+    private MatchReportAuditEventRepository matchReportAuditEventRepository;
 
     @Autowired
     private InterviewPrepRepository interviewPrepRepository;
@@ -86,6 +94,8 @@ class PersistenceFoundationTest {
         assertThat(jobPostRepository.count()).isEqualTo(1);
         assertThat(resumeEvidenceRepository.count()).isEqualTo(4);
         assertThat(matchReportRepository.count()).isEqualTo(1);
+        assertThat(matchReportVersionRepository.count()).isEqualTo(1);
+        assertThat(matchReportAuditEventRepository.count()).isEqualTo(2);
         assertThat(interviewPrepRepository.count()).isEqualTo(1);
         assertThat(applicationRecordRepository.count()).isEqualTo(3);
         assertThat(humanReviewItemRepository.count()).isEqualTo(6);
@@ -101,6 +111,8 @@ class PersistenceFoundationTest {
     @Test
     void seedOnEmptyDoesNotDuplicateRows() {
         long evidenceCount = resumeEvidenceRepository.count();
+        long matchReportVersionCount = matchReportVersionRepository.count();
+        long matchReportAuditCount = matchReportAuditEventRepository.count();
         long reviewCount = humanReviewItemRepository.count();
         long auditCount = humanReviewAuditEventRepository.count();
         long evidenceAuditCount = resumeEvidenceAuditEventRepository.count();
@@ -112,6 +124,8 @@ class PersistenceFoundationTest {
         seedService.seedIfEmpty();
 
         assertThat(resumeEvidenceRepository.count()).isEqualTo(evidenceCount);
+        assertThat(matchReportVersionRepository.count()).isEqualTo(matchReportVersionCount);
+        assertThat(matchReportAuditEventRepository.count()).isEqualTo(matchReportAuditCount);
         assertThat(humanReviewItemRepository.count()).isEqualTo(reviewCount);
         assertThat(humanReviewAuditEventRepository.count()).isEqualTo(auditCount);
         assertThat(resumeEvidenceAuditEventRepository.count()).isEqualTo(evidenceAuditCount);
@@ -119,6 +133,17 @@ class PersistenceFoundationTest {
         assertThat(jdEvidenceBindingRepository.count()).isEqualTo(jdBindingCount);
         assertThat(jdAuditEventRepository.count()).isEqualTo(jdAuditCount);
         assertThat(traceStepRepository.count()).isEqualTo(stepCount);
+    }
+
+    @Test
+    void seedOnEmptyDoesNotDuplicateMatchReportVersionsOrAuditEvents() {
+        long versionCount = matchReportVersionRepository.count();
+        long auditCount = matchReportAuditEventRepository.count();
+
+        seedService.seedIfEmpty();
+
+        assertThat(matchReportVersionRepository.count()).isEqualTo(versionCount);
+        assertThat(matchReportAuditEventRepository.count()).isEqualTo(auditCount);
     }
 
     @Test

@@ -19,7 +19,9 @@ import com.offerflow.copilot.persistence.entity.JdAuditEventEntity;
 import com.offerflow.copilot.persistence.entity.JdEvidenceBindingEntity;
 import com.offerflow.copilot.persistence.entity.JdParseVersionEntity;
 import com.offerflow.copilot.persistence.entity.JobPostEntity;
+import com.offerflow.copilot.persistence.entity.MatchReportAuditEventEntity;
 import com.offerflow.copilot.persistence.entity.MatchReportEntity;
+import com.offerflow.copilot.persistence.entity.MatchReportVersionEntity;
 import com.offerflow.copilot.persistence.entity.ProviderTraceRunEntity;
 import com.offerflow.copilot.persistence.entity.ResumeEvidenceAuditEventEntity;
 import com.offerflow.copilot.persistence.entity.ResumeEvidenceEntity;
@@ -32,7 +34,9 @@ import com.offerflow.copilot.persistence.repository.JdAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.JdEvidenceBindingRepository;
 import com.offerflow.copilot.persistence.repository.JdParseVersionRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
+import com.offerflow.copilot.persistence.repository.MatchReportAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.MatchReportRepository;
+import com.offerflow.copilot.persistence.repository.MatchReportVersionRepository;
 import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceRepository;
@@ -58,6 +62,8 @@ public class PersistenceSeedService implements ApplicationRunner {
     private final ResumeEvidenceRepository resumeEvidenceRepository;
     private final JobPostRepository jobPostRepository;
     private final MatchReportRepository matchReportRepository;
+    private final MatchReportVersionRepository matchReportVersionRepository;
+    private final MatchReportAuditEventRepository matchReportAuditEventRepository;
     private final InterviewPrepRepository interviewPrepRepository;
     private final ApplicationRecordRepository applicationRecordRepository;
     private final HumanReviewItemRepository humanReviewItemRepository;
@@ -75,6 +81,8 @@ public class PersistenceSeedService implements ApplicationRunner {
             ResumeEvidenceRepository resumeEvidenceRepository,
             JobPostRepository jobPostRepository,
             MatchReportRepository matchReportRepository,
+            MatchReportVersionRepository matchReportVersionRepository,
+            MatchReportAuditEventRepository matchReportAuditEventRepository,
             InterviewPrepRepository interviewPrepRepository,
             ApplicationRecordRepository applicationRecordRepository,
             HumanReviewItemRepository humanReviewItemRepository,
@@ -90,6 +98,8 @@ public class PersistenceSeedService implements ApplicationRunner {
         this.resumeEvidenceRepository = resumeEvidenceRepository;
         this.jobPostRepository = jobPostRepository;
         this.matchReportRepository = matchReportRepository;
+        this.matchReportVersionRepository = matchReportVersionRepository;
+        this.matchReportAuditEventRepository = matchReportAuditEventRepository;
         this.interviewPrepRepository = interviewPrepRepository;
         this.applicationRecordRepository = applicationRecordRepository;
         this.humanReviewItemRepository = humanReviewItemRepository;
@@ -118,6 +128,8 @@ public class PersistenceSeedService implements ApplicationRunner {
         seedJdEvidenceBindingsIfEmpty();
         seedJdAuditEventsIfEmpty();
         seedMatchReportIfEmpty();
+        seedMatchReportVersionsIfEmpty();
+        seedMatchReportAuditEventsIfEmpty();
         seedInterviewPrepIfEmpty();
         seedApplicationsIfEmpty();
         seedHumanReviewsIfEmpty();
@@ -553,6 +565,96 @@ public class PersistenceSeedService implements ApplicationRunner {
         matchReportRepository.save(report);
     }
 
+    private void seedMatchReportVersionsIfEmpty() {
+        if (matchReportVersionRepository.count() > 0) {
+            return;
+        }
+        MatchReportVersionEntity version = new MatchReportVersionEntity();
+        version.setId("match-java-ai-demo-v1");
+        version.setReportId("match-java-ai-demo");
+        version.setJobId(DEMO_JOB_ID);
+        version.setParseVersionId("job-java-ai-intern-parse-v1");
+        version.setVersionNo(1);
+        version.setScore(82);
+        version.setSkillScore(36);
+        version.setEvidenceScore(28);
+        version.setRiskScore(-4);
+        version.setInterviewScore(22);
+        version.setRecommendedResume("Java 后端版 / AI Coding 版");
+        version.setStatus("DRAFT");
+        version.setSummaryJson(jsonCodec.write(new MatchReportDemo.ReportSummary(
+                "Java 后端 / AI 应用开发实习生",
+                List.of("Java 后端版", "AI Coding 版"),
+                82,
+                100,
+                "Draft，需要人工复核",
+                "匹配得分只解释证据覆盖，不代表录取概率或招聘结果。")));
+        version.setScoreBreakdownJson(jsonCodec.write(new MatchReportDemo.ScoreBreakdown(
+                List.of(
+                        new MatchReportDemo.ScoreItem("skills", "技能命中", 36, 40, "Java / Spring Boot / AI Workflow 覆盖较完整", "primary"),
+                        new MatchReportDemo.ScoreItem("evidence", "项目证据", 28, 35, "README、截图、Trace 与测试证据较清晰", "positive"),
+                        new MatchReportDemo.ScoreItem("risk", "经验风险", -4, 10, "交付与生产环境经验需要降级描述", "warning"),
+                        new MatchReportDemo.ScoreItem("interview", "面试准备", 22, 25, "追问方向明确，仍需人工整理 STAR 表达", "info")),
+                "评分用于解释 JD 与证据的覆盖关系，不输出任何 Offer 或录取概率。")));
+        version.setEvidenceRefsJson(jsonCodec.write(List.of(
+                new MatchReportDemo.EvidenceSource("Spring Boot", "MCP Tool Gateway", "强", List.of("README", "后端测试", "Trace"), "工具注册、接口契约、异常处理与调用审计证据完整。"),
+                new MatchReportDemo.EvidenceSource("AI Workflow", "DevFlow Copilot", "强", List.of("README", "截图", "Trace"), "任务拆解、Provider fallback、Schema Validate 与 Human Review 链路清晰。"),
+                new MatchReportDemo.EvidenceSource("RAG / Knowledge", "Enterprise Ticket RAG Copilot", "中", List.of("README", "截图", "Trace"), "具备引用与复核链路，但离线评估样本仍需补充。"),
+                new MatchReportDemo.EvidenceSource("CI / Deployment", "Portfolio Hub", "中", List.of("GitHub Actions", "截图", "部署记录"), "有构建与截图证据，但不代表生产环境运维经验。"))));
+        version.setSkillGapsJson(jsonCodec.write(List.of(
+                new MatchReportDemo.SkillGap("Redis 深度使用", "中", "已有缓存理解，但缺少复杂一致性案例。", "补充缓存穿透、热点 key、过期策略与数据一致性复盘。"),
+                new MatchReportDemo.SkillGap("分布式事务", "高", "当前证据集中在单体或轻量服务。", "准备本地事务、补偿事务、消息最终一致性对比说明。"),
+                new MatchReportDemo.SkillGap("性能优化", "中", "缺少独立压测与指标记录。", "补充接口耗时、SQL 索引、缓存命中率等可验证材料。"),
+                new MatchReportDemo.SkillGap("A/B Testing", "低", "岗位可能涉及实验思维，但当前项目证据较少。", "准备实验分组、指标选择和误差风险说明。"),
+                new MatchReportDemo.SkillGap("生产环境经验不足", "高", "作品集证据不能表述为真实生产流量。", "统一改写为作品集级演示和可复核工程边界。"))));
+        version.setRecommendedActionsJson(jsonCodec.write(List.of(
+                new MatchReportDemo.RecommendedAction("建议投递", "证据覆盖 Java 后端与 AI 应用开发核心要求，但材料需先过 Human Review。", "high"),
+                new MatchReportDemo.RecommendedAction("推荐使用 Java 后端版简历", "把 Spring Boot、接口设计、Trace Evidence 放在首屏项目经历。", "high"),
+                new MatchReportDemo.RecommendedAction("准备关键追问", "重点准备 Spring Boot / Trace Evidence / Provider fallback 相关追问。", "medium"),
+                new MatchReportDemo.RecommendedAction("收紧能力表述", "不要夸大真实模型能力，不把 local-rule fallback 包装成真实 LLM 能力。", "high"))));
+        version.setRiskNotesJson(jsonCodec.write(List.of(
+                "这是匹配分析，不是 Offer 概率或录取概率。",
+                "所有建议需经人工复核后使用。",
+                "当前 scoring 是 local-rule，不调用真实 LLM、DeepSeek 或中转站。",
+                "每个版本绑定 JD parse version 与 resume evidence bindings。",
+                "仍需检查是否存在生产级、真实用户、自动投递等夸大表述。")));
+        version.setGeneratedBy("local-rule scoring");
+        version.setProviderMode("local-rule");
+        version.setPromptVersion("match-report-local-rule-v1");
+        version.setSchemaVersion("match-report-version-v1");
+        version.setTraceId("JD-042-REP-21F3");
+        version.setHumanReviewId("review-match-java-ai");
+        version.setCreatedAt(ts(2026, 7, 1, 14, 37));
+        version.setUpdatedAt(ts(2026, 7, 1, 14, 37));
+        matchReportVersionRepository.save(version);
+    }
+
+    private void seedMatchReportAuditEventsIfEmpty() {
+        if (matchReportAuditEventRepository.count() > 0) {
+            return;
+        }
+        matchReportAuditEventRepository.save(matchReportAuditEvent(
+                "match-audit-seed-generate",
+                "match-java-ai-demo-v1",
+                "GENERATE_LOCAL_RULE",
+                "NONE",
+                "DRAFT",
+                List.of("score", "summary", "evidenceRefs"),
+                "使用 local-rule scoring 生成 seed 匹配报告版本。",
+                "JD-042-REP-21F3",
+                ts(2026, 7, 1, 14, 37)));
+        matchReportAuditEventRepository.save(matchReportAuditEvent(
+                "match-audit-seed-draft",
+                "match-java-ai-demo-v1",
+                "CREATE_DRAFT",
+                "NONE",
+                "DRAFT",
+                List.of("status", "humanReviewId"),
+                "创建 Draft 报告版本并关联 Human Review seed item。",
+                "JD-042-REP-21F3",
+                ts(2026, 7, 1, 14, 37)));
+    }
+
     private void seedInterviewPrepIfEmpty() {
         if (interviewPrepRepository.count() > 0) {
             return;
@@ -944,6 +1046,31 @@ public class PersistenceSeedService implements ApplicationRunner {
         entity.setHumanNote(humanNote);
         entity.setTraceId(traceId);
         entity.setTraceHash("audit-" + Integer.toHexString((traceId + ":" + reviewId).hashCode()));
+        entity.setCreatedAt(createdAt);
+        return entity;
+    }
+
+    private MatchReportAuditEventEntity matchReportAuditEvent(
+            String id,
+            String reportVersionId,
+            String action,
+            String previousStatus,
+            String nextStatus,
+            List<String> changedFields,
+            String humanNote,
+            String traceId,
+            LocalDateTime createdAt) {
+        MatchReportAuditEventEntity entity = new MatchReportAuditEventEntity();
+        entity.setId(id);
+        entity.setReportVersionId(reportVersionId);
+        entity.setAction(action);
+        entity.setPreviousStatus(previousStatus);
+        entity.setNextStatus(nextStatus);
+        entity.setActor("local-rule report generator");
+        entity.setActorRole("System");
+        entity.setChangedFieldsJson(jsonCodec.write(changedFields));
+        entity.setHumanNote(humanNote);
+        entity.setTraceId(traceId);
         entity.setCreatedAt(createdAt);
         return entity;
     }

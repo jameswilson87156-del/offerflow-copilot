@@ -2,6 +2,23 @@ import type { ApplicationTrackerData, InterviewPrepData, MatchReportData } from 
 
 export const matchReportFallback: MatchReportData = {
   mode: 'mock/local-rule',
+  reportId: 'match-java-ai-demo',
+  versionId: 'match-java-ai-demo-v1',
+  jobId: 'job-java-ai-intern',
+  versionNo: 1,
+  status: 'DRAFT',
+  createdAt: '2026-07-01 14:37',
+  updatedAt: '2026-07-01 14:37',
+  generatedBy: 'local-rule scoring',
+  providerMode: 'local-rule',
+  promptVersion: 'match-report-local-rule-v1',
+  schemaVersion: 'match-report-version-v1',
+  traceId: 'JD-042-REP-21F3',
+  parseVersionId: 'job-java-ai-intern-parse-v1',
+  parseVersionNo: 1,
+  evidenceBindingCount: 4,
+  humanReviewId: 'review-match-java-ai',
+  humanReviewStatus: 'Draft',
   summary: {
     jobTitle: 'Java 后端 / AI 应用开发实习生',
     recommendedResumeVersions: ['Java 后端版', 'AI Coding 版'],
@@ -37,6 +54,13 @@ export const matchReportFallback: MatchReportData = {
     { title: '推荐使用 Java 后端版简历', detail: '把 Spring Boot、接口设计、Trace Evidence 放在首屏项目经历。', priority: 'high' },
     { title: '准备关键追问', detail: '重点准备 Spring Boot / Trace Evidence / Provider fallback 相关追问。', priority: 'medium' },
     { title: '收紧能力表述', detail: '不要夸大真实模型能力，不把 local-rule fallback 包装成真实 LLM 能力。', priority: 'high' },
+  ],
+  riskNotes: [
+    '这是匹配分析，不是 Offer 概率或录取概率。',
+    '所有建议需经人工复核后使用。',
+    '当前 scoring 是 local-rule，不调用真实 LLM、DeepSeek 或中转站。',
+    '每个版本绑定 JD parse version 与 resume evidence bindings。',
+    '仍需检查是否存在生产级、真实用户、自动投递等夸大表述。',
   ],
   traceEvidence: [
     { label: 'JD 输入', status: 'success', detail: '手动录入演示 JD' },

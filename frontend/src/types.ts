@@ -294,7 +294,7 @@ export interface EvidenceCoverageData {
   note: string
 }
 
-export type HumanReviewStatus = 'Draft' | 'Returned' | 'Confirmed' | 'Risk Flagged'
+export type HumanReviewStatus = 'Draft' | 'In Review' | 'Returned' | 'Confirmed' | 'Risk Flagged' | 'Archived'
 
 export interface HumanReviewGroup {
   key: string
@@ -507,8 +507,60 @@ export interface WorkflowTraceStep {
   detail: string
 }
 
+export type MatchReportVersionStatus = 'DRAFT' | 'IN_REVIEW' | 'CONFIRMED' | 'RETURNED' | 'ARCHIVED'
+
+export interface MatchReportVersionSummary {
+  id: string
+  reportId: string
+  jobId: string
+  parseVersionId: string
+  parseVersionNo: number
+  versionNo: number
+  score: number
+  status: MatchReportVersionStatus
+  providerMode: string
+  promptVersion: string
+  traceId: string
+  humanReviewId: string
+  humanReviewStatus: string
+  evidenceBindingCount: number
+  createdAt: string
+}
+
+export interface MatchReportAuditEvent {
+  id: string
+  reportVersionId: string
+  action: string
+  actionLabel: string
+  previousStatus: string
+  nextStatus: string
+  actor: string
+  actorRole: string
+  changedFields: string[]
+  humanNote: string
+  traceId: string
+  createdAt: string
+}
+
 export interface MatchReportData {
   mode: string
+  reportId: string
+  versionId: string
+  jobId: string
+  versionNo: number
+  status: MatchReportVersionStatus
+  createdAt: string
+  updatedAt: string
+  generatedBy: string
+  providerMode: string
+  promptVersion: string
+  schemaVersion: string
+  traceId: string
+  parseVersionId: string
+  parseVersionNo: number
+  evidenceBindingCount: number
+  humanReviewId: string
+  humanReviewStatus: string
   summary: MatchReportSummary
   score: {
     items: MatchReportScoreItem[]
@@ -517,6 +569,7 @@ export interface MatchReportData {
   evidenceSources: MatchReportEvidenceSource[]
   skillGaps: MatchReportSkillGap[]
   recommendedActions: MatchReportAction[]
+  riskNotes: string[]
   traceEvidence: WorkflowTraceStep[]
   disclaimer: string
 }
