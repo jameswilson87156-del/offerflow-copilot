@@ -320,7 +320,7 @@ public class ProviderExecutionService {
                         new ProviderTraceCenter.ResumeEvidenceRef(
                                 "SANDBOX-002",
                                 "No-op external adapters",
-                                "OpenAI-compatible and DeepSeek adapters exist but do not perform network calls in P4C.",
+                                "OpenAI-compatible and DeepSeek adapters exist but do not perform network calls in P4C/P4D.",
                                 List.of("ProviderRouter", "NoOp clients")),
                         new ProviderTraceCenter.ResumeEvidenceRef(
                                 "SANDBOX-003",
@@ -344,7 +344,7 @@ public class ProviderExecutionService {
     }
 
     private String runId() {
-        return "P4C-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        return "P4D-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     private String labelFor(String taskType) {

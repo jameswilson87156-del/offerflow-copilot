@@ -17,12 +17,13 @@
 - 允许使用 Flyway 管理 H2/MySQL 共用 schema，并用 Docker Compose 启动仅供本地开发/演示的 MySQL 8。
 - 允许使用 Provider SPI 和 sandbox run 演示配置校验、no-op adapter、失败/超时模拟、fallback 和 Trace Evidence 写入。
 - 允许使用 Provider contract sandbox 演示 PromptContract、RiskPolicy、ProviderResponseSchema 和本地 Response Validator。
+- 允许使用 Copy Permission Contract 演示 AI/local-rule 输出正式使用前的最后一道复制门禁。
 
 ## 明确不做
 
 - 不接真实 LLM，不调用 DeepSeek，不调用中转站。
 - 不保存 API Key 明文，也不把 Provider 配置伪装为已稳定接入。
-- 不因 `realCallEnabled=true` 配置项就发起真实外部请求；P4C adapter 仍然是 no-op。
+- 不因 `realCallEnabled=true` 配置项就发起真实外部请求；P4C/P4D adapter 仍然是 no-op。
 - 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
 - 不采集或保存真实手机号、邮箱、身份证、聊天记录等隐私。
 - 不自动投递，不自动私信 HR，不抓取平台聊天。
@@ -30,6 +31,7 @@
 - 不计算 Offer/录取概率，不保证通过。
 - 不宣称生产级招聘系统、真实客户、真实流量或商业数据。
 - 不将规则 fallback 包装成真实 LLM 能力。
+- 不允许未经过 Copy Permission Contract 的 AI/local-rule 输出被复制为正式建议。
 - 不将本地 MySQL profile 或 Docker Compose 描述为生产部署；不在仓库保存 `.env`、真实数据库凭据、API Key 或数据库数据目录。
 
 ## 人工复核原则
@@ -40,7 +42,7 @@ P3B 已将 Human Review 状态和 audit trail 保存在 H2 demo persistence 中�
 
 当前 actor 是 demo user，用于演示审计链路，不是生产鉴权、生产权限系统或合规审计系统。
 
-Confirmed 是唯一允许复制正式建议的状态。Archived 是只读归档状态；前端禁用不合法动作并展示原因，但这不等同于生产级服务端授权模型。
+Confirmed 是唯一允许复制正式建议的状态。Schema Validate 通过不代表可以直接使用；Risk Guard 通过不代表可以直接复制；Human Review Confirmed 后仍由 Copy Permission Contract 做最后检查。Archived 是只读归档状态；前端禁用不合法动作并展示原因，但这不等同于生产级服务端授权模型。
 
 ## 简历证据原则
 
@@ -62,7 +64,18 @@ JD 分析台只接受用户手动粘贴的岗位描述或脱敏 seed demo，不�
 
 `ARCHIVED` 版本是只读版本，不能再次 send-to-review；如需继续处理，必须先 restore 到 `DRAFT` 并重新进入复核链路。当前 restore、copy-check 和审计 actor 都是 demo user，不是生产级权限系统。
 
-每次 copy-check 都写入 `COPY_ENABLED` 或 `COPY_BLOCKED`，并保存许可结果、原因、版本状态、Human Review 状态和 Boundary Notice，供 Audit Trail 展开查看。
+每次 Match Report copy-check 都复用 `CopyPermissionService`，写入统一 `copy_permission_audit_event`，同时继续写旧 `COPY_ENABLED` 或 `COPY_BLOCKED`，并保存许可结果、原因、版本状态、Human Review 状态和 Boundary Notice，供 Audit Trail 展开查看。
+
+## Copy Permission 原则
+
+Copy Permission Contract 是 AI/local-rule 输出正式使用前的最后一道门禁。它要求：
+
+- `schemaValidated=true`
+- `riskGuardPassed=true`
+- target status = `CONFIRMED`
+- Human Review status = `Confirmed`
+
+`DRAFT`、`IN_REVIEW`、`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 一律不能复制为正式建议。当前支持 Match Report 和 Interview Prep 的页面展示；Opening Message、Human Review Rewrite 等 target type 已在 policy 类型中预留，但仍是 demo/mock 支持，不强行扩大业务表。
 
 ## Provider SPI 原则
 
@@ -70,6 +83,6 @@ Provider SPI 只建立抽象和审计基础，不代表已经接入真实模型�
 
 `GET /api/provider/config-check` 和 `GET /api/provider/settings` 不返回 API Key 明文，只显示 `masked`、`not configured` 或 `disabled`。`POST /api/provider/sandbox-run` 不发起真实外部 Provider 调用，任何未配置、失败或超时都必须 fallback 到 local-rule，并写入 `provider_trace_run` 与 `trace_step`。
 
-`GET /api/provider/contracts`、`GET /api/provider/contracts/{taskType}` 和 `POST /api/provider/validate-response` 只用于本地 contract/validation 演示。真实 Provider 接入前，任何输出都必须通过 schema validate、risk guard 和 Human Review；未校验输出不得进入页面复制流程。
+`GET /api/provider/contracts`、`GET /api/provider/contracts/{taskType}` 和 `POST /api/provider/validate-response` 只用于本地 contract/validation 演示。真实 Provider 接入前，任何输出都必须通过 schema validate、risk guard、Human Review 和 Copy Permission Contract；未校验或未确认输出不得进入页面复制流程。
 
 所有 Provider 输出仍需 Human Review；模型失败不能伪装成成功，fallback reason 必须保留在响应和 Trace Evidence 中。

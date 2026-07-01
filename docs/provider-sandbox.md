@@ -61,7 +61,7 @@ Response 是 `ProviderResponse`，包含 selected provider、final provider、fa
 - Response Validation Sandbox：模拟 missing field、unsafe claim、schema mismatch，并展示 violations、fallbackRequired、humanReviewRequired、riskFlags 和 sanitizedOutput。
 - Trace Timeline：sandbox run 后自动刷新最新 trace。
 
-页面文案必须保持清晰：当前是 Provider contract sandbox，未发起真实外部模型调用，真实 Provider 接入前必须通过 schema validate 和 risk guard，所有输出仍需 Human Review。
+页面文案必须保持清晰：当前是 Provider contract sandbox，未发起真实外部模型调用，真实 Provider 接入前必须通过 schema validate 和 risk guard，所有输出仍需 Human Review。P4D 后，validation 通过也不代表可复制；Copy Permission Contract 是 Human Review Confirmed 后的最后一道门禁。
 
 ## 安全边界
 

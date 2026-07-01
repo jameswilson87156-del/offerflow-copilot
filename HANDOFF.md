@@ -2,13 +2,13 @@
 
 ## 当前交付
 
-P4C 已完成 Provider Prompt / Schema Contract Hardening。P4A 的 Flyway Migration、H2/MySQL 兼容和 Docker Compose 说明保持有效；P4B 的 Provider SPI 继续保留；本轮新增 Prompt Contract、Risk Policy、Provider Response Schema、Response Validator、validate-response sandbox 和 `/provider-settings` contract/validation 面板。
+P4D 已完成 Human Review Gate + Copy Permission Contract。P4A 的 Flyway Migration、H2/MySQL 兼容和 Docker Compose 说明保持有效；P4B 的 Provider SPI 与 P4C 的 Prompt/Schema/Risk contract 继续保留；本轮新增统一复制门禁、`copy_permission_audit_event`、`/api/copy-permissions/*`、Match Report 旧 copy-check 复用和前端 Copy Gate。
 
-Match Report、Human Review、Evidence Library 的审计事件均可卡内展开，展示 action、状态变化、actor/role、human note、trace、changed fields 和时间。copy-check 的 `allowed`、reason、version status、Human Review status 和 Boundary Notice 会随 `COPY_ENABLED` / `COPY_BLOCKED` 保存在 `match_report_audit_event`。
+Match Report、Human Review、Evidence Library 的审计事件均可卡内展开，展示 action、状态变化、actor/role、human note、trace、changed fields 和时间。copy-check 的 `allowed`、reason、version status、Human Review status 和 Boundary Notice 会继续随 `COPY_ENABLED` / `COPY_BLOCKED` 保存在 `match_report_audit_event`；P4D 同时写入统一 `copy_permission_audit_event`。
 
 只有 `CONFIRMED` 后才允许复制确认版摘要；`ARCHIVED` 是只读归档状态，不能送审。Evidence Archived 仅保留 restore，结束态 Human Review 禁用动作并展示原因；Returned / Risk Flagged / Archived 统一使用只读视觉提示。
 
-所有 15 张业务表由 `db/migration/V1__init_offerflow_schema.sql` 建立。默认/test 使用 H2，`mysql` profile 可连接本地 MySQL 8；Flyway 完成后才运行 count-guarded demo seed。核心数据仍是脱敏 seed demo data。Provider 默认仍是 `local-rule`，OpenAI-compatible 与 DeepSeek 目前只是 no-op adapter 结构。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
+核心业务表由 Flyway V1 建立；P4D 的 `db/migration/V2__copy_permission_audit_event.sql` 新增统一复制门禁审计表。默认/test 使用 H2，`mysql` profile 可连接本地 MySQL 8；Flyway 完成后才运行 count-guarded demo seed。核心数据仍是脱敏 seed demo data。Provider 默认仍是 `local-rule`，OpenAI-compatible 与 DeepSeek 目前只是 no-op adapter 结构。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
 
 ## 启动顺序
 
@@ -24,9 +24,11 @@ Match Report、Human Review、Evidence Library 的审计事件均可卡内展开
 - 数据库 JSON 字段先用 `TEXT` 保存字符串，通过 `JsonCodec` 统一序列化/反序列化。
 - Provider SPI 位于 `com.offerflow.copilot.provider`，核心类型包括 `AiProviderClient`、`ProviderRequest`、`ProviderResponse`、`ProviderDescriptor`、`ProviderHealth`、`ProviderRouter` 和 `ProviderExecutionService`。
 - `AiProviderProperties` 默认 `mode=local-rule`、`realCallEnabled=false`、`rawResponseSave=false`、`timeoutMs=8000`。API Key 通过环境变量占位读取，不写入仓库配置，不在响应中明文展示。
-- OpenAI-compatible 与 DeepSeek adapter 是 `NoOpOpenAiCompatibleProviderClient` / `NoOpDeepSeekProviderClient`。即使配置存在，P4C 仍不发起真实网络请求。
+- OpenAI-compatible 与 DeepSeek adapter 是 `NoOpOpenAiCompatibleProviderClient` / `NoOpDeepSeekProviderClient`。即使配置存在，P4C/P4D 仍不发起真实网络请求。
 - Provider contracts 位于 `com.offerflow.copilot.provider.contract`，核心类型包括 `ProviderTaskType`、`PromptContract`、`PromptContractRegistry`、`RiskPolicy`、`RiskPolicyRegistry`、`ProviderResponseSchema`、`ProviderResponseSchemaRegistry`、`ProviderResponseValidator` 和 `ProviderValidatedResult`。
 - `GET /api/provider/contracts` 返回 taskType 合同摘要；`GET /api/provider/contracts/{taskType}` 返回 PromptContract detail；`POST /api/provider/validate-response` 只验证本地模拟 ProviderResponse，不发网络、不保存 raw model response。
+- Copy Permission Contract 位于 `com.offerflow.copilot.copy`，核心类型包括 `CopyTargetType`、`CopyPermissionRequest`、`CopyPermissionResult`、`CopyPermissionPolicy` 和 `CopyPermissionService`。
+- `POST /api/copy-permissions/check` 是统一复制门禁入口；`GET /api/copy-permissions/audit-events` 按 targetType/targetId 返回统一审计历史。该表不保存 requested text 或真实隐私。
 - `POST /api/provider/sandbox-run` 会先加载 PromptContract 和 RiskPolicy，再执行 local-rule/no-op provider，随后通过 ProviderResponseValidator。Sandbox run 支持 `simulateFailure`、`simulateTimeout`，外部 provider 未配置或失败时必须 fallback 到 `local-rule`。
 - 每次 sandbox run 都写入 `provider_trace_run` 和 12 条 `trace_step`：Provider Config Check、Prompt Contract Load、Risk Policy Load、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Provider Response Validate、Schema Contract Validate、Risk Policy Guard、Contract Violation Check、Human Review Required。
 - 新增 JD Intake 表为 `jd_parse_version`、`jd_evidence_binding` 和 `jd_audit_event`，由 `JobIntakeService` 在 JD 创建、更新、解析和绑定证据时写入。
@@ -39,9 +41,9 @@ Match Report、Human Review、Evidence Library 的审计事件均可卡内展开
 - `GET /api/jobs/{id}/match-reports`、`GET /api/match-reports/{versionId}`、`GET /api/match-reports/{versionId}/audit-events` 分别读取版本列表、详情和审计历史。
 - `POST /api/match-reports/{versionId}/send-to-review` 和 `/archive` 会更新版本状态并写入 match report audit event。
 - `POST /api/match-reports/{versionId}/restore` 会把 `ARCHIVED`、`RETURNED` 或 `RISK_FLAGGED` 版本恢复到 `DRAFT`，并写入 `RESTORE_VERSION` audit event。
-- `POST /api/match-reports/{versionId}/copy-check` 会按版本状态返回复制许可，并写入 `COPY_ENABLED` 或 `COPY_BLOCKED` audit event。
+- `POST /api/match-reports/{versionId}/copy-check` 会按版本状态返回复制许可，内部复用 `CopyPermissionService`，同时写入 `copy_permission_audit_event` 和旧 `COPY_ENABLED` / `COPY_BLOCKED` audit event。
 - copy-check audit event 额外保存 `copy_allowed`、`copy_reason`、`version_status`、`human_review_status` 和 `boundary_notice`，供前端展开查看历史。
-- 三处 Audit Trail 共用 `AuditEventDisclosure` 组件；状态文案共用 `utils/status.ts`，避免页面间颜色和翻译漂移。
+- 三处 Audit Trail 共用 `AuditEventDisclosure` 组件；Match Report 与 Interview Prep 复用 `CopyPermissionPanel` 展示 allowed、reason、target status、Human Review、Schema Validate、Risk Guard 和统一复制审计历史。
 - `HumanReviewService` 对 MATCH_REPORT review item 执行 confirm / return / flag-risk 时，会同步写入 `HUMAN_REVIEW_CONFIRMED`、`HUMAN_REVIEW_RETURNED` 或 `HUMAN_REVIEW_FLAGGED_RISK` 到 `match_report_audit_event`。
 - `ARCHIVED` 版本只读，不能再次 send-to-review；可以 restore 后回到 Draft。
 - 当前 scoring 是 deterministic local-rule，不是 Offer 概率、录取概率或真实 LLM 推理。
@@ -61,7 +63,7 @@ Match Report、Human Review、Evidence Library 的审计事件均可卡内展开
 
 - 后端覆盖 COPY_ENABLED / COPY_BLOCKED 结构化详情、Archived send-to-review block、Archived copy block、restore to Draft 和审计详情字段。
 - 前端覆盖 Match Report、Human Review、Evidence Library 的 1366x768、1440x900、1920x1080 截图与横向溢出检查。
-- `mvn test`：当前包含 Provider SPI 与 Provider Contract hardening 测试；覆盖 Flyway history、关键表存在性、Provider SPI 默认值、fallback、trace 写入、key masking、contract registry、response validation 和风险策略检查。
+- `mvn test`：当前包含 Provider SPI、Provider Contract hardening 与 Copy Permission Contract 测试；覆盖 Flyway history、关键表存在性、Provider SPI 默认值、fallback、trace 写入、key masking、contract registry、response validation、风险策略、复制门禁和统一审计写入。
 - `npm run build`：Vue TypeScript 与 Vite production build 通过。
 - `npm run screenshots`：18 tests 通过。
-- MySQL smoke：MySQL 8 上 V1 migration 成功，15 张业务表存在；连续两次后端启动的 seed 计数稳定。
+- MySQL smoke：MySQL 8 上 V1+V2 migration 成功，16 张业务表存在；连续两次后端启动的 seed 计数稳定。

@@ -4,6 +4,8 @@
 
 Human Review 是 OfferFlow 的核心安全链路。系统中的 AI 或 local-rule 输出默认只是 `Draft`，不能直接复制、投递或对外使用。用户需要先确认事实、证据来源和表达边界，再将内容标记为 `Confirmed`。
 
+P4D 后，Human Review Confirmed 是复制的必要条件，但不是页面直接复制的旁路。正式复制还必须经过 Copy Permission Contract，确认 schema validate、risk guard、target status 和 Human Review 状态均通过，并写入 `copy_permission_audit_event`。
+
 ## 状态流转
 
 当前兼容状态：
@@ -59,7 +61,7 @@ P3F 中，Human Review 自身的 confirm / return / flag-risk 仍写入 `human_r
 - Human Review `Returned` -> Match Report `RETURNED`，action = `HUMAN_REVIEW_RETURNED`
 - Human Review `Risk Flagged` -> Match Report `RISK_FLAGGED`，action = `HUMAN_REVIEW_FLAGGED_RISK`
 
-匹配报告只有 `CONFIRMED` 后才允许复制使用。`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 版本不可作为正式建议；`ARCHIVED` 版本只读，不能 send-to-review，可 restore 到 `DRAFT` 后重新处理。
+匹配报告只有 `CONFIRMED` 后才可能复制使用。`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 版本不可作为正式建议；`ARCHIVED` 版本只读，不能 send-to-review，可 restore 到 `DRAFT` 后重新处理。P4D 的旧 match-report copy-check 会复用 `CopyPermissionService`，同时写旧 `match_report_audit_event` 和新 `copy_permission_audit_event`。
 
 ## 当前边界
 
@@ -69,7 +71,8 @@ P3F 中，Human Review 自身的 confirm / return / flag-risk 仍写入 `human_r
 - 不保存真实隐私，不保存 API Key，不接招聘平台，不爬虫。
 - 不接真实 LLM、不调用 DeepSeek、不调用中转站。
 - 不输出 Offer 概率、录取概率或保证通过。
+- Schema Validate / Risk Guard 通过不代表可复制；只有 Human Review Confirmed 且 Copy Permission Contract 通过后才允许复制。
 
 ## 后续扩展方向
 
-P3C 已将同样的审计模式扩展到证据库编辑；P3D 已扩展到 JD Intake、parse version 和 evidence binding；P3E 已将 Match Report 版本生成纳入 Human Review；P3F 已将 MATCH_REPORT 复核动作同步回 `match_report_version`。生产化前还需要真实鉴权、权限模型、租户隔离和审计日志防篡改策略。
+P3C 已将同样的审计模式扩展到证据库编辑；P3D 已扩展到 JD Intake、parse version 和 evidence binding；P3E 已将 Match Report 版本生成纳入 Human Review；P3F 已将 MATCH_REPORT 复核动作同步回 `match_report_version`；P4D 已将复制动作抽象为统一 Copy Permission Contract。生产化前还需要真实鉴权、权限模型、租户隔离和审计日志防篡改策略。

@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
+import com.offerflow.copilot.copy.CopyPermissionRequest;
+import com.offerflow.copilot.copy.CopyPermissionResult;
+import com.offerflow.copilot.copy.CopyPermissionService;
+import com.offerflow.copilot.copy.CopyTargetType;
 import com.offerflow.copilot.domain.HumanReviewCenter;
 import com.offerflow.copilot.domain.MatchReportDemo;
 import com.offerflow.copilot.domain.MatchReportVersioning;
@@ -56,6 +60,7 @@ public class MatchReportVersionService {
     private final JdEvidenceBindingRepository jdEvidenceBindingRepository;
     private final ResumeEvidenceRepository resumeEvidenceRepository;
     private final HumanReviewItemRepository humanReviewItemRepository;
+    private final CopyPermissionService copyPermissionService;
 
     public MatchReportVersionService(
             JsonCodec jsonCodec,
@@ -65,7 +70,8 @@ public class MatchReportVersionService {
             JdParseVersionRepository jdParseVersionRepository,
             JdEvidenceBindingRepository jdEvidenceBindingRepository,
             ResumeEvidenceRepository resumeEvidenceRepository,
-            HumanReviewItemRepository humanReviewItemRepository) {
+            HumanReviewItemRepository humanReviewItemRepository,
+            CopyPermissionService copyPermissionService) {
         this.jsonCodec = jsonCodec;
         this.versionRepository = versionRepository;
         this.auditEventRepository = auditEventRepository;
@@ -74,6 +80,7 @@ public class MatchReportVersionService {
         this.jdEvidenceBindingRepository = jdEvidenceBindingRepository;
         this.resumeEvidenceRepository = resumeEvidenceRepository;
         this.humanReviewItemRepository = humanReviewItemRepository;
+        this.copyPermissionService = copyPermissionService;
     }
 
     public MatchReportVersioning.ReportDetail getDemoReport() {
@@ -104,16 +111,30 @@ public class MatchReportVersionService {
     @Transactional
     public MatchReportVersioning.CopyCheck copyCheck(String versionId, MatchReportVersioning.ReportActionRequest request) {
         MatchReportVersionEntity entity = requireVersion(versionId);
-        String reviewStatus = humanReviewStatus(entity);
-        CopyDecision decision = copyDecision(entity.getStatus());
+        CopyPermissionResult permission = copyPermissionService.check(new CopyPermissionRequest(
+                CopyTargetType.MATCH_REPORT,
+                entity.getId(),
+                actor(request),
+                actorRole(request),
+                "",
+                "",
+                entity.getTraceId(),
+                entity.getSchemaVersion(),
+                entity.getPromptVersion()));
         MatchReportVersioning.CopyCheck result = new MatchReportVersioning.CopyCheck(
-                decision.allowed(),
-                decision.reason(),
-                entity.getStatus(),
-                reviewStatus,
-                COPY_BOUNDARY_NOTICE);
-        audit(entity, decision.allowed() ? "COPY_ENABLED" : "COPY_BLOCKED", entity.getStatus(), entity.getStatus(),
-                List.of("copyPermission"), actor(request), actorRole(request), note(request, decision.reason()),
+                permission.allowed(),
+                permission.reason(),
+                permission.targetStatus(),
+                permission.humanReviewStatus(),
+                permission.boundaryNotice(),
+                permission.targetType().name(),
+                permission.targetId(),
+                permission.schemaValidated(),
+                permission.riskGuardPassed(),
+                permission.confirmed(),
+                permission.auditEventId());
+        audit(entity, permission.allowed() ? "COPY_ENABLED" : "COPY_BLOCKED", entity.getStatus(), entity.getStatus(),
+                List.of("copyPermission"), actor(request), actorRole(request), note(request, permission.reason()),
                 LocalDateTime.now(), result);
         return result;
     }
@@ -510,18 +531,6 @@ public class MatchReportVersionService {
         return "MATCH_REPORT".equals(reviewType) || "match-report".equals(reviewType);
     }
 
-    private CopyDecision copyDecision(String status) {
-        return switch (status) {
-            case "CONFIRMED" -> new CopyDecision(true, "已通过人工复核，可复制使用。");
-            case "DRAFT" -> new CopyDecision(false, "需要人工复核");
-            case "IN_REVIEW" -> new CopyDecision(false, "正在复核");
-            case "RETURNED" -> new CopyDecision(false, "已退回");
-            case "RISK_FLAGGED" -> new CopyDecision(false, "存在风险");
-            case "ARCHIVED" -> new CopyDecision(false, "已归档");
-            default -> new CopyDecision(false, "未知状态，需人工复核");
-        };
-    }
-
     private SyncDecision syncDecision(String reviewAction) {
         return switch (reviewAction) {
             case "CONFIRM" -> new SyncDecision("CONFIRMED", "HUMAN_REVIEW_CONFIRMED", "Human Review 已确认，报告版本同步为 Confirmed。");
@@ -661,9 +670,6 @@ public class MatchReportVersionService {
             List<MatchReportDemo.SkillGap> skillGaps,
             List<MatchReportDemo.RecommendedAction> recommendedActions,
             List<String> riskNotes) {
-    }
-
-    private record CopyDecision(boolean allowed, String reason) {
     }
 
     private record SyncDecision(String nextStatus, String auditAction, String note) {

@@ -31,4 +31,6 @@ Each `ProviderContractViolation` includes `code`, `message`, `field`, `severity`
 
 If validation fails, the system marks `fallbackRequired=true`, keeps `humanReviewRequired=true`, records risk flags, and prevents the output from being treated as confirmed success. Sandbox runs write validation-related Trace Evidence steps: Provider Response Validate, Schema Contract Validate, Risk Policy Guard, and Contract Violation Check.
 
-P4C remains demo/local-rule/no-op. It is not a production model gateway and does not prove real external model quality or availability.
+If validation succeeds, the output is still not copyable by itself. P4D requires Human Review Confirmed and Copy Permission Contract approval before a page can expose a confirmed copy action.
+
+P4D remains demo/local-rule/no-op. It is not a production model gateway and does not prove real external model quality or availability.

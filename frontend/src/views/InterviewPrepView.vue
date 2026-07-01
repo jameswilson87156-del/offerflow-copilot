@@ -13,13 +13,25 @@ import {
   UserCheck,
 } from 'lucide-vue-next'
 import { useInterviewPrep } from '../composables/useInterviewPrep'
+import CopyPermissionPanel from '../components/CopyPermissionPanel.vue'
 
 const props = defineProps<{
   searchQuery: string
   selectedProvider: string
 }>()
 
-const { prep, loading, source, reload } = useInterviewPrep()
+const {
+  prep,
+  copyPermission,
+  copyAuditEvents,
+  actionBusy,
+  actionMessage,
+  loading,
+  source,
+  reload,
+  checkCopyPermission,
+  copyConfirmedPrep,
+} = useInterviewPrep()
 
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? '面试前准备 · local-rule mock'
@@ -66,6 +78,21 @@ const filteredQuestionGroups = computed(() => {
         <span :class="source">{{ source === 'api' ? 'LOCAL API LIVE' : 'DEMO SNAPSHOT' }}</span>
         <small>{{ prep.disclaimer }}</small>
       </div>
+    </section>
+
+    <section class="panel interview-copy-gate-panel">
+      <CopyPermissionPanel
+        title="Copy Gate"
+        kicker="COPY PERMISSION"
+        description="面试准备材料通过 Schema Validate 或 Risk Guard 后仍不可直接复制；只有 Human Review Confirmed 后才可作为正式准备摘要使用。"
+        :result="copyPermission"
+        :audit-events="copyAuditEvents"
+        :busy="actionBusy || loading"
+        copy-label="复制确认版准备摘要"
+        @check="checkCopyPermission"
+        @copy="copyConfirmedPrep"
+      />
+      <p class="copy-action-message">{{ actionMessage }}</p>
     </section>
 
     <section class="panel interview-focus-panel">

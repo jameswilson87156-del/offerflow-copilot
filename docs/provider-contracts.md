@@ -22,6 +22,8 @@ P4C adds a local Provider contract layer before any real model adapter exists. I
 
 All real Provider output must pass contract validation before it can be shown as usable output or enter a copy flow. The current UI exposes this via `GET /api/provider/contracts`, `GET /api/provider/contracts/{taskType}`, and the `/provider-settings` contract panel.
 
+P4D adds Copy Permission Contract after this layer. A valid Provider contract response is still only a reviewable draft: schema validate passed and risk guard passed do not mean copy is allowed. Copy requires Human Review Confirmed and a successful `POST /api/copy-permissions/check`.
+
 ## Required Boundary
 
-Contracts do not mean real GPT, DeepSeek, or relay integration is available. API Key values are not stored, displayed, logged, or returned. Unvalidated output must not bypass Human Review.
+Contracts do not mean real GPT, DeepSeek, or relay integration is available. API Key values are not stored, displayed, logged, or returned. Unvalidated output must not bypass Human Review or Copy Permission Contract.

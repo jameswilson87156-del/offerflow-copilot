@@ -1,6 +1,6 @@
 # 架构说明
 
-## P4C 结构
+## P4D 结构
 
 ```text
 Vue 3 Workbench
@@ -16,6 +16,7 @@ Spring Boot 3
   |-- Services（组合 local-rule 语义、数据库读取和状态流转）
   |-- Provider SPI（local-rule/no-op adapters、router、sandbox execution）
   |-- Provider Contracts（taskType prompt/schema/risk policy、response validator）
+  |-- Copy Permission Contract（统一复制门禁、Human Review gate、audit event）
   |-- Repositories（MyBatis-Plus BaseMapper 封装）
   |-- JsonCodec（TEXT JSON 字段统一编解码）
   |-- PersistenceSeedService（空库 seed 脱敏 demo）
@@ -31,6 +32,7 @@ H2 demo/test 或本地 MySQL 8 persistence
   |-- match_report
   |-- match_report_version
   |-- match_report_audit_event
+  |-- copy_permission_audit_event
   |-- interview_prep
   |-- application_record
   |-- human_review_item
@@ -59,6 +61,17 @@ P4B 新增 `com.offerflow.copilot.provider` 包，为后续 OpenAI-compatible、
 `GET /api/provider/contracts` 与 `GET /api/provider/contracts/{taskType}` 只返回合同摘要/detail，不包含 API Key。`POST /api/provider/validate-response` 只验证本地模拟 ProviderResponse，不发网络、不保存 raw model response。
 
 `POST /api/provider/sandbox-run` 每次至少写入 12 个 Trace Evidence 步骤：Provider Config Check、Prompt Contract Load、Risk Policy Load、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Provider Response Validate、Schema Contract Validate、Risk Policy Guard、Contract Violation Check、Human Review Required。外部 provider 未配置、模拟失败或模拟超时时，`ProviderResponse` 会标记 `fallbackUsed=true`、`finalProvider=local-rule` 并记录 fallback reason。所有输出仍是 Draft，需要 Human Review。
+
+## Copy Permission Contract 链路
+
+P4D 新增 `com.offerflow.copilot.copy`，把“能否复制 AI/local-rule 输出”从页面局部判断抽象为统一门禁。核心结构：
+
+1. `CopyTargetType`：覆盖 `MATCH_REPORT`、`INTERVIEW_PREP`、`OPENING_MESSAGE`、`HUMAN_REVIEW_REWRITE`、`JD_ANALYSIS_SUMMARY`、`EVIDENCE_BINDING_SUMMARY` 和 `PROVIDER_SANDBOX_OUTPUT`。
+2. `CopyPermissionPolicy`：只有 target status = `CONFIRMED`、Human Review = `Confirmed`、`schemaValidated=true`、`riskGuardPassed=true` 时返回 `allowed=true`。
+3. `CopyPermissionService`：解析目标状态、调用 policy、写入 `copy_permission_audit_event`，并返回 `CopyPermissionResult`。
+4. `CopyPermissionController`：提供 `POST /api/copy-permissions/check` 和 `GET /api/copy-permissions/audit-events`。
+
+`POST /api/match-reports/{versionId}/copy-check` 保持旧响应兼容，但内部复用 `CopyPermissionService`；因此每次旧 copy-check 会同时写旧 `match_report_audit_event` 和新 `copy_permission_audit_event`。`/interview-prep` 当前基于 `interview_prep.review_status` 做 demo gate，默认 Draft 被拦截。`copy_permission_audit_event` 不保存 requested text 或真实隐私。
 
 ## JD Intake 审计链路
 
@@ -91,7 +104,7 @@ P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 
 3. 写入 `match_report_audit_event`，action 为 `HUMAN_REVIEW_CONFIRMED`、`HUMAN_REVIEW_RETURNED` 或 `HUMAN_REVIEW_FLAGGED_RISK`。
 4. 保持 `ARCHIVED` 版本只读；归档版本不能 send-to-review，只能 restore 到 `DRAFT` 后重新进入复核链路。
 
-复制许可由 `POST /api/match-reports/{versionId}/copy-check` 统一判断。只有 `CONFIRMED` 返回 `allowed=true`；其它状态都会返回原因、Human Review 状态和 Boundary Notice，并写入 COPY audit event。
+复制许可由 Copy Permission Contract 统一判断。只有 `CONFIRMED` + Human Review Confirmed + schema validated + risk guard passed 才返回 `allowed=true`；其它状态都会返回原因、Human Review 状态和 Boundary Notice，并写入统一 copy permission audit event。旧 Match Report copy-check 继续写 `COPY_ENABLED` / `COPY_BLOCKED` 以兼容页面历史。
 
 当前 scoring 不调用真实 LLM、DeepSeek 或中转站，不输出 Offer 概率或录取概率。报告建议只有进入 Human Review 并经人工确认后，才可作为可复制建议使用。
 
@@ -128,7 +141,7 @@ P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 
 - MySQL 8 profile 与 Docker Compose 仅用于本地开发/演示；不代表生产部署、备份、权限或密钥管理已经完成。
 - 响应层继续使用 Java record，数据库 entity 与 API DTO 分离，便于后续审计、权限和状态机扩展。
 - JSON 字段暂存为 `TEXT`，由 `JsonCodec` 管理；审计事件先用结构化列保存关键字段，便于后续查询。
-- Provider 设置已接入 Provider SPI、contract registry、response validation 与 sandbox execution；Dashboard 仍为组合 service。核心 JD Intake、证据、复核、Trace、报告版本、面试准备和投递跟踪已优先读库。
+- Provider 设置已接入 Provider SPI、contract registry、response validation 与 sandbox execution；Copy Permission Contract 已接入 Match Report 与 Interview Prep。Dashboard 仍为组合 service。核心 JD Intake、证据、复核、Trace、报告版本、面试准备和投递跟踪已优先读库。
 
 ## 边界
 

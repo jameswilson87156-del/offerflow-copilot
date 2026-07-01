@@ -5,6 +5,7 @@ import {
   Check,
   CheckCircle2,
   ChevronRight,
+  ClipboardCheck,
   Code2,
   DatabaseZap,
   FileJson,
@@ -405,6 +406,23 @@ function stepClass(status: ProviderTraceStepStatus) {
         </div>
         <FileJson :size="17" class="header-icon" />
       </header>
+      <div class="copy-contract-reminder">
+        <article>
+          <ShieldCheck :size="14" />
+          <strong>Validate passed ≠ copy allowed</strong>
+          <span>Schema Validate 通过只说明结构合规，不能直接复制使用。</span>
+        </article>
+        <article>
+          <AlertTriangle :size="14" />
+          <strong>Risk Guard passed ≠ final content</strong>
+          <span>风险词未命中仍需要 Human Review 确认事实和边界。</span>
+        </article>
+        <article>
+          <ClipboardCheck :size="14" />
+          <strong>Copy Permission Contract</strong>
+          <span>Copy Permission Contract 是 Human Review Confirmed 后的最后一道门禁。</span>
+        </article>
+      </div>
       <div class="validation-layout">
         <div class="validation-controls">
           <div class="provider-mode-picker validation-task-picker" aria-label="Validation task type">

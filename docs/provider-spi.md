@@ -41,7 +41,7 @@ OFFERFLOW_DEEPSEEK_API_KEY
 OFFERFLOW_DEEPSEEK_MODEL
 ```
 
-API Key 不落库、不展示、不写日志。接口只返回 `masked`、`not configured` 或 `disabled`。`rawResponseSave` 默认 false，`ProviderResponse.rawResponseSaved` 在 P4C 中固定为 false。
+API Key 不落库、不展示、不写日志。接口只返回 `masked`、`not configured` 或 `disabled`。`rawResponseSave` 默认 false，`ProviderResponse.rawResponseSaved` 在 P4C/P4D 中固定为 false。
 
 ## Fallback 策略
 
@@ -64,4 +64,4 @@ API Key 不落库、不展示、不写日志。接口只返回 `masked`、`not c
 
 ## 当前边界
 
-P4C 不是生产级模型网关，不支持真实 OpenAI、DeepSeek 或中转站调用。所有输出仍是 Draft，需要 Human Review；不输出 Offer 概率、录取概率或保证通过。
+P4C/P4D 不是生产级模型网关，不支持真实 OpenAI、DeepSeek 或中转站调用。所有输出仍是 Draft，需要 Human Review；验证通过不代表可复制，P4D 还要求 Copy Permission Contract 通过；不输出 Offer 概率、录取概率或保证通过。

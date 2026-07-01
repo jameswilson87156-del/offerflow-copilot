@@ -44,7 +44,7 @@ P3F 的状态同步映射：
 
 每次同步都会写入 `match_report_audit_event`，并记录 previous status、next status、actor、actor role、human note、trace id 和 changed fields。
 
-P3G 后，Audit Trail 支持卡内展开。copy-check 事件还保存 `copyAllowed`、`copyReason`、`versionStatus`、`humanReviewStatus` 和 `boundaryNotice`，因此复制许可历史可以被完整查看，而不是只显示一条备注。
+P3G 后，Audit Trail 支持卡内展开。copy-check 事件还保存 `copyAllowed`、`copyReason`、`versionStatus`、`humanReviewStatus` 和 `boundaryNotice`，因此复制许可历史可以被完整查看，而不是只显示一条备注。P4D 后，旧 copy-check 还会复用 `CopyPermissionService` 并写入统一 `copy_permission_audit_event`。
 
 当前页面会展示：
 
@@ -89,6 +89,6 @@ P3G 后，Audit Trail 支持卡内展开。copy-check 事件还保存 `copyAllow
 - `POST /api/match-reports/{versionId}/copy-check`
 - `GET /api/match-reports/{versionId}/audit-events`
 
-`copy-check` 只对 `CONFIRMED` 返回 `allowed=true`。其它状态会返回中文原因、版本状态、Human Review 状态和 Boundary Notice。
+`copy-check` 只对 `CONFIRMED` + Human Review Confirmed + schema validated + risk guard passed 返回 `allowed=true`。其它状态会返回中文原因、版本状态、Human Review 状态和 Boundary Notice，并由 Copy Permission Contract 留下统一审计事件。
 
 前端统一显示：`DRAFT` = 草稿、`IN_REVIEW` = 复核中、`CONFIRMED` = 已确认、`RETURNED` = 已退回、`RISK_FLAGGED` = 风险标记、`ARCHIVED` = 已归档。Archived 是只读归档状态，页面明确提示不可送审。

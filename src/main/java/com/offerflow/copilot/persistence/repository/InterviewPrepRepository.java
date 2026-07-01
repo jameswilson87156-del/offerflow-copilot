@@ -24,6 +24,13 @@ public class InterviewPrepRepository {
         mapper.insert(entity);
     }
 
+    public Optional<InterviewPrepEntity> findById(String id) {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(mapper.selectById(id.trim()));
+    }
+
     public Optional<InterviewPrepEntity> findDemo() {
         return mapper.selectList(Wrappers.<InterviewPrepEntity>lambdaQuery()
                         .orderByAsc(InterviewPrepEntity::getCreatedAt)

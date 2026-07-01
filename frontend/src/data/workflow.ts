@@ -75,6 +75,7 @@ export const matchReportFallback: MatchReportData = {
 
 export const interviewPrepFallback: InterviewPrepData = {
   mode: 'mock/local-rule',
+  id: 'interview-java-ai-demo',
   jobTitle: 'Java 后端 / AI 应用开发实习生',
   positioningNotice: '面试前准备与复盘，不是实时面试辅助工具。',
   focusAreas: [
@@ -107,6 +108,7 @@ export const interviewPrepFallback: InterviewPrepData = {
     { key: 'interviewed', label: '已面试', status: 'upcoming', detail: '记录面试问题与反馈' },
     { key: 'reviewed', label: '已复盘', status: 'upcoming', detail: '补充证据缺口和后续行动' },
   ],
+  reviewStatus: 'DRAFT',
   disclaimer: '所有内容仅用于面试前准备与复盘，不能用于实时面试辅助或作弊。',
 }
 

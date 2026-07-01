@@ -35,6 +35,7 @@ public class InterviewPrepService {
                 .orElse(PersistenceSeedService.DEMO_JOB_ID);
         return new InterviewPrepDemo(
                 prep.getMode(),
+                prep.getId(),
                 jobTitle,
                 prep.getPositioningNotice(),
                 jsonCodec.readList(prep.getFocusAreasJson(), InterviewPrepDemo.FocusArea.class),
@@ -42,6 +43,7 @@ public class InterviewPrepService {
                 jsonCodec.read(prep.getStarDraftJson(), InterviewPrepDemo.StarDraft.class),
                 jsonCodec.readList(prep.getRiskNotesJson(), String.class),
                 jsonCodec.readList(prep.getReviewTimelineJson(), InterviewPrepDemo.TimelineStep.class),
+                prep.getReviewStatus(),
                 prep.getDisclaimer());
     }
 }

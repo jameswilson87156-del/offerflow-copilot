@@ -79,7 +79,13 @@ public final class MatchReportVersioning {
             String reason,
             String versionStatus,
             String humanReviewStatus,
-            String boundaryNotice) {
+            String boundaryNotice,
+            String targetType,
+            String targetId,
+            boolean schemaValidated,
+            boolean riskGuardPassed,
+            boolean confirmed,
+            String auditEventId) {
     }
 
     public record ReportActionRequest(

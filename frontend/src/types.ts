@@ -563,6 +563,49 @@ export interface ProviderValidationPayload {
   simulateSchemaMismatch: boolean
 }
 
+export type CopyTargetType =
+  | 'MATCH_REPORT'
+  | 'INTERVIEW_PREP'
+  | 'OPENING_MESSAGE'
+  | 'HUMAN_REVIEW_REWRITE'
+  | 'JD_ANALYSIS_SUMMARY'
+  | 'EVIDENCE_BINDING_SUMMARY'
+  | 'PROVIDER_SANDBOX_OUTPUT'
+
+export interface CopyPermissionResult {
+  allowed: boolean
+  reason: string
+  targetType: CopyTargetType
+  targetId: string
+  targetStatus: string
+  humanReviewStatus: string
+  schemaValidated: boolean
+  riskGuardPassed: boolean
+  confirmed: boolean
+  boundaryNotice: string
+  auditEventId: string
+  copyText: string
+}
+
+export interface CopyPermissionAuditEvent {
+  id: string
+  targetType: CopyTargetType
+  targetId: string
+  action: 'COPY_CHECK' | 'COPY_ALLOWED' | 'COPY_BLOCKED' | string
+  allowed: boolean
+  reason: string
+  targetStatus: string
+  humanReviewStatus: string
+  schemaValidated: boolean
+  riskGuardPassed: boolean
+  actor: string
+  actorRole: string
+  traceId: string
+  providerRunId: string
+  boundaryNotice: string
+  createdAt: string
+}
+
 export interface MatchReportSummary {
   jobTitle: string
   recommendedResumeVersions: string[]
@@ -616,6 +659,12 @@ export interface MatchReportCopyCheck {
   versionStatus: MatchReportVersionStatus
   humanReviewStatus: string
   boundaryNotice: string
+  targetType?: CopyTargetType
+  targetId?: string
+  schemaValidated?: boolean
+  riskGuardPassed?: boolean
+  confirmed?: boolean
+  auditEventId?: string
 }
 
 export interface MatchReportVersionSummary {
@@ -717,6 +766,7 @@ export interface InterviewTimelineStep {
 
 export interface InterviewPrepData {
   mode: string
+  id: string
   jobTitle: string
   positioningNotice: string
   focusAreas: InterviewFocusArea[]
@@ -724,6 +774,7 @@ export interface InterviewPrepData {
   starDraft: InterviewStarDraft
   riskReminders: string[]
   reviewTimeline: InterviewTimelineStep[]
+  reviewStatus: string
   disclaimer: string
 }
 

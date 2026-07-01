@@ -4,6 +4,7 @@ import java.util.List;
 
 public record InterviewPrepDemo(
         String mode,
+        String id,
         String jobTitle,
         String positioningNotice,
         List<FocusArea> focusAreas,
@@ -11,6 +12,7 @@ public record InterviewPrepDemo(
         StarDraft starDraft,
         List<String> riskReminders,
         List<TimelineStep> reviewTimeline,
+        String reviewStatus,
         String disclaimer) {
 
     public record FocusArea(String label, String detail, String evidence) {

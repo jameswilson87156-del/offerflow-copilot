@@ -1,6 +1,13 @@
 import { onMounted, shallowRef } from 'vue'
 import { matchReportFallback } from '../data/workflow'
-import type { MatchReportAuditEvent, MatchReportCopyCheck, MatchReportData, MatchReportVersionSummary } from '../types'
+import type {
+  CopyPermissionAuditEvent,
+  CopyPermissionResult,
+  MatchReportAuditEvent,
+  MatchReportCopyCheck,
+  MatchReportData,
+  MatchReportVersionSummary,
+} from '../types'
 import { statusLabel } from '../utils/status'
 
 const COPY_BOUNDARY_NOTICE = '匹配报告只有 Confirmed 后才允许复制使用；Human Review 是正式使用前的安全门。当前 scoring 是 local-rule，不做录用结果预测，也不承诺 Offer 结果。'
@@ -74,6 +81,29 @@ function deriveCopyCheck(detail: MatchReportData): MatchReportCopyCheck {
     versionStatus: detail.status,
     humanReviewStatus: detail.humanReviewStatus,
     boundaryNotice: COPY_BOUNDARY_NOTICE,
+    targetType: 'MATCH_REPORT',
+    targetId: detail.versionId,
+    schemaValidated: Boolean(detail.schemaVersion),
+    riskGuardPassed: detail.status !== 'RISK_FLAGGED',
+    confirmed: detail.status === 'CONFIRMED' && detail.humanReviewStatus === 'Confirmed',
+    auditEventId: '',
+  }
+}
+
+function toCopyPermissionResult(check: MatchReportCopyCheck, detail: MatchReportData): CopyPermissionResult {
+  return {
+    allowed: check.allowed,
+    reason: check.reason,
+    targetType: check.targetType ?? 'MATCH_REPORT',
+    targetId: check.targetId ?? detail.versionId,
+    targetStatus: check.versionStatus,
+    humanReviewStatus: check.humanReviewStatus,
+    schemaValidated: check.schemaValidated ?? Boolean(detail.schemaVersion),
+    riskGuardPassed: check.riskGuardPassed ?? detail.status !== 'RISK_FLAGGED',
+    confirmed: check.confirmed ?? (detail.status === 'CONFIRMED' && detail.humanReviewStatus === 'Confirmed'),
+    boundaryNotice: check.boundaryNotice,
+    auditEventId: check.auditEventId ?? '',
+    copyText: '',
   }
 }
 
@@ -93,6 +123,8 @@ export function useMatchReport() {
   const versions = shallowRef<MatchReportVersionSummary[]>(fallbackVersions)
   const auditEvents = shallowRef<MatchReportAuditEvent[]>(fallbackAuditEvents)
   const copyCheck = shallowRef<MatchReportCopyCheck>(deriveCopyCheck(matchReportFallback))
+  const copyPermission = shallowRef<CopyPermissionResult>(toCopyPermissionResult(copyCheck.value, matchReportFallback))
+  const copyAuditEvents = shallowRef<CopyPermissionAuditEvent[]>([])
   const loading = shallowRef(true)
   const actionBusy = shallowRef(false)
   const actionMessage = shallowRef('匹配报告为 Draft，人工复核前不可复制或外发。')
@@ -105,14 +137,15 @@ export function useMatchReport() {
       if (!response.ok) throw new Error('Local match report API unavailable')
       const detail = await response.json() as MatchReportData
       report.value = detail
-      copyCheck.value = deriveCopyCheck(detail)
+      applyCopyCheck(deriveCopyCheck(detail), detail)
       source.value = 'api'
-      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId)])
+      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId), loadCopyAudit(detail.versionId)])
     } catch {
       report.value = matchReportFallback
       versions.value = fallbackVersions
       auditEvents.value = fallbackAuditEvents
-      copyCheck.value = deriveCopyCheck(matchReportFallback)
+      copyAuditEvents.value = []
+      applyCopyCheck(deriveCopyCheck(matchReportFallback), matchReportFallback)
       source.value = 'fallback'
     } finally {
       loading.value = false
@@ -126,9 +159,9 @@ export function useMatchReport() {
       if (!response.ok) throw new Error('Local match report version unavailable')
       const detail = await response.json() as MatchReportData
       report.value = detail
-      copyCheck.value = deriveCopyCheck(detail)
+      applyCopyCheck(deriveCopyCheck(detail), detail)
       source.value = 'api'
-      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId)])
+      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId), loadCopyAudit(detail.versionId)])
       return detail
     } finally {
       loading.value = false
@@ -155,6 +188,16 @@ export function useMatchReport() {
     }
   }
 
+  async function loadCopyAudit(versionId = report.value.versionId) {
+    try {
+      const response = await fetch(`/api/copy-permissions/audit-events?targetType=MATCH_REPORT&targetId=${encodeURIComponent(versionId)}`)
+      if (!response.ok) throw new Error('Local copy permission audit unavailable')
+      copyAuditEvents.value = await response.json() as CopyPermissionAuditEvent[]
+    } catch {
+      copyAuditEvents.value = []
+    }
+  }
+
   async function generateVersion() {
     actionBusy.value = true
     try {
@@ -170,9 +213,9 @@ export function useMatchReport() {
       if (!response.ok) throw new Error('Generate match report version unavailable')
       const detail = await response.json() as MatchReportData
       report.value = detail
-      copyCheck.value = deriveCopyCheck(detail)
+      applyCopyCheck(deriveCopyCheck(detail), detail)
       source.value = 'api'
-      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId)])
+      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId), loadCopyAudit(detail.versionId)])
       actionMessage.value = `已生成 v${detail.versionNo}，并创建 Human Review item。`
       return detail
     } catch {
@@ -227,13 +270,13 @@ export function useMatchReport() {
       })
       if (!response.ok) throw new Error('Copy check unavailable')
       const result = await response.json() as MatchReportCopyCheck
-      copyCheck.value = result
-      await loadAudit(report.value.versionId)
+      applyCopyCheck(result, report.value)
+      await Promise.all([loadAudit(report.value.versionId), loadCopyAudit(report.value.versionId)])
       actionMessage.value = result.allowed ? '复制许可已通过，可复制 Confirmed 摘要。' : result.reason
       return result
     } catch {
       const result = deriveCopyCheck(report.value)
-      copyCheck.value = result
+      applyCopyCheck(result, report.value)
       actionMessage.value = result.allowed ? '复制许可已通过，可复制 Confirmed 摘要。' : result.reason
       return result
     } finally {
@@ -242,9 +285,9 @@ export function useMatchReport() {
   }
 
   async function copyConfirmedSummary() {
-    if (report.value.status !== 'CONFIRMED') {
+    if (!copyPermission.value.allowed || report.value.status !== 'CONFIRMED') {
       actionMessage.value = '当前报告尚未通过人工复核，不能复制为正式投递建议。'
-      copyCheck.value = deriveCopyCheck(report.value)
+      applyCopyCheck(deriveCopyCheck(report.value), report.value)
       return false
     }
     try {
@@ -271,9 +314,9 @@ export function useMatchReport() {
       if (!response.ok) throw new Error('Match report action unavailable')
       const detail = await response.json() as MatchReportData
       report.value = detail
-      copyCheck.value = deriveCopyCheck(detail)
+      applyCopyCheck(deriveCopyCheck(detail), detail)
       source.value = 'api'
-      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId)])
+      await Promise.all([loadVersions(detail.jobId), loadAudit(detail.versionId), loadCopyAudit(detail.versionId)])
       actionMessage.value = successMessage
       return detail
     } catch {
@@ -282,6 +325,11 @@ export function useMatchReport() {
         : '当前未连接本地 API，状态变更未写入。'
       return report.value
     }
+  }
+
+  function applyCopyCheck(result: MatchReportCopyCheck, detail: MatchReportData) {
+    copyCheck.value = result
+    copyPermission.value = toCopyPermissionResult(result, detail)
   }
 
   onMounted(load)
@@ -294,6 +342,8 @@ export function useMatchReport() {
     actionBusy,
     actionMessage,
     copyCheck,
+    copyPermission,
+    copyAuditEvents,
     source,
     reload: load,
     loadVersion,

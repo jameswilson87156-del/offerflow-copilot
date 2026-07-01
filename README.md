@@ -2,11 +2,11 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P4C Provider Prompt / Schema Contract Hardening
+## 当前阶段：P4D Human Review Gate + Copy Permission Contract
 
-当前版本保留 P4A 的 Flyway + H2/MySQL persistence 基础和 P4B 的 Provider SPI，并新增 Prompt Contract、Risk Policy、Provider Response Schema 与本地 Response Validator。默认 Provider 仍是 `local-rule`；OpenAI-compatible 与 DeepSeek 只有 no-op adapter 结构，不会发起真实外部网络请求，也不会保存真实 API Key。任何未来真实 Provider 输出都必须先通过 schema validate 与 risk guard，再进入 Human Review。
+当前版本保留 P4A 的 Flyway + H2/MySQL persistence 基础、P4B 的 Provider SPI 和 P4C 的 Prompt/Schema/Risk contract，并新增统一 Copy Permission Contract。默认 Provider 仍是 `local-rule`；OpenAI-compatible 与 DeepSeek 只有 no-op adapter 结构，不会发起真实外部网络请求，也不会保存真实 API Key。任何未来真实 Provider 输出都必须先通过 schema validate 与 risk guard，再进入 Human Review，最后通过 Copy Permission Contract 才可复制。
 
-匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。每次 copy-check 都会写入 `COPY_ENABLED` 或 `COPY_BLOCKED`，并保留许可结果、原因、版本状态、Human Review 状态和 Boundary Notice。`ARCHIVED` 是只读归档状态，不能送审；当前 actor 仍是 demo user，当前仍不是生产级权限系统。
+匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。P4D 新增 `copy_permission_audit_event` 作为统一复制门禁审计表；旧 `POST /api/match-reports/{versionId}/copy-check` 继续兼容，并内部复用 `CopyPermissionService`。`ARCHIVED` 是只读归档状态，不能送审；当前 actor 仍是 demo user，当前仍不是生产级权限系统。
 
 关键边界：
 
@@ -17,6 +17,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 - 不自动投递，不做实时面试辅助或作弊功能。
 - 不输出 Offer 概率、录取概率，不承诺保证通过。
 - 不虚构真实用户、客户、流量或生产级能力。
+- Schema Validate / Risk Guard 通过不代表可复制，只有 Human Review Confirmed 后才可复制。
 - 当前 actor 是 demo user，不是生产鉴权或生产级权限系统。
 
 ## 技术栈
@@ -67,6 +68,8 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | POST | `/api/provider/validate-response` | 本地模拟 ProviderResponse contract validation，不发外部请求 |
 | GET | `/api/provider/traces` | H2 seeded demo data |
 | GET | `/api/provider/traces/{runId}` | H2 seeded demo data |
+| POST | `/api/copy-permissions/check` | H2 统一复制门禁检查，写 copy_permission_audit_event |
+| GET | `/api/copy-permissions/audit-events` | H2 按 targetType/targetId 查询复制门禁审计历史 |
 | GET | `/api/match-report/demo` | H2 latest match_report_version，兼容旧报告字段 |
 | POST | `/api/jobs/{id}/match-reports/generate` | H2 基于最新 JD parse/evidence bindings 生成报告版本 + Human Review handoff |
 | GET | `/api/jobs/{id}/match-reports` | H2 匹配报告版本历史 |
@@ -75,7 +78,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | POST | `/api/match-reports/{versionId}/send-to-review` | H2 版本状态更新 + audit event |
 | POST | `/api/match-reports/{versionId}/archive` | H2 版本归档 + audit event |
 | POST | `/api/match-reports/{versionId}/restore` | H2 从 Returned/Risk Flagged/Archived 恢复为 Draft + audit event |
-| POST | `/api/match-reports/{versionId}/copy-check` | H2 检查复制许可并写 COPY_ENABLED/COPY_BLOCKED audit event |
+| POST | `/api/match-reports/{versionId}/copy-check` | 兼容旧响应，内部复用 CopyPermissionService，并继续写 COPY_ENABLED/COPY_BLOCKED |
 | GET | `/api/interview-prep/demo` | H2 seeded demo data |
 | GET | `/api/applications` | H2 seeded demo data |
 
@@ -83,8 +86,8 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 
 - `/jd-analyzer`：结构化 JD Intake、解析版本、证据绑定与 JD Audit Trail
 - `/evidence-library`：简历证据库、Evidence Coverage Map、编辑工作流与 Audit Trail
-- `/match-report`：匹配报告、版本历史、复制许可、Human Review 同步状态与报告审计
-- `/interview-prep`：面试前准备
+- `/match-report`：匹配报告、版本历史、Copy Permission Contract、Human Review 同步状态与报告审计
+- `/interview-prep`：面试前准备与 Copy Gate
 - `/application-tracker`：投递跟踪
 - `/human-review`：人工复核中心，包含 Review History / Audit Trail
 - `/provider-settings`：Provider 设置与证据链
@@ -101,7 +104,7 @@ npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
 
 Schema 统一由 `src/main/resources/db/migration` 下的 Flyway migration 管理，`schema.sql` 仅作为未启用的历史 fallback 参考，不再由默认、test 或 mysql profile 自动执行。启动本地 MySQL：
 
@@ -123,4 +126,4 @@ npm run screenshots
 git diff --check
 ```
 
-更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。
+更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。

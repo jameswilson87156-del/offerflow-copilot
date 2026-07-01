@@ -18,8 +18,9 @@
 - [x] P4A：Flyway V1 migration、H2/MySQL schema 兼容验证、本地 MySQL 8 Docker Compose 与启动文档
 - [x] P4B：Provider SPI、配置校验、沙箱运行、no-op adapter、fallback Trace Evidence 与 Provider Settings 页面升级
 - [x] P4C：Provider Prompt Contract、Risk Policy、Response Schema、Response Validator 与 Provider Settings contract sandbox
+- [x] P4D：Human Review Gate、Copy Permission Contract、统一复制门禁审计与页面 Copy Gate
 
 ## 下一阶段候选
 
-- [ ] P4D：Provider offline eval fixtures、golden contract cases 与 adapter readiness checklist，继续禁止真实外部调用
+- [ ] P4E：Provider offline eval fixtures、golden contract cases 与 adapter readiness checklist，继续禁止真实外部调用
 - [ ] 增加 service 层单元测试、前端组件测试和无障碍自动检查

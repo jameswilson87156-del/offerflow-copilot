@@ -8,7 +8,6 @@ import {
   Check,
   ChevronRight,
   ClipboardCheck,
-  Copy,
   Clock3,
   Database,
   FileText,
@@ -25,6 +24,7 @@ import {
 } from 'lucide-vue-next'
 import { useMatchReport } from '../composables/useMatchReport'
 import AuditEventDisclosure from '../components/AuditEventDisclosure.vue'
+import CopyPermissionPanel from '../components/CopyPermissionPanel.vue'
 import { isReadonlyStatus, statusClass, statusLabel } from '../utils/status'
 
 const props = defineProps<{
@@ -40,6 +40,8 @@ const {
   actionBusy,
   actionMessage,
   copyCheck,
+  copyPermission,
+  copyAuditEvents,
   source,
   reload,
   loadVersion,
@@ -184,12 +186,6 @@ function auditTone(action: string) {
         </article>
       </div>
       <div class="copy-action-row">
-        <button type="button" class="copy-action-button check" :disabled="actionBusy || loading" @click="checkCopyPermission">
-          <ClipboardCheck :size="15" />检查复制许可
-        </button>
-        <button type="button" class="copy-action-button copy" :disabled="actionBusy || report.status !== 'CONFIRMED'" title="仅已确认状态允许复制" @click="copyConfirmedSummary">
-          <Copy :size="15" />复制确认版摘要
-        </button>
         <button type="button" class="copy-action-button restore" :disabled="actionBusy || loading || !canRestoreVersion" @click="restoreVersion">
           <RotateCcw :size="15" />恢复版本
         </button>
@@ -200,6 +196,17 @@ function auditTone(action: string) {
           <Archive :size="15" />归档版本
         </button>
       </div>
+      <CopyPermissionPanel
+        title="Copy Permission Contract"
+        kicker="COPY GATE"
+        description="Schema Validate 和 Risk Guard 通过不等于可复制；只有 Human Review Confirmed 后才显示复制确认版摘要。"
+        :result="copyPermission"
+        :audit-events="copyAuditEvents"
+        :busy="actionBusy || loading"
+        copy-label="复制确认版摘要"
+        @check="checkCopyPermission"
+        @copy="copyConfirmedSummary"
+      />
       <p class="copy-action-message">{{ actionMessage }}</p>
     </section>
 

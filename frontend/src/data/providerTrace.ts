@@ -38,7 +38,7 @@ export const providerSettingsFallback: ProviderSettingsData = {
       realCallEnabled: false,
       rawResponseSave: false,
       fallbackPolicy: 'fallback to local-rule when disabled, unconfigured, failed, or timed out',
-      boundaryNotice: 'Adapter structure exists, but P4C does not perform real OpenAI-compatible calls.',
+      boundaryNotice: 'Adapter structure exists, but P4C/P4D does not perform real OpenAI-compatible calls.',
     },
     {
       providerMode: 'deepseek',
@@ -52,7 +52,7 @@ export const providerSettingsFallback: ProviderSettingsData = {
       realCallEnabled: false,
       rawResponseSave: false,
       fallbackPolicy: 'fallback to local-rule when disabled, unconfigured, failed, or timed out',
-      boundaryNotice: 'Adapter structure exists, but P4C does not perform real DeepSeek calls.',
+      boundaryNotice: 'Adapter structure exists, but P4C/P4D does not perform real DeepSeek calls.',
     },
   ],
   safetyBoundaries: [
@@ -98,7 +98,7 @@ export const providerConfigCheckFallback: ProviderConfigCheck = {
     'OpenAI-compatible is not configured; sandbox runs fallback to local-rule.',
     'DeepSeek is not configured; sandbox runs fallback to local-rule.',
   ],
-  boundaryNotice: 'P4C contract sandbox uses local-rule/no-op providers only; no real external model calls are made.',
+  boundaryNotice: 'P4C/P4D contract sandbox uses local-rule/no-op providers only; no real external model calls are made.',
 }
 
 export const providerContractsFallback: ProviderContractSummary[] = [
@@ -210,7 +210,7 @@ export const providerTraceRunFallback: ProviderTraceRun = {
   providerMode: 'local-rule fallback active',
   finalProvider: 'local-rule fallback',
   model: 'local-rule-engine v2.1',
-  fallbackReason: 'OpenAI-compatible 与 DeepSeek 均未配置；P4C contract sandbox 禁止真实 Provider 调用。',
+  fallbackReason: 'OpenAI-compatible 与 DeepSeek 均未配置；P4C/P4D contract sandbox 禁止真实 Provider 调用。',
   promptVersion: 'match-report-prompt-v1',
   schemaVersion: 'match-report-schema-v1',
   riskFlags: ['contract-validated', 'human-review-required', 'raw-response-not-saved'],
