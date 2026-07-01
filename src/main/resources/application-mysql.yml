@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: ${OFFERFLOW_MYSQL_URL:jdbc:mysql://localhost:3306/offerflow_copilot?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${OFFERFLOW_MYSQL_USER:offerflow}
+    password: ${OFFERFLOW_MYSQL_PASSWORD:}
+  sql:
+    init:
+      mode: never
+
+offerflow:
+  persistence:
+    seed-demo-data: ${OFFERFLOW_SEED_DEMO_DATA:true}

@@ -1,47 +1,57 @@
 # OfferFlow Copilot
 
-OfferFlow Copilot 是一个真实可运行的 Java + AI 应用作品集工程项目。它面向实习求职场景，用可审阅的工作台串联“JD 要求 → 简历证据 → 项目证明 → 面试准备 → 人工复核”。
+OfferFlow Copilot 是一个真实可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审阅的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P1A + P1B + P2A
+## 当前阶段：P3A Persistence Foundation
 
-当前版本提供 JD 证据匹配工作台、简历证据库、mock 数据与 `local-rule` 后端接口。它不代表完整招聘业务，也不代表真实 Provider 已稳定接入。
+当前版本已从纯 mock service 迁移到 H2 demo persistence。核心页面仍然使用 `mock/local-rule` 语义，但数据来源优先读取数据库中的脱敏 seed demo data。
 
-- 不接招聘平台 API，不爬取网页。
+- 不接真实 LLM，不调用 DeepSeek，不调用中转站。
+- 不保存 API Key，Provider 配置只显示 masked / disabled / not configured。
+- 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
 - 不保存真实手机号、邮箱、身份证、聊天记录等隐私。
-- 不做实时面试作弊。
-- 不输出 Offer 概率、录取概率，不承诺录取结果。
-- `local-rule` fallback 是演示规则，不是真实稳定 LLM。
-- 后续可扩展 OpenAI-compatible / DeepSeek，但当前 `realCallEnabled=false`。
+- 不自动投递，不做实时面试辅助或作弊功能。
+- 不输出 Offer 概率、录取概率，不承诺通过。
+- 不虚构真实用户、客户、流量或生产级能力。
 
 ## 技术栈
 
-- 后端：Java 17、Spring Boot 3、Maven
+- 后端：Java 17、Spring Boot 3、MyBatis-Plus、H2、Maven
+- 数据库：默认 H2 in-memory demo；`mysql` profile 保留后续切换配置，本轮不连接真实 MySQL
 - 前端：Vue 3、Vite、TypeScript、原生 CSS
 - 截图：Playwright
 
-## 工作台预览
-
-下图由本地 Vue 页面通过 Playwright 真实渲染生成，内容均为 mock/local-rule 演示数据。
-
-![OfferFlow Copilot JD 证据匹配工作台](docs/images/offerflow-dashboard.png)
-
-![OfferFlow Copilot 简历证据库](docs/images/offerflow-evidence-library.png)
-
 ## 当前接口
 
-| 方法 | 路径 | 说明 |
+| 方法 | 路径 | 数据来源 |
 | --- | --- | --- |
-| GET | `/api/health` | 工程状态与数据模式 |
-| GET | `/api/provider/status` | Provider 就绪状态与 fallback 边界 |
-| GET | `/api/dashboard/summary` | mock 首页统计 |
-| GET | `/api/jobs/demo-analysis` | 完整 JD 证据链演示数据 |
-| GET | `/api/evidence/library` | 匿名化项目证据库与可复核来源链 |
-| GET | `/api/evidence/coverage` | local-rule 能力覆盖度与证据缺口 |
+| GET | `/api/health` | local-rule 状态 |
+| GET | `/api/provider/status` | 组合 service，静态边界状态 |
+| GET | `/api/dashboard/summary` | 组合 service，演示统计 |
+| GET | `/api/jobs/demo-analysis` | 组合 service，演示 JD 分析 |
+| GET | `/api/evidence/library` | H2 seeded demo data |
+| GET | `/api/evidence/coverage` | H2 seeded demo data + deterministic local-rule |
+| GET | `/api/reviews` | H2 seeded demo data |
+| GET | `/api/reviews/{id}` | H2 seeded demo data |
+| POST | `/api/reviews/{id}/confirm` | H2 状态更新 |
+| POST | `/api/reviews/{id}/return` | H2 状态更新 |
+| POST | `/api/reviews/{id}/flag-risk` | H2 状态更新 |
+| GET | `/api/provider/settings` | 组合 service，静态边界状态 |
+| GET | `/api/provider/traces` | H2 seeded demo data |
+| GET | `/api/provider/traces/{runId}` | H2 seeded demo data |
+| GET | `/api/match-report/demo` | H2 seeded demo data |
+| GET | `/api/interview-prep/demo` | H2 seeded demo data |
+| GET | `/api/applications` | H2 seeded demo data |
 
 ## 页面路径
 
-- `/jd-analyzer`：JD 证据匹配工作台。
-- `/evidence-library`：简历证据库与 Evidence Coverage Map。
+- `/jd-analyzer`：JD 证据匹配工作台
+- `/evidence-library`：简历证据库与 Evidence Coverage Map
+- `/match-report`：匹配报告
+- `/interview-prep`：面试准备
+- `/application-tracker`：投递跟踪
+- `/human-review`：人工复核中心
+- `/provider-settings`：Provider 设置与证据链
 
 ## 本地运行
 
@@ -55,7 +65,7 @@ npm install
 npm run dev
 ```
 
-Vite 开发服务器会将 `/api` 代理到本地 Spring Boot。前端无法访问后端时，会明确显示“演示快照”，不会将其伪装成真实 Provider 结果。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [持久化说明](docs/persistence.md)。
 
 ## 验收
 
@@ -67,4 +77,4 @@ npm run screenshots
 git diff --check
 ```
 
-更多边界与实现说明见 [项目边界](docs/project-boundary.md)、[架构说明](docs/architecture.md) 与 [设计说明](docs/design/README.md)。
+更多边界与实现说明见 [项目边界](docs/project-boundary.md)、[架构说明](docs/architecture.md)、[持久化说明](docs/persistence.md) 与 [设计说明](docs/design/README.md)。
