@@ -17,10 +17,10 @@ const navigation = [
   { label: '总览', icon: LayoutDashboard },
   { label: 'JD 分析台', icon: FileSearch, to: '/jd-analyzer' },
   { label: '简历证据库', icon: FolderKanban, to: '/evidence-library' },
-  { label: '匹配报告', icon: BarChart3 },
-  { label: '面试准备', icon: MessageSquareText },
-  { label: '投递跟踪', icon: BriefcaseBusiness },
-  { label: '证据链', icon: GitBranch },
+  { label: '匹配报告', icon: BarChart3, to: '/match-report' },
+  { label: '面试准备', icon: MessageSquareText, to: '/interview-prep' },
+  { label: '投递跟踪', icon: BriefcaseBusiness, to: '/application-tracker' },
+  { label: '证据链', icon: GitBranch, to: '/provider-settings' },
   { label: '人工复核', icon: ClipboardCheck, to: '/human-review', count: 12 },
 ]
 </script>

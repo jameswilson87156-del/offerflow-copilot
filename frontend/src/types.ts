@@ -267,3 +267,136 @@ export interface ProviderTraceRun {
   evidenceDetail: ProviderTraceEvidenceDetail
   technicalTags: string[]
 }
+
+export interface MatchReportSummary {
+  jobTitle: string
+  recommendedResumeVersions: string[]
+  totalScore: number
+  maximumScore: number
+  status: string
+  note: string
+}
+
+export interface MatchReportScoreItem {
+  key: string
+  label: string
+  value: number
+  maximum: number
+  detail: string
+  tone: string
+}
+
+export interface MatchReportEvidenceSource {
+  requirement: string
+  project: string
+  strength: '强' | '中' | '弱'
+  evidenceTypes: string[]
+  rationale: string
+}
+
+export interface MatchReportSkillGap {
+  skill: string
+  severity: string
+  reason: string
+  nextAction: string
+}
+
+export interface MatchReportAction {
+  title: string
+  detail: string
+  priority: string
+}
+
+export interface WorkflowTraceStep {
+  label: string
+  status: 'success' | 'warning' | 'current' | 'upcoming'
+  detail: string
+}
+
+export interface MatchReportData {
+  mode: string
+  summary: MatchReportSummary
+  score: {
+    items: MatchReportScoreItem[]
+    note: string
+  }
+  evidenceSources: MatchReportEvidenceSource[]
+  skillGaps: MatchReportSkillGap[]
+  recommendedActions: MatchReportAction[]
+  traceEvidence: WorkflowTraceStep[]
+  disclaimer: string
+}
+
+export interface InterviewFocusArea {
+  label: string
+  detail: string
+  evidence: string
+}
+
+export interface InterviewQuestionGroup {
+  key: string
+  label: string
+  questions: string[]
+}
+
+export interface InterviewStarDraft {
+  situation: string
+  task: string
+  action: string
+  result: string
+  riskNote: string
+}
+
+export interface InterviewTimelineStep {
+  key: string
+  label: string
+  status: 'current' | 'upcoming' | 'done'
+  detail: string
+}
+
+export interface InterviewPrepData {
+  mode: string
+  jobTitle: string
+  positioningNotice: string
+  focusAreas: InterviewFocusArea[]
+  questionGroups: InterviewQuestionGroup[]
+  starDraft: InterviewStarDraft
+  riskReminders: string[]
+  reviewTimeline: InterviewTimelineStep[]
+  disclaimer: string
+}
+
+export interface ApplicationBoardColumn {
+  key: string
+  label: string
+  count: number
+  tone: string
+}
+
+export interface ApplicationRecord {
+  id: string
+  company: string
+  role: string
+  city: string
+  resumeVersion: string
+  sourceNote: string
+  status: string
+  updatedAt: string
+  nextAction: string
+}
+
+export interface CommunicationLog {
+  applicationId: string
+  stage: string
+  note: string
+  timestamp: string
+}
+
+export interface ApplicationTrackerData {
+  mode: string
+  boardColumns: ApplicationBoardColumn[]
+  applications: ApplicationRecord[]
+  communicationLogs: CommunicationLog[]
+  riskBoundaries: string[]
+  disclaimer: string
+}

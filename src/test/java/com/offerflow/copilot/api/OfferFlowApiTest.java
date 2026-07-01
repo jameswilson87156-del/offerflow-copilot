@@ -82,6 +82,47 @@ class OfferFlowApiTest {
     }
 
     @Test
+    void matchReportExplainsScoreEvidenceAndReviewGate() throws Exception {
+        mockMvc.perform(get("/api/match-report/demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.summary.jobTitle").value("Java 后端 / AI 应用开发实习生"))
+                .andExpect(jsonPath("$.summary.totalScore").value(82))
+                .andExpect(jsonPath("$.summary.status").value("Draft，需要人工复核"))
+                .andExpect(jsonPath("$.score.items", hasSize(4)))
+                .andExpect(jsonPath("$.evidenceSources", hasSize(4)))
+                .andExpect(jsonPath("$.skillGaps", hasSize(5)))
+                .andExpect(jsonPath("$.recommendedActions", hasSize(4)))
+                .andExpect(jsonPath("$.traceEvidence", hasSize(6)));
+    }
+
+    @Test
+    void interviewPrepIsPreInterviewOnly() throws Exception {
+        mockMvc.perform(get("/api/interview-prep/demo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.positioningNotice").value("面试前准备与复盘，不是实时面试辅助工具。"))
+                .andExpect(jsonPath("$.focusAreas", hasSize(6)))
+                .andExpect(jsonPath("$.questionGroups", hasSize(5)))
+                .andExpect(jsonPath("$.starDraft.riskNote").value("不要声称真实稳定 LLM、企业客户、真实用户或生产级能力。"))
+                .andExpect(jsonPath("$.riskReminders", hasSize(4)))
+                .andExpect(jsonPath("$.reviewTimeline", hasSize(5)));
+    }
+
+    @Test
+    void applicationTrackerUsesManualMockRecords() throws Exception {
+        mockMvc.perform(get("/api/applications"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.boardColumns", hasSize(6)))
+                .andExpect(jsonPath("$.applications", hasSize(3)))
+                .andExpect(jsonPath("$.applications[0].company").value("科技创新公司"))
+                .andExpect(jsonPath("$.applications[0].resumeVersion").value("Java 后端版"))
+                .andExpect(jsonPath("$.communicationLogs", hasSize(5)))
+                .andExpect(jsonPath("$.riskBoundaries", hasSize(4)));
+    }
+
+    @Test
     void dashboardReturnsDemoCounts() throws Exception {
         mockMvc.perform(get("/api/dashboard/summary"))
                 .andExpect(status().isOk())

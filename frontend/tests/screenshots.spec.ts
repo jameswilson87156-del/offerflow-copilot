@@ -84,6 +84,59 @@ async function verifyProviderTrace(page: Page) {
   expect(consoleErrors).toEqual([])
 }
 
+async function verifyMatchReport(page: Page) {
+  const consoleErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
+  })
+
+  await page.goto('/match-report')
+  await expect(page.getByRole('heading', { name: '匹配报告' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '评分拆解' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '证据来源' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '技能差距' })).toBeVisible()
+  await expect(page.getByText('82/100')).toBeVisible()
+  await expect(page.getByText('Spring Boot', { exact: true })).toBeVisible()
+  await expect(page.getByText('不输出任何 Offer 或录取概率')).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  expect(consoleErrors).toEqual([])
+}
+
+async function verifyInterviewPrep(page: Page) {
+  const consoleErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
+  })
+
+  await page.goto('/interview-prep')
+  await expect(page.getByRole('heading', { name: '面试准备' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '岗位与面试重点' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '面试问题分组' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'STAR 回答草稿' })).toBeVisible()
+  await expect(page.getByText('面试前准备与复盘，不是实时面试辅助工具。')).toBeVisible()
+  await expect(page.getByText('你在 MCP Tool Gateway 中如何设计 Trace Evidence？')).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  expect(consoleErrors).toEqual([])
+}
+
+async function verifyApplicationTracker(page: Page) {
+  const consoleErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
+  })
+
+  await page.goto('/application-tracker')
+  await expect(page.getByRole('heading', { name: '投递跟踪' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '投递看板' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '投递记录卡片' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '沟通记录' })).toBeVisible()
+  await expect(page.getByText('科技创新公司', { exact: true })).toBeVisible()
+  await expect(page.getByText('不自动投递', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('不抓取平台聊天', { exact: true }).first()).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  expect(consoleErrors).toEqual([])
+}
+
 test('captures 1440 JD workbench', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await verifyJdWorkbench(page)
@@ -132,10 +185,49 @@ test('captures 1920 provider trace settings', async ({ page }) => {
   await page.screenshot({ path: path.join(docsDir, 'large/offerflow-provider-trace.png'), fullPage: true })
 })
 
+test('captures 1440 match report', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await verifyMatchReport(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-match-report.png'), fullPage: true })
+})
+
+test('captures 1920 match report', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  await verifyMatchReport(page)
+  await page.screenshot({ path: path.join(docsDir, 'large/offerflow-match-report.png'), fullPage: true })
+})
+
+test('captures 1440 interview prep', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await verifyInterviewPrep(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-interview-prep.png'), fullPage: true })
+})
+
+test('captures 1920 interview prep', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  await verifyInterviewPrep(page)
+  await page.screenshot({ path: path.join(docsDir, 'large/offerflow-interview-prep.png'), fullPage: true })
+})
+
+test('captures 1440 application tracker', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await verifyApplicationTracker(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-application-tracker.png'), fullPage: true })
+})
+
+test('captures 1920 application tracker', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  await verifyApplicationTracker(page)
+  await page.screenshot({ path: path.join(docsDir, 'large/offerflow-application-tracker.png'), fullPage: true })
+})
+
 test('routes avoid horizontal overflow at 1366 by 768', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 })
   await verifyJdWorkbench(page)
   await verifyEvidenceLibrary(page)
+  await verifyMatchReport(page)
+  await verifyInterviewPrep(page)
+  await verifyApplicationTracker(page)
   await verifyHumanReview(page)
   await verifyProviderTrace(page)
 })

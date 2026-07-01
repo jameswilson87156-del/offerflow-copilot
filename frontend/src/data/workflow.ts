@@ -1,0 +1,113 @@
+import type { ApplicationTrackerData, InterviewPrepData, MatchReportData } from '../types'
+
+export const matchReportFallback: MatchReportData = {
+  mode: 'mock/local-rule',
+  summary: {
+    jobTitle: 'Java 后端 / AI 应用开发实习生',
+    recommendedResumeVersions: ['Java 后端版', 'AI Coding 版'],
+    totalScore: 82,
+    maximumScore: 100,
+    status: 'Draft，需要人工复核',
+    note: '匹配得分只解释证据覆盖，不代表录取概率或招聘结果。',
+  },
+  score: {
+    items: [
+      { key: 'skills', label: '技能命中', value: 36, maximum: 40, detail: 'Java / Spring Boot / AI Workflow 覆盖较完整', tone: 'primary' },
+      { key: 'evidence', label: '项目证据', value: 28, maximum: 35, detail: 'README、截图、Trace 与测试证据较清晰', tone: 'positive' },
+      { key: 'risk', label: '经验风险', value: -4, maximum: 10, detail: '交付与生产环境经验需要降级描述', tone: 'warning' },
+      { key: 'interview', label: '面试准备', value: 22, maximum: 25, detail: '追问方向明确，仍需人工整理 STAR 表达', tone: 'info' },
+    ],
+    note: '评分用于解释 JD 与证据的覆盖关系，不输出任何 Offer 或录取概率。',
+  },
+  evidenceSources: [
+    { requirement: 'Spring Boot', project: 'MCP Tool Gateway', strength: '强', evidenceTypes: ['README', '后端测试', 'Trace'], rationale: '工具注册、接口契约、异常处理与调用审计证据完整。' },
+    { requirement: 'AI Workflow', project: 'DevFlow Copilot', strength: '强', evidenceTypes: ['README', '截图', 'Trace'], rationale: '任务拆解、Provider fallback、Schema Validate 与 Human Review 链路清晰。' },
+    { requirement: 'RAG / Knowledge', project: 'Enterprise Ticket RAG Copilot', strength: '中', evidenceTypes: ['README', '截图', 'Trace'], rationale: '具备引用与复核链路，但离线评估样本仍需补充。' },
+    { requirement: 'CI / Deployment', project: 'Portfolio Hub', strength: '中', evidenceTypes: ['GitHub Actions', '截图', '部署记录'], rationale: '有构建与截图证据，但不代表生产环境运维经验。' },
+  ],
+  skillGaps: [
+    { skill: 'Redis 深度使用', severity: '中', reason: '已有缓存理解，但缺少复杂一致性案例。', nextAction: '补充缓存穿透、热点 key、过期策略与数据一致性复盘。' },
+    { skill: '分布式事务', severity: '高', reason: '当前证据集中在单体或轻量服务。', nextAction: '准备本地事务、补偿事务、消息最终一致性对比说明。' },
+    { skill: '性能优化', severity: '中', reason: '缺少独立压测与指标记录。', nextAction: '补充接口耗时、SQL 索引、缓存命中率等可验证材料。' },
+    { skill: 'A/B Testing', severity: '低', reason: '岗位可能涉及实验思维，但当前项目证据较少。', nextAction: '准备实验分组、指标选择和误差风险说明。' },
+    { skill: '生产环境经验不足', severity: '高', reason: '作品集证据不能表述为真实生产流量。', nextAction: '统一改写为作品集级演示和可复核工程边界。' },
+  ],
+  recommendedActions: [
+    { title: '建议投递', detail: '证据覆盖 Java 后端与 AI 应用开发核心要求，但材料需先过 Human Review。', priority: 'high' },
+    { title: '推荐使用 Java 后端版简历', detail: '把 Spring Boot、接口设计、Trace Evidence 放在首屏项目经历。', priority: 'high' },
+    { title: '准备关键追问', detail: '重点准备 Spring Boot / Trace Evidence / Provider fallback 相关追问。', priority: 'medium' },
+    { title: '收紧能力表述', detail: '不要夸大真实模型能力，不把 local-rule fallback 包装成真实 LLM 能力。', priority: 'high' },
+  ],
+  traceEvidence: [
+    { label: 'JD 输入', status: 'success', detail: '手动录入演示 JD' },
+    { label: '关键词解析', status: 'success', detail: '抽取 Java、Spring Boot、AI Workflow、RAG' },
+    { label: '证据检索', status: 'success', detail: '匹配 4 个匿名化项目证据' },
+    { label: '评分拆解', status: 'success', detail: '生成 4 个评分维度' },
+    { label: '风险校验', status: 'warning', detail: '识别生产环境与模型能力表述风险' },
+    { label: 'Human Review', status: 'current', detail: 'Draft 状态，等待人工确认' },
+  ],
+  disclaimer: '本报告由 mock/local-rule 生成，所有结论需人工复核后才能复制或投递。',
+}
+
+export const interviewPrepFallback: InterviewPrepData = {
+  mode: 'mock/local-rule',
+  jobTitle: 'Java 后端 / AI 应用开发实习生',
+  positioningNotice: '面试前准备与复盘，不是实时面试辅助工具。',
+  focusAreas: [
+    { label: 'Java / Spring Boot', detail: '接口分层、异常处理、事务与测试', evidence: 'MCP Tool Gateway' },
+    { label: 'AI Workflow', detail: '任务拆解、工具调用、结构化输出', evidence: 'DevFlow Copilot' },
+    { label: 'Trace Evidence', detail: '每一步输入输出、证据和风险可回溯', evidence: 'Provider Trace' },
+    { label: 'Human Review', detail: '复制或投递前必须人工确认', evidence: '人工复核中心' },
+    { label: 'Provider fallback', detail: 'Provider 未配置或失败时明确降级', evidence: 'local-rule fallback' },
+    { label: 'RAG 边界', detail: '引用、评估和匿名化数据边界', evidence: 'Enterprise Ticket RAG Copilot' },
+  ],
+  questionGroups: [
+    { key: 'foundation', label: '技术基础', questions: ['Spring Boot 项目中如何处理幂等、事务与异常？', '如果岗位要求 Redis，你会如何补强？'] },
+    { key: 'project', label: '项目深挖', questions: ['你在 MCP Tool Gateway 中如何设计 Trace Evidence？', 'DevFlow Copilot 为什么需要 Human Review？'] },
+    { key: 'ai-app', label: 'AI 应用理解', questions: ['local-rule fallback 和真实 LLM Provider 有什么区别？', 'Ticket RAG 项目中 RAG 的边界是什么？'] },
+    { key: 'engineering', label: '工程边界', questions: ['Provider 未配置时如何避免伪装成成功？', '如何证明项目证据不是虚构的？'] },
+    { key: 'collaboration', label: '协作与复盘', questions: ['面试后你会如何复盘问题和补齐证据？', '当 AI 草稿存在夸大表述时你如何处理？'] },
+  ],
+  starDraft: {
+    situation: '项目组合需要把 Java 后端能力和 AI Workflow 证据讲清楚，同时避免夸大外部模型能力。',
+    task: '准备一个能解释 MCP Tool Gateway、Provider fallback 与 Human Review 的项目深挖回答。',
+    action: '按 Trace Evidence 展示输入、规则处理、Schema Validate、Risk Guard 和人工复核链路。',
+    result: '形成可复述的作品集级项目表达，面试后继续补充 Redis、分布式事务和性能证据。',
+    riskNote: '不要声称真实稳定 LLM、企业客户、真实用户或生产级能力。',
+  },
+  riskReminders: ['不夸大生产级能力', '不声称真实稳定 LLM', '不虚构企业客户和真实用户', '不把 fallback 包装为模型能力'],
+  reviewTimeline: [
+    { key: 'prepare', label: '待准备', status: 'current', detail: '整理问题、证据与 STAR 草稿' },
+    { key: 'answers-confirmed', label: '已确认答案', status: 'upcoming', detail: '人工确认后可用于面试前复习' },
+    { key: 'mock-practice', label: '已模拟练习', status: 'upcoming', detail: '仅做面试前练习，不做实时辅助' },
+    { key: 'interviewed', label: '已面试', status: 'upcoming', detail: '记录面试问题与反馈' },
+    { key: 'reviewed', label: '已复盘', status: 'upcoming', detail: '补充证据缺口和后续行动' },
+  ],
+  disclaimer: '所有内容仅用于面试前准备与复盘，不能用于实时面试辅助或作弊。',
+}
+
+export const applicationTrackerFallback: ApplicationTrackerData = {
+  mode: 'mock/local-rule',
+  boardColumns: [
+    { key: 'not-applied', label: '未投递', count: 1, tone: 'neutral' },
+    { key: 'contacted', label: '已沟通', count: 1, tone: 'info' },
+    { key: 'resume-sent', label: '已发送简历', count: 1, tone: 'primary' },
+    { key: 'interview', label: '已约面试', count: 0, tone: 'positive' },
+    { key: 'following-up', label: '跟进中', count: 1, tone: 'warning' },
+    { key: 'archived', label: '已拒绝 / 归档', count: 0, tone: 'muted' },
+  ],
+  applications: [
+    { id: 'app-java-ai', company: '科技创新公司', role: 'Java AI 应用开发实习生', city: '上海', resumeVersion: 'Java 后端版', sourceNote: '手动记录：来自公开岗位描述摘要', status: '已发送简历', updatedAt: '2026-07-01 14:30', nextAction: '等待反馈，准备 Spring Boot 与 Trace Evidence 追问' },
+    { id: 'app-ai-coding', company: 'AI 工具公司', role: 'AI Coding 工具开发实习', city: '杭州', resumeVersion: 'AI Coding 版', sourceNote: '手动记录：作品集匹配度较高', status: '跟进中', updatedAt: '2026-07-01 13:20', nextAction: '补充 Provider fallback 与 Human Review 说明' },
+    { id: 'app-java-backend', company: '企业软件公司', role: 'Java 后端实习', city: '北京', resumeVersion: 'Java 后端版', sourceNote: '手动记录：偏后端基础与 Redis', status: '已沟通', updatedAt: '2026-06-30 18:10', nextAction: '补齐 Redis 与分布式事务准备材料' },
+  ],
+  communicationLogs: [
+    { applicationId: 'app-java-ai', stage: '初始沟通', note: '确认岗位关注 Java、Spring Boot 与 AI 应用项目表达。', timestamp: '2026-07-01 10:12' },
+    { applicationId: 'app-java-ai', stage: '已发送简历', note: '使用 Java 后端版简历，附作品集链接说明需人工复核。', timestamp: '2026-07-01 14:30' },
+    { applicationId: 'app-ai-coding', stage: '等待反馈', note: '手动记录跟进，不抓取平台聊天。', timestamp: '2026-07-01 13:20' },
+    { applicationId: 'app-java-backend', stage: '面试安排', note: '待确认具体时间，准备 Redis 与事务追问。', timestamp: '2026-06-30 18:10' },
+    { applicationId: 'app-java-backend', stage: '面试复盘', note: '尚未面试，复盘区保留为空白待人工填写。', timestamp: '2026-06-30 18:15' },
+  ],
+  riskBoundaries: ['不自动投递', '不抓取平台聊天', '不保存真实 HR 隐私', '不承诺回复率或 Offer 结果'],
+  disclaimer: '投递跟踪仅使用手动录入的匿名化演示记录，不接招聘平台 API，不做爬虫。',
+}
