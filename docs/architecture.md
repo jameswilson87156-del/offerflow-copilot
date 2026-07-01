@@ -1,6 +1,6 @@
 # 架构说明
 
-## P3E 结构
+## P3F 结构
 
 ```text
 Vue 3 Workbench
@@ -48,9 +48,9 @@ OfferFlow 不从招聘平台抓取 JD，也不接 Boss、牛客、实习僧等�
 
 当前解析不是 LLM 推理，不调用真实 Provider，不保存 API Key。解析文本会做基础脱敏，例如邮箱和手机号会替换为 redacted 标记。
 
-## Match Report Versioning 链路
+## Match Report Versioning & Review Sync 链路
 
-匹配报告在 P3E 中从一次性 demo 结果升级为可版本化输出资产。`MatchReportVersionService` 在同一个事务内完成：
+匹配报告在 P3E 中从一次性 demo 结果升级为可版本化输出资产，P3F 又把 Human Review 操作接回 `match_report_version` 状态机。`MatchReportVersionService` 在生成报告时完成：
 
 1. 读取目标 `job_post`、当前最新 `jd_parse_version` 和该版本下的 `jd_evidence_binding`。
 2. 使用 deterministic local-rule scoring 生成 summary、score breakdown、evidence refs、skill gaps、recommended actions 和 risk notes。
@@ -58,7 +58,16 @@ OfferFlow 不从招聘平台抓取 JD，也不接 Boss、牛客、实习僧等�
 4. 写入 `match_report_audit_event`，记录 `GENERATE_LOCAL_RULE` 与 `CREATE_DRAFT`。
 5. 创建或更新 `MATCH_REPORT` 类型的 `human_review_item`，让报告进入人工复核队列。
 
-`GET /api/match-report/demo` 继续返回旧页面需要的 summary、score、evidenceSources、skillGaps、recommendedActions 和 traceEvidence 字段，但来源改为最新 report version。新增的版本列表、详情、审计、送审和归档接口围绕 `match_report_version` 工作。
+`GET /api/match-report/demo` 继续返回旧页面需要的 summary、score、evidenceSources、skillGaps、recommendedActions 和 traceEvidence 字段，但来源改为最新 report version。版本列表、详情、审计、送审、归档、恢复和复制许可接口围绕 `match_report_version` 工作。
+
+P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 confirm / return / flag-risk 后，会调用 `MatchReportVersionService.syncFromHumanReview`：
+
+1. 通过 `human_review_id` 找到关联的 `match_report_version`。
+2. 将 Human Review Confirmed / Returned / Risk Flagged 映射为 `CONFIRMED` / `RETURNED` / `RISK_FLAGGED`。
+3. 写入 `match_report_audit_event`，action 为 `HUMAN_REVIEW_CONFIRMED`、`HUMAN_REVIEW_RETURNED` 或 `HUMAN_REVIEW_FLAGGED_RISK`。
+4. 保持 `ARCHIVED` 版本只读；归档版本不能 send-to-review，只能 restore 到 `DRAFT` 后重新进入复核链路。
+
+复制许可由 `POST /api/match-reports/{versionId}/copy-check` 统一判断。只有 `CONFIRMED` 返回 `allowed=true`；其它状态都会返回原因、Human Review 状态和 Boundary Notice，并写入 COPY audit event。
 
 当前 scoring 不调用真实 LLM、DeepSeek 或中转站，不输出 Offer 概率或录取概率。报告建议只有进入 Human Review 并经人工确认后，才可作为可复制建议使用。
 

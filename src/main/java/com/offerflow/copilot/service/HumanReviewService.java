@@ -34,14 +34,17 @@ public class HumanReviewService {
     private final HumanReviewItemRepository humanReviewItemRepository;
     private final HumanReviewAuditEventRepository auditEventRepository;
     private final JsonCodec jsonCodec;
+    private final MatchReportVersionService matchReportVersionService;
 
     public HumanReviewService(
             HumanReviewItemRepository humanReviewItemRepository,
             HumanReviewAuditEventRepository auditEventRepository,
-            JsonCodec jsonCodec) {
+            JsonCodec jsonCodec,
+            MatchReportVersionService matchReportVersionService) {
         this.humanReviewItemRepository = humanReviewItemRepository;
         this.auditEventRepository = auditEventRepository;
         this.jsonCodec = jsonCodec;
+        this.matchReportVersionService = matchReportVersionService;
     }
 
     public HumanReviewCenter listReviews() {
@@ -82,6 +85,7 @@ public class HumanReviewService {
         entity.setUpdatedAt(actionTimestamp());
         humanReviewItemRepository.update(entity);
         audit(entity, "CONFIRM", previousStatus, previousRiskLevel, actor, actorRole, entity.getHumanNote());
+        matchReportVersionService.syncFromHumanReview(entity, "CONFIRM", actor, actorRole, entity.getHumanNote());
         return detail(entity);
     }
 
@@ -96,6 +100,7 @@ public class HumanReviewService {
         entity.setUpdatedAt(actionTimestamp());
         humanReviewItemRepository.update(entity);
         audit(entity, "RETURN", previousStatus, previousRiskLevel, actor, actorRole, entity.getHumanNote());
+        matchReportVersionService.syncFromHumanReview(entity, "RETURN", actor, actorRole, entity.getHumanNote());
         return detail(entity);
     }
 
@@ -111,6 +116,7 @@ public class HumanReviewService {
         entity.setUpdatedAt(actionTimestamp());
         humanReviewItemRepository.update(entity);
         audit(entity, "FLAG_RISK", previousStatus, previousRiskLevel, actor, actorRole, entity.getHumanNote());
+        matchReportVersionService.syncFromHumanReview(entity, "FLAG_RISK", actor, actorRole, entity.getHumanNote());
         return detail(entity);
     }
 

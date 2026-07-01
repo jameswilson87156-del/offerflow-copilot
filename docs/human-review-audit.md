@@ -37,7 +37,7 @@ Human Review 是 OfferFlow 的核心安全链路。系统中的 AI 或 local-rul
 
 `GET /api/reviews/{id}` 会返回包含 `auditTrail` 的 review detail；`GET /api/reviews/{id}/audit-events` 可以单独读取审计历史。
 
-## Match Report Handoff
+## Match Report Handoff & Sync
 
 P3E 中，`POST /api/jobs/{id}/match-reports/generate` 会在写入 `match_report_version` 后创建或关联一个 Human Review item：
 
@@ -48,7 +48,15 @@ P3E 中，`POST /api/jobs/{id}/match-reports/generate` 会在写入 `match_repor
 - `evidence_refs_json = 当前 JD evidence bindings 摘要`
 - `status = Draft`
 
-`POST /api/match-reports/{versionId}/send-to-review` 会将报告版本状态更新为 `IN_REVIEW`，并把关联 review item 显示为 `In Review`。归档报告版本会把关联 review item 显示为 `Archived`。这些 handoff 动作同时写入 `match_report_audit_event`；Human Review 自身的 confirm/return/flag-risk 仍由 `human_review_audit_event` 记录。
+`POST /api/match-reports/{versionId}/send-to-review` 会将报告版本状态更新为 `IN_REVIEW`，并把关联 review item 显示为 `In Review`。归档报告版本会把关联 review item 显示为 `Archived`。这些 handoff 动作同时写入 `match_report_audit_event`。
+
+P3F 中，Human Review 自身的 confirm / return / flag-risk 仍写入 `human_review_audit_event`，并在 `review_type = MATCH_REPORT` 且存在关联 `match_report_version` 时额外同步写入 `match_report_audit_event`：
+
+- Human Review `Confirmed` -> Match Report `CONFIRMED`，action = `HUMAN_REVIEW_CONFIRMED`
+- Human Review `Returned` -> Match Report `RETURNED`，action = `HUMAN_REVIEW_RETURNED`
+- Human Review `Risk Flagged` -> Match Report `RISK_FLAGGED`，action = `HUMAN_REVIEW_FLAGGED_RISK`
+
+匹配报告只有 `CONFIRMED` 后才允许复制使用。`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 版本不可作为正式建议；`ARCHIVED` 版本只读，不能 send-to-review，可 restore 到 `DRAFT` 后重新处理。
 
 ## 当前边界
 
@@ -61,4 +69,4 @@ P3E 中，`POST /api/jobs/{id}/match-reports/generate` 会在写入 `match_repor
 
 ## 后续扩展方向
 
-P3C 已将同样的审计模式扩展到证据库编辑；P3D 已扩展到 JD Intake、parse version 和 evidence binding；P3E 已将 Match Report 版本生成纳入 Human Review。生产化前还需要真实鉴权、权限模型、租户隔离和审计日志防篡改策略。
+P3C 已将同样的审计模式扩展到证据库编辑；P3D 已扩展到 JD Intake、parse version 和 evidence binding；P3E 已将 Match Report 版本生成纳入 Human Review；P3F 已将 MATCH_REPORT 复核动作同步回 `match_report_version`。生产化前还需要真实鉴权、权限模型、租户隔离和审计日志防篡改策略。

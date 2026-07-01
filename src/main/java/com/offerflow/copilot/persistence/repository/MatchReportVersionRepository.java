@@ -39,6 +39,14 @@ public class MatchReportVersionRepository {
                 .orderByAsc(MatchReportVersionEntity::getVersionNo));
     }
 
+    public Optional<MatchReportVersionEntity> findByHumanReviewId(String humanReviewId) {
+        return mapper.selectList(Wrappers.<MatchReportVersionEntity>lambdaQuery()
+                        .eq(MatchReportVersionEntity::getHumanReviewId, humanReviewId)
+                        .last("LIMIT 1"))
+                .stream()
+                .findFirst();
+    }
+
     public Optional<MatchReportVersionEntity> findLatestByJobId(String jobId) {
         return mapper.selectList(Wrappers.<MatchReportVersionEntity>lambdaQuery()
                         .eq(MatchReportVersionEntity::getJobId, jobId)

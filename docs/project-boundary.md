@@ -12,6 +12,7 @@
 - 手动记录投递状态与复盘，不自动对外执行动作。
 - 持久化保存 demo 人工复核状态和审计事件，展示可追踪的状态流转历史。
 - 持久化保存 demo 简历证据状态和审计事件，展示证据维护、确认、归档和恢复历史。
+- Human Review 对 MATCH_REPORT 的 confirm、return、flag-risk 可以同步更新关联匹配报告版本状态，并保留匹配报告审计事件。
 
 ## 明确不做
 
@@ -49,4 +50,6 @@ JD 分析台只接受用户手动粘贴的岗位描述或脱敏 seed demo，不�
 
 匹配报告是可版本化 AI 输出资产，不是一次性 mock 分数。每个 `match_report_version` 必须绑定一个 JD parse version 和一组 resume evidence bindings，并记录 provider mode、prompt/schema version、Trace ID、状态和审计事件。
 
-当前匹配报告 scoring 是 local-rule，不是真实 LLM 推理，不是 Offer 概率、录取概率或保证通过。报告默认 `DRAFT`，生成后进入 Human Review；只有人工确认后的内容才可以作为可复制建议使用。归档版本不应继续作为当前建议。
+当前匹配报告 scoring 是 local-rule，不是真实 LLM 推理，不是 Offer 概率、录取概率或保证通过。报告默认 `DRAFT`，生成后进入 Human Review；只有 `CONFIRMED` 版本才可以复制确认版摘要。`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 版本不可作为正式建议使用。
+
+`ARCHIVED` 版本是只读版本，不能再次 send-to-review；如需继续处理，必须先 restore 到 `DRAFT` 并重新进入复核链路。当前 restore、copy-check 和审计 actor 都是 demo user，不是生产级权限系统。

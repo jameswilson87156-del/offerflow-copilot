@@ -507,7 +507,15 @@ export interface WorkflowTraceStep {
   detail: string
 }
 
-export type MatchReportVersionStatus = 'DRAFT' | 'IN_REVIEW' | 'CONFIRMED' | 'RETURNED' | 'ARCHIVED'
+export type MatchReportVersionStatus = 'DRAFT' | 'IN_REVIEW' | 'CONFIRMED' | 'RETURNED' | 'RISK_FLAGGED' | 'ARCHIVED'
+
+export interface MatchReportCopyCheck {
+  allowed: boolean
+  reason: string
+  versionStatus: MatchReportVersionStatus
+  humanReviewStatus: string
+  boundaryNotice: string
+}
 
 export interface MatchReportVersionSummary {
   id: string

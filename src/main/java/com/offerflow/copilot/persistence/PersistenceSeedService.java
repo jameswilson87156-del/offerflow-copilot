@@ -55,7 +55,7 @@ public class PersistenceSeedService implements ApplicationRunner {
 
     private static final String MODE = "mock/local-rule";
     private static final List<String> RISK_TERMS = List.of(
-            "生产级", "稳定接入", "真实用户", "提升 Offer 率", "保证通过", "自动投递", "实时面试辅助");
+            "生产级", "稳定接入", "真实用户", "结果提升承诺", "结果承诺", "自动投递", "实时面试辅助");
 
     private final boolean seedDemoData;
     private final JsonCodec jsonCodec;
@@ -528,14 +528,14 @@ public class PersistenceSeedService implements ApplicationRunner {
                 82,
                 100,
                 "Draft，需要人工复核",
-                "匹配得分只解释证据覆盖，不代表录取概率或招聘结果。")));
+                "匹配得分只解释证据覆盖，不代表录用结果。")));
         report.setScoreJson(jsonCodec.write(new MatchReportDemo.ScoreBreakdown(
                 List.of(
                         new MatchReportDemo.ScoreItem("skills", "技能命中", 36, 40, "Java / Spring Boot / AI Workflow 覆盖较完整", "primary"),
                         new MatchReportDemo.ScoreItem("evidence", "项目证据", 28, 35, "README、截图、Trace 与测试证据较清晰", "positive"),
                         new MatchReportDemo.ScoreItem("risk", "经验风险", -4, 10, "交付与生产环境经验需要降级描述", "warning"),
                         new MatchReportDemo.ScoreItem("interview", "面试准备", 22, 25, "追问方向明确，仍需人工整理 STAR 表达", "info")),
-                "评分用于解释 JD 与证据的覆盖关系，不输出任何 Offer 或录取概率。")));
+                "评分用于解释 JD 与证据的覆盖关系，不输出任何录用结果预测。")));
         report.setEvidenceSourcesJson(jsonCodec.write(List.of(
                 new MatchReportDemo.EvidenceSource("Spring Boot", "MCP Tool Gateway", "强", List.of("README", "后端测试", "Trace"), "工具注册、接口契约、异常处理与调用审计证据完整。"),
                 new MatchReportDemo.EvidenceSource("AI Workflow", "DevFlow Copilot", "强", List.of("README", "截图", "Trace"), "任务拆解、Provider fallback、Schema Validate 与 Human Review 链路清晰。"),
@@ -588,14 +588,14 @@ public class PersistenceSeedService implements ApplicationRunner {
                 82,
                 100,
                 "Draft，需要人工复核",
-                "匹配得分只解释证据覆盖，不代表录取概率或招聘结果。")));
+                "匹配得分只解释证据覆盖，不代表录用结果。")));
         version.setScoreBreakdownJson(jsonCodec.write(new MatchReportDemo.ScoreBreakdown(
                 List.of(
                         new MatchReportDemo.ScoreItem("skills", "技能命中", 36, 40, "Java / Spring Boot / AI Workflow 覆盖较完整", "primary"),
                         new MatchReportDemo.ScoreItem("evidence", "项目证据", 28, 35, "README、截图、Trace 与测试证据较清晰", "positive"),
                         new MatchReportDemo.ScoreItem("risk", "经验风险", -4, 10, "交付与生产环境经验需要降级描述", "warning"),
                         new MatchReportDemo.ScoreItem("interview", "面试准备", 22, 25, "追问方向明确，仍需人工整理 STAR 表达", "info")),
-                "评分用于解释 JD 与证据的覆盖关系，不输出任何 Offer 或录取概率。")));
+                "评分用于解释 JD 与证据的覆盖关系，不输出任何录用结果预测。")));
         version.setEvidenceRefsJson(jsonCodec.write(List.of(
                 new MatchReportDemo.EvidenceSource("Spring Boot", "MCP Tool Gateway", "强", List.of("README", "后端测试", "Trace"), "工具注册、接口契约、异常处理与调用审计证据完整。"),
                 new MatchReportDemo.EvidenceSource("AI Workflow", "DevFlow Copilot", "强", List.of("README", "截图", "Trace"), "任务拆解、Provider fallback、Schema Validate 与 Human Review 链路清晰。"),
@@ -613,7 +613,7 @@ public class PersistenceSeedService implements ApplicationRunner {
                 new MatchReportDemo.RecommendedAction("准备关键追问", "重点准备 Spring Boot / Trace Evidence / Provider fallback 相关追问。", "medium"),
                 new MatchReportDemo.RecommendedAction("收紧能力表述", "不要夸大真实模型能力，不把 local-rule fallback 包装成真实 LLM 能力。", "high"))));
         version.setRiskNotesJson(jsonCodec.write(List.of(
-                "这是匹配分析，不是 Offer 概率或录取概率。",
+                "这是匹配分析，不是录用结果预测。",
                 "所有建议需经人工复核后使用。",
                 "当前 scoring 是 local-rule，不调用真实 LLM、DeepSeek 或中转站。",
                 "每个版本绑定 JD parse version 与 resume evidence bindings。",
@@ -752,7 +752,7 @@ public class PersistenceSeedService implements ApplicationRunner {
             return;
         }
         humanReviewItemRepository.save(review(
-                "review-match-java-ai", "match-report", "匹配报告：Java AI 应用开发实习生", "高", "匹配报告", "local-rule", "JD-042-REP-21F3", "Draft",
+                "review-match-java-ai", "MATCH_REPORT", "匹配报告：Java AI 应用开发实习生", "高", "匹配报告", "local-rule", "JD-042-REP-21F3", "Draft",
                 "AI 建议候选材料匹配度高，已稳定接入真实用户场景，并能提升 Offer 率。建议突出 Spring Boot、RAG、MCP Tool Gateway 与自动投递效率。",
                 "熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；希望工程化项目有可验证截图、Trace 与人工复核。",
                 List.of(
@@ -762,7 +762,7 @@ public class PersistenceSeedService implements ApplicationRunner {
                 ts(2026, 7, 1, 14, 21)));
         humanReviewItemRepository.save(review(
                 "review-star-mcp", "interview-prep", "STAR 回答草稿：MCP Tool Gateway 项目深挖", "中", "面试准备", "local-rule", "JD-042-STAR-9E4D", "Draft",
-                "在 MCP Tool Gateway 项目中，我主导了后端开发与 AI 集成，构建了生产级服务架构，已在真实用户场景中稳定接入使用，显著提升 Offer 率。系统支持自动投递简历与实时面试辅助，并保证通过各类基础测评。",
+                "在 MCP Tool Gateway 项目中，我主导了后端开发与 AI 集成，构建了生产级服务架构，已在真实用户场景中稳定接入使用，宣称带来结果提升。系统支持自动投递简历与实时面试辅助，并承诺通过各类基础测评。",
                 "熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；有 RAG、MCP 等相关实践优先。",
                 List.of(
                         reviewProject("MCP Tool Gateway", "统一 Tool Registry、接口契约、异常处理与 Trace Evidence。", List.of("README", "后端测试", "Trace")),
@@ -785,7 +785,7 @@ public class PersistenceSeedService implements ApplicationRunner {
                 "Provider 能力、自动投递和实时面试辅助均超出本轮边界。",
                 ts(2026, 7, 1, 14, 24)));
         humanReviewItemRepository.save(review(
-                "review-returned-devops", "match-report", "匹配报告：DevOps 工程师", "中", "匹配报告", "local-rule", "JD-042-REP-11A7", "Returned",
+                "review-returned-devops", "MATCH_REPORT", "匹配报告：DevOps 工程师", "中", "匹配报告", "local-rule", "JD-042-REP-11A7", "Returned",
                 "建议强调 CI / 部署经验，但不能把演示部署描述为生产 SLA。",
                 "关注 CI、部署、可观测和基础设施经验。",
                 List.of(reviewProject("Portfolio Hub", "GitHub Actions 和截图证据完整，生产运维证据不足。", List.of("GitHub Actions", "截图"))),
@@ -870,7 +870,7 @@ public class PersistenceSeedService implements ApplicationRunner {
             run.setFallbackReason("OpenAI-compatible 与 DeepSeek 均未配置；本轮边界禁止真实 Provider 调用。");
             run.setPromptVersion("v2.4.8");
             run.setSchemaVersion("v1.4.3");
-            run.setRiskFlagsJson(jsonCodec.write(List.of("命中风险词：真实用户", "命中风险词：保证通过")));
+            run.setRiskFlagsJson(jsonCodec.write(List.of("命中风险词：真实用户", "命中风险词：结果承诺")));
             run.setEvidenceCount(12);
             run.setHumanReviewStatus("待人工确认");
             run.setDurationMs(842);

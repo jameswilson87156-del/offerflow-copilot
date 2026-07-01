@@ -69,6 +69,14 @@ public final class MatchReportVersioning {
             String createdAt) {
     }
 
+    public record CopyCheck(
+            boolean allowed,
+            String reason,
+            String versionStatus,
+            String humanReviewStatus,
+            String boundaryNotice) {
+    }
+
     public record ReportActionRequest(
             String actor,
             String actorRole,

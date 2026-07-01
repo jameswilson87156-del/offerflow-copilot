@@ -230,6 +230,179 @@ class OfferFlowApiTest {
     }
 
     @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void humanReviewConfirmSyncsMatchReportVersionAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-match-java-ai/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"confirm match report\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Confirmed"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("Confirmed"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.action == 'HUMAN_REVIEW_CONFIRMED')]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.action == 'HUMAN_REVIEW_CONFIRMED')].nextStatus").value("CONFIRMED"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void humanReviewReturnSyncsMatchReportVersionAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-match-java-ai/return")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"return match report\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Returned"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RETURNED"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("Returned"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.action == 'HUMAN_REVIEW_RETURNED')]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.action == 'HUMAN_REVIEW_RETURNED')].nextStatus").value("RETURNED"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void humanReviewFlagRiskSyncsMatchReportVersionAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-match-java-ai/flag-risk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"risk flag match report\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Risk Flagged"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RISK_FLAGGED"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("Risk Flagged"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.action == 'HUMAN_REVIEW_FLAGGED_RISK')]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.action == 'HUMAN_REVIEW_FLAGGED_RISK')].nextStatus").value("RISK_FLAGGED"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void copyCheckAllowsConfirmedMatchReport() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-match-java-ai/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"confirm before copy\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"check copy\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(true))
+                .andExpect(jsonPath("$.versionStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("Confirmed"))
+                .andExpect(jsonPath("$.boundaryNotice").exists());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void copyCheckBlocksEveryNonConfirmedMatchReportStatus() throws Exception {
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"draft copy check\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(false))
+                .andExpect(jsonPath("$.versionStatus").value("DRAFT"));
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/send-to-review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"send before copy check\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"review copy check\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(false))
+                .andExpect(jsonPath("$.versionStatus").value("IN_REVIEW"));
+
+        mockMvc.perform(post("/api/reviews/review-match-java-ai/return")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"return before copy check\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"returned copy check\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(false))
+                .andExpect(jsonPath("$.versionStatus").value("RETURNED"));
+
+        mockMvc.perform(post("/api/reviews/review-match-java-ai/flag-risk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"flag risk before copy check\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"risk-flagged copy check\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(false))
+                .andExpect(jsonPath("$.versionStatus").value("RISK_FLAGGED"));
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"archive before copy check\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"archived copy check\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allowed").value(false))
+                .andExpect(jsonPath("$.versionStatus").value("ARCHIVED"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void archivedMatchReportCannotBeSentToReview() throws Exception {
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"archive before send\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/send-to-review")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"should be blocked\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void restoreMatchReportUpdatesStatusAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"archive before restore\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/restore")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"restore match report\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT"))
+                .andExpect(jsonPath("$.humanReviewStatus").value("Draft"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.action == 'RESTORE_VERSION')]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.action == 'RESTORE_VERSION')].previousStatus").value("ARCHIVED"))
+                .andExpect(jsonPath("$[?(@.action == 'RESTORE_VERSION')].nextStatus").value("DRAFT"));
+    }
+
+    @Test
     void interviewPrepIsPreInterviewOnly() throws Exception {
         mockMvc.perform(get("/api/interview-prep/demo"))
                 .andExpect(status().isOk())

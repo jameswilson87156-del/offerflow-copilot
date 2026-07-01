@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-P3E 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
+P3F 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
 
 当前数据仍然是 `mock/local-rule` 演示数据，不是真实招聘数据，也不代表真实 Provider 能力。
 
@@ -15,8 +15,8 @@ P3E 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `jd_evidence_binding`：JD requirement 与简历证据的绑定关系，记录 evidence strength、binding reason、source 和 review status。
 - `jd_audit_event`：JD 创建、更新、解析、绑定、归档和恢复的审计事件，记录 changed fields 与 before/after snapshot。
 - `match_report`：匹配报告摘要、评分拆解、证据来源、技能差距和 Trace。
-- `match_report_version`：可版本化匹配报告输出资产，绑定 JD parse version、score breakdown、evidence refs、Human Review item 和 trace id。
-- `match_report_audit_event`：匹配报告版本生成、创建 Draft、送审、归档等动作的审计事件。
+- `match_report_version`：可版本化匹配报告输出资产，绑定 JD parse version、score breakdown、evidence refs、Human Review item、status 和 trace id。
+- `match_report_audit_event`：匹配报告版本生成、创建 Draft、送审、Human Review 同步、复制许可、恢复、归档等动作的审计事件。
 - `interview_prep`：面试前准备重点、问题分组、STAR 草稿、风险提醒和复盘 Timeline。
 - `application_record`：手动投递记录与沟通 Timeline。
 - `human_review_item`：人工复核队列、风险词、证据引用、人工备注和当前状态。
@@ -61,6 +61,8 @@ P3E 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `GET /api/match-reports/{versionId}/audit-events`
 - `POST /api/match-reports/{versionId}/send-to-review`
 - `POST /api/match-reports/{versionId}/archive`
+- `POST /api/match-reports/{versionId}/restore`
+- `POST /api/match-reports/{versionId}/copy-check`
 - `GET /api/interview-prep/demo`
 - `GET /api/applications`
 
@@ -155,6 +157,27 @@ P3E 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `created_at`
 
 当前 actor 默认是 `local-rule report generator` 或 `demo-reviewer`，用于演示报告版本状态流转，不是生产鉴权主体。
+
+P3F 支持的 `match_report_version.status` 为：
+
+- `DRAFT`
+- `IN_REVIEW`
+- `CONFIRMED`
+- `RETURNED`
+- `RISK_FLAGGED`
+- `ARCHIVED`
+
+P3F 新增或扩展的 `match_report_audit_event.action` 包括：
+
+- `HUMAN_REVIEW_CONFIRMED`
+- `HUMAN_REVIEW_RETURNED`
+- `HUMAN_REVIEW_FLAGGED_RISK`
+- `COPY_ENABLED`
+- `COPY_BLOCKED`
+- `RESTORE_VERSION`
+- `ARCHIVE`
+
+`changed_fields_json` 当前以字段名列表记录，例如 `["status","humanReviewStatus"]` 或 `["copyPermission"]`。当前不是不可篡改审计系统，生产化前还需要真实鉴权、权限模型、租户隔离和日志防篡改策略。
 
 ## 简历证据审计事件字段
 

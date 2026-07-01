@@ -48,6 +48,20 @@ public class MatchReportController {
         return matchReportVersionService.auditEvents(versionId);
     }
 
+    @PostMapping("/match-reports/{versionId}/restore")
+    public MatchReportVersioning.ReportDetail restore(
+            @PathVariable String versionId,
+            @RequestBody(required = false) MatchReportVersioning.ReportActionRequest request) {
+        return matchReportVersionService.restore(versionId, request);
+    }
+
+    @PostMapping("/match-reports/{versionId}/copy-check")
+    public MatchReportVersioning.CopyCheck copyCheck(
+            @PathVariable String versionId,
+            @RequestBody(required = false) MatchReportVersioning.ReportActionRequest request) {
+        return matchReportVersionService.copyCheck(versionId, request);
+    }
+
     @PostMapping("/match-reports/{versionId}/send-to-review")
     public MatchReportVersioning.ReportDetail sendToReview(
             @PathVariable String versionId,

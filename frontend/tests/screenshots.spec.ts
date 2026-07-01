@@ -97,7 +97,7 @@ async function verifyMatchReport(page: Page) {
   await expect(page.getByRole('heading', { name: '技能差距' })).toBeVisible()
   await expect(page.getByText('82/100')).toBeVisible()
   await expect(page.getByText('Spring Boot', { exact: true })).toBeVisible()
-  await expect(page.getByText('不输出任何 Offer 或录取概率')).toBeVisible()
+  await expect(page.getByText('不输出任何录用结果预测')).toBeVisible()
   await expectNoHorizontalOverflow(page)
   expect(consoleErrors).toEqual([])
 }

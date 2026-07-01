@@ -2,9 +2,11 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P3E Match Report Versioning & Human Review Handoff
+## 当前阶段：P3F Match Report Review Sync
 
-当前版本在 P3A H2/MyBatis-Plus 持久化基础层、P3B 人工复核审计链路、P3C 简历证据编辑工作流和 P3D 结构化 JD Intake 上，新增了 P3E 匹配报告版本化。每次生成匹配报告都会基于当前 `jd_parse_version` 与 `jd_evidence_binding` 写入一个 `match_report_version`，默认 `DRAFT`，并创建或关联 `MATCH_REPORT` 类型的 Human Review item。匹配报告现在是可版本化、可解释、可复核、可审计的 AI 输出资产；当前 scoring 仍为 `local-rule`，不是 Offer/录取概率。
+当前版本在 P3A H2/MyBatis-Plus 持久化基础层、P3B 人工复核审计链路、P3C 简历证据编辑工作流、P3D 结构化 JD Intake 和 P3E 匹配报告版本化上，新增了 P3F 匹配报告与 Human Review 双向状态同步。每个 `match_report_version` 都关联一个 `human_review_id`；当 MATCH_REPORT 类型的 Human Review item 被 confirm、return 或 flag-risk 时，报告版本会同步为 `CONFIRMED`、`RETURNED` 或 `RISK_FLAGGED`，并写入 `match_report_audit_event`。
+
+匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。`DRAFT`、`IN_REVIEW`、`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 都会被 copy-check 阻止。当前 scoring 仍为 `local-rule`，不是录取概率，也不承诺 Offer 结果。
 
 关键边界：
 
@@ -67,6 +69,8 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | GET | `/api/match-reports/{versionId}/audit-events` | H2 匹配报告版本审计历史 |
 | POST | `/api/match-reports/{versionId}/send-to-review` | H2 版本状态更新 + audit event |
 | POST | `/api/match-reports/{versionId}/archive` | H2 版本归档 + audit event |
+| POST | `/api/match-reports/{versionId}/restore` | H2 从 Returned/Risk Flagged/Archived 恢复为 Draft + audit event |
+| POST | `/api/match-reports/{versionId}/copy-check` | H2 检查复制许可并写 COPY_ENABLED/COPY_BLOCKED audit event |
 | GET | `/api/interview-prep/demo` | H2 seeded demo data |
 | GET | `/api/applications` | H2 seeded demo data |
 
@@ -74,7 +78,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 
 - `/jd-analyzer`：结构化 JD Intake、解析版本、证据绑定与 JD Audit Trail
 - `/evidence-library`：简历证据库、Evidence Coverage Map、编辑工作流与 Audit Trail
-- `/match-report`：匹配报告、版本历史、来源元数据、Human Review handoff 与报告审计
+- `/match-report`：匹配报告、版本历史、复制许可、Human Review 同步状态与报告审计
 - `/interview-prep`：面试前准备
 - `/application-tracker`：投递跟踪
 - `/human-review`：人工复核中心，包含 Review History / Audit Trail
@@ -92,7 +96,7 @@ npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md) 和 [docs/match-report-versioning.md](docs/match-report-versioning.md)。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
 
 ## 验收
 
@@ -104,4 +108,4 @@ npm run screenshots
 git diff --check
 ```
 
-更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/design/README.md](docs/design/README.md)。
+更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md)、[docs/match-report-review-sync.md](docs/match-report-review-sync.md) 和 [docs/design/README.md](docs/design/README.md)。

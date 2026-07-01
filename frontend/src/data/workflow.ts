@@ -25,7 +25,7 @@ export const matchReportFallback: MatchReportData = {
     totalScore: 82,
     maximumScore: 100,
     status: 'Draft，需要人工复核',
-    note: '匹配得分只解释证据覆盖，不代表录取概率或招聘结果。',
+    note: '匹配得分只解释证据覆盖，不代表录用结果。',
   },
   score: {
     items: [
@@ -34,7 +34,7 @@ export const matchReportFallback: MatchReportData = {
       { key: 'risk', label: '经验风险', value: -4, maximum: 10, detail: '交付与生产环境经验需要降级描述', tone: 'warning' },
       { key: 'interview', label: '面试准备', value: 22, maximum: 25, detail: '追问方向明确，仍需人工整理 STAR 表达', tone: 'info' },
     ],
-    note: '评分用于解释 JD 与证据的覆盖关系，不输出任何 Offer 或录取概率。',
+    note: '评分用于解释 JD 与证据的覆盖关系，不输出任何录用结果预测。',
   },
   evidenceSources: [
     { requirement: 'Spring Boot', project: 'MCP Tool Gateway', strength: '强', evidenceTypes: ['README', '后端测试', 'Trace'], rationale: '工具注册、接口契约、异常处理与调用审计证据完整。' },
@@ -56,7 +56,7 @@ export const matchReportFallback: MatchReportData = {
     { title: '收紧能力表述', detail: '不要夸大真实模型能力，不把 local-rule fallback 包装成真实 LLM 能力。', priority: 'high' },
   ],
   riskNotes: [
-    '这是匹配分析，不是 Offer 概率或录取概率。',
+    '这是匹配分析，不是录用结果预测。',
     '所有建议需经人工复核后使用。',
     '当前 scoring 是 local-rule，不调用真实 LLM、DeepSeek 或中转站。',
     '每个版本绑定 JD parse version 与 resume evidence bindings。',

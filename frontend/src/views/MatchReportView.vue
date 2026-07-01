@@ -4,8 +4,11 @@ import {
   AlertTriangle,
   Archive,
   BarChart3,
+  BadgeCheck,
   Check,
   ChevronRight,
+  ClipboardCheck,
+  Copy,
   Clock3,
   Database,
   FileText,
@@ -14,6 +17,7 @@ import {
   History,
   PlusCircle,
   RefreshCw,
+  RotateCcw,
   Send,
   ShieldCheck,
   SlidersHorizontal,
@@ -33,12 +37,16 @@ const {
   loading,
   actionBusy,
   actionMessage,
+  copyCheck,
   source,
   reload,
   loadVersion,
   generateVersion,
   sendToReview,
   archiveVersion,
+  restoreVersion,
+  checkCopyPermission,
+  copyConfirmedSummary,
 } = useMatchReport()
 
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
@@ -64,6 +72,19 @@ const sourceStats = computed(() => [
   { label: 'Trace ID', value: report.value.traceId, detail: report.value.schemaVersion, icon: Fingerprint },
 ])
 
+const copyAllowedLabel = computed(() => copyCheck.value.allowed ? '允许复制' : '禁止复制')
+
+const canRestoreVersion = computed(() => ['RETURNED', 'RISK_FLAGGED', 'ARCHIVED'].includes(report.value.status))
+
+const currentStatusHint = computed(() => ({
+  DRAFT: 'Draft 标签：需要送入 Human Review，确认前不可复制为正式建议。',
+  IN_REVIEW: '等待人工复核：复核完成前不可复制。',
+  CONFIRMED: 'Confirmed：已通过 Human Review，可复制确认版摘要。',
+  RETURNED: '已退回，需要修改或恢复为 Draft 后重新复核。',
+  RISK_FLAGGED: '风险标记：不可作为正式建议，需要人工处理。',
+  ARCHIVED: '只读归档：不可送审，不可复制，可恢复为 Draft。',
+} as Record<string, string>)[report.value.status] ?? '未知状态，需要人工复核。')
+
 function scorePercent(value: number, maximum: number) {
   return `${Math.max(0, Math.round((Math.abs(value) / maximum) * 100))}%`
 }
@@ -84,12 +105,16 @@ function statusLabel(status: string) {
     IN_REVIEW: 'In Review',
     CONFIRMED: 'Confirmed',
     RETURNED: 'Returned',
+    RISK_FLAGGED: 'Risk Flagged',
     ARCHIVED: 'Archived',
   } as Record<string, string>)[status] ?? status
 }
 
 function auditTone(action: string) {
   if (action === 'ARCHIVE') return 'archive'
+  if (action === 'RESTORE_VERSION') return 'restore'
+  if (action.startsWith('HUMAN_REVIEW')) return 'review'
+  if (action.startsWith('COPY')) return 'copy'
   if (action === 'SEND_TO_REVIEW') return 'review'
   if (action === 'CREATE_DRAFT') return 'draft'
   return 'generate'
@@ -128,6 +153,60 @@ function auditTone(action: string) {
         <span :class="source">{{ source === 'api' ? 'LOCAL API LIVE' : 'DEMO SNAPSHOT' }}</span>
         <small>{{ report.disclaimer }}</small>
       </div>
+    </section>
+
+    <section class="panel match-copy-panel" aria-label="状态与复制许可">
+      <header class="match-copy-header">
+        <div>
+          <span class="panel-kicker">REVIEW SYNC</span>
+          <h2>状态与复制许可</h2>
+        </div>
+        <span :class="['status-chip', statusClass(report.status)]">{{ statusLabel(report.status) }}</span>
+      </header>
+      <div class="copy-permission-grid">
+        <article>
+          <BadgeCheck :size="15" />
+          <span>当前版本状态</span>
+          <strong>{{ statusLabel(report.status) }}</strong>
+          <small>{{ currentStatusHint }}</small>
+        </article>
+        <article>
+          <ShieldCheck :size="15" />
+          <span>Human Review 状态</span>
+          <strong>{{ report.humanReviewStatus }}</strong>
+          <small>{{ report.humanReviewId }}</small>
+        </article>
+        <article :class="copyCheck.allowed ? 'allowed' : 'blocked'">
+          <ClipboardCheck :size="15" />
+          <span>复制许可</span>
+          <strong>{{ copyAllowedLabel }}</strong>
+          <small>{{ copyCheck.reason }}</small>
+        </article>
+        <article class="notice">
+          <AlertTriangle :size="15" />
+          <span>Boundary Notice</span>
+          <strong>local-rule / demo user</strong>
+          <small>{{ copyCheck.boundaryNotice }}</small>
+        </article>
+      </div>
+      <div class="copy-action-row">
+        <button type="button" class="copy-action-button check" :disabled="actionBusy || loading" @click="checkCopyPermission">
+          <ClipboardCheck :size="15" />检查复制许可
+        </button>
+        <button type="button" class="copy-action-button copy" :disabled="actionBusy" @click="copyConfirmedSummary">
+          <Copy :size="15" />复制确认版摘要
+        </button>
+        <button type="button" class="copy-action-button restore" :disabled="actionBusy || loading || !canRestoreVersion" @click="restoreVersion">
+          <RotateCcw :size="15" />恢复版本
+        </button>
+        <button type="button" class="copy-action-button review" :disabled="actionBusy || loading || report.status === 'ARCHIVED'" @click="sendToReview">
+          <Send :size="15" />送入人工复核
+        </button>
+        <button type="button" class="copy-action-button archive" :disabled="actionBusy || loading || report.status === 'ARCHIVED'" @click="archiveVersion">
+          <Archive :size="15" />归档版本
+        </button>
+      </div>
+      <p class="copy-action-message">{{ actionMessage }}</p>
     </section>
 
     <section class="match-source-grid" aria-label="报告来源">
@@ -173,15 +252,7 @@ function auditTone(action: string) {
               <small>{{ report.humanReviewId }}</small>
             </div>
           </div>
-          <div class="report-action-row">
-            <button type="button" class="report-action-button review" :disabled="actionBusy || report.status === 'ARCHIVED'" @click="sendToReview">
-              <Send :size="15" />送入人工复核
-            </button>
-            <button type="button" class="report-action-button archive" :disabled="actionBusy || report.status === 'ARCHIVED'" @click="archiveVersion">
-              <Archive :size="15" />归档当前版本
-            </button>
-          </div>
-          <p>{{ actionMessage }}</p>
+          <p>{{ currentStatusHint }}</p>
         </div>
 
         <div class="match-audit-mini">
@@ -215,7 +286,7 @@ function auditTone(action: string) {
       <div class="report-status-box">
         <span>当前状态</span>
         <strong>{{ statusLabel(report.status) }}</strong>
-        <p>这是匹配分析，不是 Offer 概率；所有建议需经人工复核后使用。</p>
+        <p>{{ currentStatusHint }}</p>
       </div>
     </section>
 

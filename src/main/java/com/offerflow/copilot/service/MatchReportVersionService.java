@@ -42,9 +42,11 @@ public class MatchReportVersionService {
     private static final String DEFAULT_ACTOR_ROLE = "System";
     private static final String PROMPT_VERSION = "match-report-local-rule-v1";
     private static final String SCHEMA_VERSION = "match-report-version-v1";
+    private static final String COPY_BOUNDARY_NOTICE =
+            "匹配报告只有 Confirmed 后才允许复制使用；Human Review 是正式使用前的安全门。当前 scoring 是 local-rule，不做录用结果预测，也不承诺 Offer 结果。";
     private static final DateTimeFormatter DISPLAY_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final List<String> RISK_TERMS = List.of(
-            "生产级", "稳定接入", "真实用户", "提升 Offer 率", "保证通过", "自动投递", "实时面试辅助");
+            "生产级", "稳定接入", "真实用户", "结果提升承诺", "结果承诺", "自动投递", "实时面试辅助");
 
     private final JsonCodec jsonCodec;
     private final MatchReportVersionRepository versionRepository;
@@ -97,6 +99,68 @@ public class MatchReportVersionService {
         return auditEventRepository.findByReportVersionId(versionId).stream()
                 .map(this::toAuditEvent)
                 .toList();
+    }
+
+    @Transactional
+    public MatchReportVersioning.CopyCheck copyCheck(String versionId, MatchReportVersioning.ReportActionRequest request) {
+        MatchReportVersionEntity entity = requireVersion(versionId);
+        String reviewStatus = humanReviewStatus(entity);
+        CopyDecision decision = copyDecision(entity.getStatus());
+        audit(entity, decision.allowed() ? "COPY_ENABLED" : "COPY_BLOCKED", entity.getStatus(), entity.getStatus(),
+                List.of("copyPermission"), actor(request), actorRole(request), note(request, decision.reason()),
+                LocalDateTime.now());
+        return new MatchReportVersioning.CopyCheck(
+                decision.allowed(),
+                decision.reason(),
+                entity.getStatus(),
+                reviewStatus,
+                COPY_BOUNDARY_NOTICE);
+    }
+
+    @Transactional
+    public MatchReportVersioning.ReportDetail restore(String versionId, MatchReportVersioning.ReportActionRequest request) {
+        MatchReportVersionEntity entity = requireVersion(versionId);
+        String previousStatus = entity.getStatus();
+        if (!List.of("ARCHIVED", "RETURNED", "RISK_FLAGGED").contains(previousStatus)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Only archived, returned, or risk-flagged match reports can be restored");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        entity.setStatus("DRAFT");
+        entity.setUpdatedAt(now);
+        versionRepository.update(entity);
+        updateReviewStatus(entity, "Draft", "报告版本已恢复为 Draft，需重新送入人工复核。");
+        audit(entity, "RESTORE_VERSION", previousStatus, "DRAFT", List.of("status", "humanReviewStatus"),
+                actor(request), actorRole(request), note(request, "恢复报告版本为 Draft，复制仍需人工确认。"), now);
+        return toDetail(entity);
+    }
+
+    @Transactional
+    public void syncFromHumanReview(
+            HumanReviewItemEntity reviewItem,
+            String reviewAction,
+            String actor,
+            String actorRole,
+            String humanNote) {
+        if (!isMatchReportReview(reviewItem.getReviewType())) {
+            return;
+        }
+        SyncDecision decision = syncDecision(reviewAction);
+        if (decision == null) {
+            return;
+        }
+        versionRepository.findByHumanReviewId(reviewItem.getId()).ifPresent((entity) -> {
+            LocalDateTime now = reviewItem.getUpdatedAt() == null ? LocalDateTime.now() : reviewItem.getUpdatedAt();
+            String previousStatus = entity.getStatus();
+            String nextStatus = "ARCHIVED".equals(previousStatus) ? "ARCHIVED" : decision.nextStatus();
+            if (!previousStatus.equals(nextStatus)) {
+                entity.setStatus(nextStatus);
+                entity.setUpdatedAt(now);
+                versionRepository.update(entity);
+            }
+            audit(entity, decision.auditAction(), previousStatus, nextStatus, List.of("status", "humanReviewStatus"),
+                    valueOr(actor, "demo-reviewer"), valueOr(actorRole, "Human reviewer"),
+                    valueOr(humanNote, decision.note()), now);
+        });
     }
 
     @Transactional
@@ -156,6 +220,9 @@ public class MatchReportVersionService {
     public MatchReportVersioning.ReportDetail sendToReview(String versionId, MatchReportVersioning.ReportActionRequest request) {
         MatchReportVersionEntity entity = requireVersion(versionId);
         String previousStatus = entity.getStatus();
+        if ("ARCHIVED".equals(previousStatus)) {
+            throw new ResponseStatusException(BAD_REQUEST, "Archived match report versions are read-only; restore before sending to review");
+        }
         entity.setStatus("IN_REVIEW");
         entity.setUpdatedAt(LocalDateTime.now());
         versionRepository.update(entity);
@@ -181,9 +248,7 @@ public class MatchReportVersionService {
     private MatchReportVersioning.ReportDetail toDetail(MatchReportVersionEntity entity) {
         JdParseVersionEntity parseVersion = jdParseVersionRepository.findById(entity.getParseVersionId()).orElse(null);
         int bindingCount = jdEvidenceBindingRepository.findByParseVersionId(entity.getParseVersionId()).size();
-        String reviewStatus = humanReviewItemRepository.findById(entity.getHumanReviewId())
-                .map(HumanReviewItemEntity::getStatus)
-                .orElse("Draft");
+        String reviewStatus = humanReviewStatus(entity);
         return new MatchReportVersioning.ReportDetail(
                 MODE,
                 entity.getReportId(),
@@ -210,15 +275,13 @@ public class MatchReportVersionService {
                 jsonCodec.readList(entity.getRecommendedActionsJson(), MatchReportDemo.RecommendedAction.class),
                 jsonCodec.readList(entity.getRiskNotesJson(), String.class),
                 traceEvidence(entity.getStatus(), bindingCount),
-                "这是匹配分析，不是 Offer 概率；所有建议需经人工复核后使用。当前为 local-rule demo，不调用真实 LLM。");
+                "这是匹配分析，不是结果承诺；所有建议需经人工复核后使用。当前为 local-rule demo，不调用真实 LLM。");
     }
 
     private MatchReportVersioning.VersionSummary toSummary(MatchReportVersionEntity entity) {
         JdParseVersionEntity parseVersion = jdParseVersionRepository.findById(entity.getParseVersionId()).orElse(null);
         int bindingCount = jdEvidenceBindingRepository.findByParseVersionId(entity.getParseVersionId()).size();
-        String reviewStatus = humanReviewItemRepository.findById(entity.getHumanReviewId())
-                .map(HumanReviewItemEntity::getStatus)
-                .orElse("Draft");
+        String reviewStatus = humanReviewStatus(entity);
         return new MatchReportVersioning.VersionSummary(
                 entity.getId(),
                 entity.getReportId(),
@@ -281,14 +344,14 @@ public class MatchReportVersionService {
                 total,
                 100,
                 "Draft，需要人工复核",
-                "匹配得分只解释 JD 与简历证据覆盖，不代表 Offer 概率或录取结果。");
+                "匹配得分只解释 JD 与简历证据覆盖，不代表录用结果。");
         MatchReportDemo.ScoreBreakdown scoreBreakdown = new MatchReportDemo.ScoreBreakdown(
                 List.of(
                         new MatchReportDemo.ScoreItem("skills", "技能命中", skillScore, 40, "基于 JD parse keywords 与 evidence binding 数量的 local-rule 覆盖判断", "primary"),
                         new MatchReportDemo.ScoreItem("evidence", "项目证据", evidenceScore, 35, "绑定证据来自脱敏简历证据库，需人工确认可复制表述", "positive"),
                         new MatchReportDemo.ScoreItem("risk", "经验风险", riskScore, 10, "生产环境、真实用户、结果承诺等表述仍需降级处理", "warning"),
                         new MatchReportDemo.ScoreItem("interview", "面试准备", interviewScore, 25, "追问方向明确，但 STAR 表达需要人工整理", "info")),
-                "评分用于解释 JD 与证据的覆盖关系，不输出任何 Offer 或录取概率。");
+                "评分用于解释 JD 与证据的覆盖关系，不输出任何录用结果预测。");
         return new LocalRuleReport(
                 total,
                 skillScore,
@@ -410,6 +473,37 @@ public class MatchReportVersionService {
         auditEventRepository.save(event);
     }
 
+    private String humanReviewStatus(MatchReportVersionEntity entity) {
+        return humanReviewItemRepository.findById(entity.getHumanReviewId())
+                .map(HumanReviewItemEntity::getStatus)
+                .orElse("Draft");
+    }
+
+    private boolean isMatchReportReview(String reviewType) {
+        return "MATCH_REPORT".equals(reviewType) || "match-report".equals(reviewType);
+    }
+
+    private CopyDecision copyDecision(String status) {
+        return switch (status) {
+            case "CONFIRMED" -> new CopyDecision(true, "已通过人工复核，可复制使用。");
+            case "DRAFT" -> new CopyDecision(false, "需要人工复核");
+            case "IN_REVIEW" -> new CopyDecision(false, "正在复核");
+            case "RETURNED" -> new CopyDecision(false, "已退回");
+            case "RISK_FLAGGED" -> new CopyDecision(false, "存在风险");
+            case "ARCHIVED" -> new CopyDecision(false, "已归档");
+            default -> new CopyDecision(false, "未知状态，需人工复核");
+        };
+    }
+
+    private SyncDecision syncDecision(String reviewAction) {
+        return switch (reviewAction) {
+            case "CONFIRM" -> new SyncDecision("CONFIRMED", "HUMAN_REVIEW_CONFIRMED", "Human Review 已确认，报告版本同步为 Confirmed。");
+            case "RETURN" -> new SyncDecision("RETURNED", "HUMAN_REVIEW_RETURNED", "Human Review 已退回，报告版本同步为 Returned。");
+            case "FLAG_RISK" -> new SyncDecision("RISK_FLAGGED", "HUMAN_REVIEW_FLAGGED_RISK", "Human Review 已标记风险，报告版本同步为 Risk Flagged。");
+            default -> null;
+        };
+    }
+
     private MatchReportVersionEntity requireVersion(String versionId) {
         return versionRepository.findById(versionId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Match report version not found"));
@@ -440,7 +534,7 @@ public class MatchReportVersionService {
     private List<String> riskNotes(JdParseVersionEntity parseVersion) {
         List<String> parsedRisks = jsonCodec.readList(parseVersion.getRiskTermsJson(), String.class);
         List<String> notes = new ArrayList<>();
-        notes.add("这是匹配分析，不是 Offer 概率或录取概率。");
+        notes.add("这是匹配分析，不是录用结果预测。");
         notes.add("所有建议需经人工复核后使用。");
         notes.add("当前 scoring 是 local-rule，不调用真实 LLM、DeepSeek 或中转站。");
         notes.add("每个版本绑定 JD parse version 与 resume evidence bindings。");
@@ -453,19 +547,26 @@ public class MatchReportVersionService {
     }
 
     private List<MatchReportDemo.TraceStep> traceEvidence(String status, int bindingCount) {
+        String reviewTraceStatus = switch (status) {
+            case "IN_REVIEW" -> "current";
+            case "CONFIRMED" -> "success";
+            default -> "warning";
+        };
         return List.of(
                 new MatchReportDemo.TraceStep("JD parse version", "success", "读取当前最新 JD parse version"),
                 new MatchReportDemo.TraceStep("Evidence bindings", "success", "绑定 " + bindingCount + " 条简历证据"),
                 new MatchReportDemo.TraceStep("local-rule scoring", "success", "未调用真实 LLM 或外部 Provider"),
                 new MatchReportDemo.TraceStep("Versioned asset", "success", "写入 match_report_version"),
-                new MatchReportDemo.TraceStep("Risk notes", "warning", "不输出 Offer 概率，建议需复核"),
-                new MatchReportDemo.TraceStep("Human Review", "IN_REVIEW".equals(status) ? "current" : "warning", reviewStep(status)));
+                new MatchReportDemo.TraceStep("Risk notes", "warning", "不输出结果承诺，建议需复核"),
+                new MatchReportDemo.TraceStep("Human Review", reviewTraceStatus, reviewStep(status)));
     }
 
     private String reviewStep(String status) {
         return switch (status) {
             case "IN_REVIEW" -> "已送入人工复核";
             case "CONFIRMED" -> "已人工确认";
+            case "RETURNED" -> "已退回，需修改后恢复";
+            case "RISK_FLAGGED" -> "已标记风险，不可作为正式建议";
             case "ARCHIVED" -> "已归档，不作为当前建议";
             default -> "Draft 状态，等待人工确认";
         };
@@ -479,6 +580,12 @@ public class MatchReportVersionService {
             case "SEND_TO_REVIEW" -> "送入人工复核";
             case "CONFIRM" -> "确认可用";
             case "RETURN" -> "退回修改";
+            case "HUMAN_REVIEW_CONFIRMED" -> "复核确认同步";
+            case "HUMAN_REVIEW_RETURNED" -> "复核退回同步";
+            case "HUMAN_REVIEW_FLAGGED_RISK" -> "复核风险同步";
+            case "COPY_ENABLED" -> "复制许可通过";
+            case "COPY_BLOCKED" -> "复制许可拦截";
+            case "RESTORE_VERSION" -> "恢复版本";
             case "ARCHIVE" -> "归档版本";
             default -> action;
         };
@@ -527,5 +634,11 @@ public class MatchReportVersionService {
             List<MatchReportDemo.SkillGap> skillGaps,
             List<MatchReportDemo.RecommendedAction> recommendedActions,
             List<String> riskNotes) {
+    }
+
+    private record CopyDecision(boolean allowed, String reason) {
+    }
+
+    private record SyncDecision(String nextStatus, String auditAction, String note) {
     }
 }
