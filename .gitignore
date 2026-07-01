@@ -1,0 +1,35 @@
+# Java / Maven
+target/
+*.class
+*.log
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Local data and temporary files
+*.db
+*.sqlite
+*.sqlite3
+tmp/
+temp/
+*.tmp
+
+# Playwright browser artifacts (keep curated docs/images screenshots)
+frontend/test-results/
+frontend/playwright-report/
+

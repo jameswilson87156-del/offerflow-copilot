@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: offerflow-copilot
+
+server:
+  port: 8080
+
