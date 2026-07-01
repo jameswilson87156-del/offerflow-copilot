@@ -23,6 +23,20 @@ spring:
 offerflow:
   persistence:
     seed-demo-data: true
+  ai:
+    provider:
+      mode: ${OFFERFLOW_AI_PROVIDER_MODE:local-rule}
+      real-call-enabled: ${OFFERFLOW_AI_REAL_CALL_ENABLED:false}
+      raw-response-save: ${OFFERFLOW_AI_RAW_RESPONSE_SAVE:false}
+      timeout-ms: ${OFFERFLOW_AI_PROVIDER_TIMEOUT_MS:8000}
+    openai-compatible:
+      base-url: ${OFFERFLOW_OPENAI_COMPATIBLE_BASE_URL:}
+      api-key: ${OFFERFLOW_OPENAI_COMPATIBLE_API_KEY:}
+      model: ${OFFERFLOW_OPENAI_COMPATIBLE_MODEL:gpt-compatible-demo}
+    deepseek:
+      base-url: ${OFFERFLOW_DEEPSEEK_BASE_URL:}
+      api-key: ${OFFERFLOW_DEEPSEEK_API_KEY:}
+      model: ${OFFERFLOW_DEEPSEEK_MODEL:deepseek-chat}
 
 mybatis-plus:
   configuration:

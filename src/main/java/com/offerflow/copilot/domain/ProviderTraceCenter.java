@@ -2,28 +2,15 @@ package com.offerflow.copilot.domain;
 
 import java.util.List;
 
+import com.offerflow.copilot.provider.ProviderDescriptor;
+
 public record ProviderTraceCenter() {
 
     public record ProviderSettings(
             String mode,
             String currentStatus,
-            List<ProviderCard> providers,
+            List<ProviderDescriptor> providers,
             List<SafetyBoundary> safetyBoundaries) {
-    }
-
-    public record ProviderCard(
-            String id,
-            String name,
-            String status,
-            String baseUrlStatus,
-            String model,
-            String timeout,
-            String lastRun,
-            String fallbackPolicy,
-            String boundaryNotice,
-            boolean realCallEnabled,
-            String rawResponseSave,
-            String apiKeyStatus) {
     }
 
     public record SafetyBoundary(

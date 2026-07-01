@@ -24,17 +24,51 @@ const props = defineProps<{
   selectedProvider: string
 }>()
 
-const { settings, traceIndex, traceRun, loading, source, reload } = useProviderTrace()
-const selectedStepKey = shallowRef('provider-call')
+const {
+  settings,
+  configCheck,
+  traceIndex,
+  traceRun,
+  sandboxResult,
+  sandboxError,
+  loading,
+  running,
+  source,
+  reload,
+  runSandbox,
+} = useProviderTrace()
+
+const providerOptions = [
+  { id: 'local-rule', label: 'local-rule' },
+  { id: 'openai-compatible', label: 'OpenAI-compatible' },
+  { id: 'deepseek', label: 'DeepSeek' },
+]
+
+const EMPTY_STEP: ProviderPipelineStep = {
+  key: 'empty',
+  label: 'Trace Pending',
+  status: 'warning',
+  duration: '0ms',
+  inputSummary: '等待 sandbox run 或已有 trace。',
+  outputSummary: '暂无步骤。',
+  linkedEvidence: 'pending',
+}
+
+const selectedStepKey = shallowRef('provider-noop')
+const selectedSandboxProvider = shallowRef(props.selectedProvider || 'local-rule')
+const simulateFailure = shallowRef(false)
+const simulateTimeout = shallowRef(false)
+const sandboxInput = shallowRef('Java Spring Boot role with AI tooling evidence. Keep output local and require Human Review.')
 
 const filteredProviders = computed(() => {
   const query = props.searchQuery.trim().toLowerCase()
   if (!query) return settings.value.providers
   return settings.value.providers.filter((provider) =>
     [
-      provider.name,
-      provider.status,
-      provider.baseUrlStatus,
+      provider.displayName,
+      provider.providerMode,
+      provider.configured ? 'configured' : 'not configured',
+      provider.baseUrlConfigured ? 'base url configured' : 'base url not configured',
       provider.model,
       provider.fallbackPolicy,
       provider.boundaryNotice,
@@ -63,8 +97,19 @@ const filteredSteps = computed(() => {
 
 const selectedStep = computed<ProviderPipelineStep>(() =>
   traceRun.value.pipeline.find((step) => step.key === selectedStepKey.value)
-  ?? traceRun.value.pipeline[0]!,
+  ?? traceRun.value.pipeline[0]
+  ?? EMPTY_STEP,
 )
+
+const configRows = computed(() => [
+  ['local-rule', configCheck.value.localRuleAvailable ? 'available' : 'blocked'],
+  ['OpenAI-compatible', configCheck.value.openAiCompatibleConfigured ? 'configured' : 'not configured'],
+  ['DeepSeek', configCheck.value.deepSeekConfigured ? 'configured' : 'not configured'],
+  ['real call enabled', String(configCheck.value.realCallEnabled)],
+  ['raw response save', configCheck.value.rawResponseSave ? 'enabled' : 'disabled'],
+  ['OpenAI key', configCheck.value.apiKeyStatus['openai-compatible'] ?? 'not configured'],
+  ['DeepSeek key', configCheck.value.apiKeyStatus.deepseek ?? 'not configured'],
+])
 
 const runDetailRows = computed(() => [
   ['Run ID', traceRun.value.runId],
@@ -81,22 +126,63 @@ const runDetailRows = computed(() => [
   ['Trace hash', traceRun.value.traceHash],
 ])
 
+const sandboxRows = computed(() => sandboxResult.value
+  ? [
+      ['Selected provider', sandboxResult.value.providerMode],
+      ['Final provider', sandboxResult.value.finalProvider],
+      ['Fallback used', String(sandboxResult.value.fallbackUsed)],
+      ['Fallback reason', sandboxResult.value.fallbackReason || 'local-rule selected'],
+      ['Duration', `${sandboxResult.value.durationMs}ms`],
+      ['Trace ID', sandboxResult.value.traceId],
+      ['Risk flags', sandboxResult.value.riskFlags.join(' / ')],
+      ['Human review required', String(sandboxResult.value.humanReviewRequired)],
+    ]
+  : [
+      ['Selected provider', selectedSandboxProvider.value],
+      ['Final provider', 'pending'],
+      ['Fallback used', 'pending'],
+      ['Fallback reason', '运行后显示'],
+    ])
+
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
-  ? 'local-rule fallback active · 无外部调用'
-  : `${props.selectedProvider} 未配置，本页保持 local-rule fallback`)
+  ? 'local-rule active · no external calls'
+  : `${props.selectedProvider} stays no-op and falls back when sandboxed`)
+
+watch(() => props.selectedProvider, (nextProvider) => {
+  if (providerOptions.some((option) => option.id === nextProvider)) selectedSandboxProvider.value = nextProvider
+})
 
 watch(filteredSteps, (steps) => {
   if (steps.length && !steps.some((step) => step.key === selectedStepKey.value)) selectedStepKey.value = steps[0].key
 })
 
+async function submitSandboxRun() {
+  await runSandbox({
+    taskType: 'provider-sandbox',
+    inputText: sandboxInput.value,
+    providerMode: selectedSandboxProvider.value,
+    simulateFailure: simulateFailure.value,
+    simulateTimeout: simulateTimeout.value,
+    actor: 'provider-settings-user',
+    actorRole: 'Human reviewer',
+  })
+  selectedStepKey.value = 'fallback-decision'
+}
+
 function providerStatusClass(provider: ProviderCard) {
-  if (provider.status === 'Active') return 'active'
-  if (provider.status === 'Ready' || provider.status === 'Configured') return 'ready'
+  if (provider.active) return 'active'
+  if (provider.configured) return 'ready'
   return 'disabled'
 }
 
+function providerStatusLabel(provider: ProviderCard) {
+  if (provider.active) return 'Active'
+  if (provider.configured) return 'Configured'
+  return 'Not configured'
+}
+
 function stepClass(status: ProviderTraceStepStatus) {
-  return status
+  return status.toLowerCase()
 }
 </script>
 
@@ -104,16 +190,16 @@ function stepClass(status: ProviderTraceStepStatus) {
   <main class="main-content provider-trace-page">
     <section class="page-intro provider-trace-intro">
       <div class="intro-copy">
-        <div class="breadcrumbs"><span>Provider 设置</span><ChevronRight :size="13" /><strong>Trace Evidence</strong></div>
+        <div class="breadcrumbs"><span>Provider 设置</span><ChevronRight :size="13" /><strong>Sandbox Resilience</strong></div>
         <h1>Provider 设置与证据链 <span class="title-mark provider-title-mark"><ShieldCheck :size="20" /></span></h1>
-        <p>管理 AI Provider 状态，追踪每次分析运行的输入、输出、Schema 校验、fallback 和人工复核结果。</p>
+        <p>管理 Provider SPI、配置校验、沙箱降级、Trace Evidence 和 Human Review 状态；当前未发起真实外部模型调用。</p>
       </div>
       <div class="intro-actions">
         <div class="mode-note provider-trace-mode" :class="{ warning: props.selectedProvider !== 'local-rule' }">
           <span><Check v-if="props.selectedProvider === 'local-rule'" :size="13" /><SlidersHorizontal v-else :size="13" /></span>
           {{ providerNotice }}
         </div>
-        <button type="button" class="secondary-button" :disabled="loading" @click="reload">
+        <button type="button" class="secondary-button" :disabled="loading || running" @click="reload()">
           <RefreshCw :size="15" :class="{ spinning: loading }" />刷新 Trace
         </button>
       </div>
@@ -127,15 +213,78 @@ function stepClass(status: ProviderTraceStepStatus) {
       </div>
       <div class="provider-context-meta">
         <span :class="source">{{ source === 'api' ? 'LOCAL API LIVE' : 'DEMO SNAPSHOT' }}</span>
-        <small>mock/local-rule · 不保存 API Key · 不调用真实 Provider</small>
+        <small>local-rule/no-op · API Key masked · rawResponseSaved=false</small>
       </div>
     </section>
+
+    <div class="provider-sandbox-grid">
+      <section class="panel provider-config-panel">
+        <header class="panel-header provider-panel-header">
+          <div>
+            <span class="panel-kicker">CONFIG CHECK</span>
+            <h2>Provider Config Check</h2>
+          </div>
+          <CheckCircle2 :size="17" class="header-icon" />
+        </header>
+        <dl class="provider-config-grid">
+          <div v-for="[label, value] in configRows" :key="label">
+            <dt>{{ label }}</dt>
+            <dd :class="{ safe: value === 'available' || value === 'false' || value === 'disabled', warning: value === 'not configured' }">{{ value }}</dd>
+          </div>
+        </dl>
+        <div class="provider-boundary-note">
+          <ShieldCheck :size="14" />
+          <span>{{ configCheck.boundaryNotice }}</span>
+        </div>
+        <div class="provider-warning-list">
+          <p v-for="warning in configCheck.warnings" :key="warning"><AlertTriangle :size="12" />{{ warning }}</p>
+        </div>
+      </section>
+
+      <section class="panel provider-sandbox-panel">
+        <header class="panel-header provider-panel-header">
+          <div>
+            <span class="panel-kicker">SANDBOX RUN</span>
+            <h2>Provider 沙箱测试</h2>
+          </div>
+          <Route :size="17" class="header-icon" />
+        </header>
+        <div class="sandbox-form">
+          <div class="provider-mode-picker" aria-label="Sandbox provider mode">
+            <button
+              v-for="option in providerOptions"
+              :key="option.id"
+              type="button"
+              :class="{ selected: selectedSandboxProvider === option.id }"
+              @click="selectedSandboxProvider = option.id"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+          <textarea v-model="sandboxInput" aria-label="Sandbox input" />
+          <div class="sandbox-toggles">
+            <label><input v-model="simulateFailure" type="checkbox" />simulate failure</label>
+            <label><input v-model="simulateTimeout" type="checkbox" />simulate timeout</label>
+          </div>
+          <button type="button" class="primary-button sandbox-run-button" :disabled="running" @click="submitSandboxRun">
+            <RefreshCw :size="14" :class="{ spinning: running }" />运行沙箱测试
+          </button>
+        </div>
+        <dl class="sandbox-result-grid">
+          <div v-for="[label, value] in sandboxRows" :key="label">
+            <dt>{{ label }}</dt>
+            <dd>{{ value }}</dd>
+          </div>
+        </dl>
+        <p v-if="sandboxError" class="sandbox-error"><AlertTriangle :size="12" />{{ sandboxError }}</p>
+      </section>
+    </div>
 
     <div class="provider-top-grid">
       <section class="panel provider-status-panel">
         <header class="panel-header provider-panel-header">
           <div>
-            <span class="panel-kicker">PROVIDER STATUS</span>
+            <span class="panel-kicker">PROVIDER DESCRIPTORS</span>
             <h2>Provider 状态</h2>
           </div>
           <span class="count-chip">{{ filteredProviders.length }} 个</span>
@@ -143,28 +292,27 @@ function stepClass(status: ProviderTraceStepStatus) {
         <div class="provider-card-grid">
           <article
             v-for="provider in filteredProviders"
-            :key="provider.id"
+            :key="provider.providerMode"
             :class="['provider-card', providerStatusClass(provider)]"
           >
             <div class="provider-card-top">
-              <span class="provider-symbol"><Code2 v-if="provider.id === 'local-rule'" :size="17" /><DatabaseZap v-else :size="17" /></span>
+              <span class="provider-symbol"><Code2 v-if="provider.providerMode === 'local-rule'" :size="17" /><DatabaseZap v-else :size="17" /></span>
               <div>
-                <strong>{{ provider.name }}</strong>
-                <small>{{ provider.apiKeyStatus }}</small>
+                <strong>{{ provider.displayName }}</strong>
+                <small>API Key {{ provider.apiKeyStatus }}</small>
               </div>
-              <em>{{ provider.status }}</em>
+              <em>{{ providerStatusLabel(provider) }}</em>
             </div>
             <dl class="provider-card-meta">
-              <div><dt>Base URL</dt><dd>{{ provider.baseUrlStatus }}</dd></div>
+              <div><dt>Base URL</dt><dd>{{ provider.baseUrlConfigured ? 'configured' : 'not configured' }}</dd></div>
               <div><dt>Model</dt><dd>{{ provider.model }}</dd></div>
-              <div><dt>Timeout</dt><dd>{{ provider.timeout }}</dd></div>
-              <div><dt>Last Run</dt><dd>{{ provider.lastRun }}</dd></div>
+              <div><dt>Timeout</dt><dd>{{ provider.timeoutMs }}ms</dd></div>
               <div><dt>Fallback policy</dt><dd>{{ provider.fallbackPolicy }}</dd></div>
               <div><dt>Boundary notice</dt><dd>{{ provider.boundaryNotice }}</dd></div>
             </dl>
             <footer>
-              <span><Timer :size="12" />Real call enabled <b>{{ provider.realCallEnabled }}</b></span>
-              <span><FileJson :size="12" />Raw response save <b>{{ provider.rawResponseSave }}</b></span>
+              <span><Timer :size="12" />Real call <b>{{ provider.realCallEnabled }}</b></span>
+              <span><FileJson :size="12" />Raw save <b>{{ provider.rawResponseSave }}</b></span>
             </footer>
           </article>
         </div>
@@ -242,18 +390,18 @@ function stepClass(status: ProviderTraceStepStatus) {
             <span class="panel-kicker">TRACE EVIDENCE DETAIL</span>
             <h2>当前步骤：{{ selectedStep.label }}</h2>
           </div>
-          <span :class="['pipeline-status', selectedStep.status]">{{ selectedStep.status }}</span>
+          <span :class="['pipeline-status', stepClass(selectedStep.status)]">{{ selectedStep.status }}</span>
         </header>
 
         <div class="trace-detail-layout">
           <section class="trace-detail-block jd-snippet">
-            <h3>引用 JD 片段</h3>
+            <h3>引用 JD / Sandbox 输入</h3>
             <blockquote>{{ traceRun.evidenceDetail.jdSnippet }}</blockquote>
             <p>{{ selectedStep.inputSummary }} -> {{ selectedStep.outputSummary }}</p>
           </section>
 
           <section class="trace-detail-block resume-evidence">
-            <h3>引用简历证据</h3>
+            <h3>引用证据</h3>
             <article v-for="item in traceRun.evidenceDetail.resumeEvidence" :key="item.id">
               <strong>{{ item.id }} · {{ item.title }}</strong>
               <p>{{ item.excerpt }}</p>
@@ -278,7 +426,7 @@ function stepClass(status: ProviderTraceStepStatus) {
 
     <footer class="tag-footer">
       <span v-for="tag in traceRun.technicalTags" :key="tag">{{ tag }}</span>
-      <p>所有 Provider 与 Trace 数据均为 mock/local-rule；API Key 不展示、不保存、不发送。</p>
+      <p>当前未发起真实外部模型调用；未配置 Provider 时必须 fallback；模型失败不伪装成功；所有输出仍需 Human Review。</p>
     </footer>
   </main>
 </template>

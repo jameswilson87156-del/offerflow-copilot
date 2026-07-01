@@ -2,9 +2,16 @@ package com.offerflow.copilot.api;
 
 import com.offerflow.copilot.domain.ProviderStatus;
 import com.offerflow.copilot.domain.ProviderTraceCenter;
+import com.offerflow.copilot.provider.ProviderConfigCheck;
+import com.offerflow.copilot.provider.ProviderExecutionService;
+import com.offerflow.copilot.provider.ProviderResponse;
+import com.offerflow.copilot.provider.ProviderRouter;
+import com.offerflow.copilot.provider.ProviderSandboxRunRequest;
 import com.offerflow.copilot.service.ProviderTraceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,14 +20,29 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProviderController {
 
     private final ProviderTraceService providerTraceService;
+    private final ProviderRouter providerRouter;
+    private final ProviderExecutionService providerExecutionService;
 
-    public ProviderController(ProviderTraceService providerTraceService) {
+    public ProviderController(
+            ProviderTraceService providerTraceService,
+            ProviderRouter providerRouter,
+            ProviderExecutionService providerExecutionService) {
         this.providerTraceService = providerTraceService;
+        this.providerRouter = providerRouter;
+        this.providerExecutionService = providerExecutionService;
     }
 
     @GetMapping("/status")
     public ProviderStatus status() {
-        return ProviderStatus.localRule();
+        ProviderConfigCheck check = providerRouter.configCheck();
+        return new ProviderStatus(
+                check.providerMode(),
+                check.openAiCompatibleConfigured(),
+                check.deepSeekConfigured(),
+                check.realCallEnabled(),
+                check.rawResponseSave(),
+                "local-rule",
+                check.boundaryNotice());
     }
 
     @GetMapping("/settings")
@@ -36,5 +58,15 @@ public class ProviderController {
     @GetMapping("/traces/{runId}")
     public ProviderTraceCenter.TraceRun trace(@PathVariable String runId) {
         return providerTraceService.trace(runId);
+    }
+
+    @GetMapping("/config-check")
+    public ProviderConfigCheck configCheck() {
+        return providerRouter.configCheck();
+    }
+
+    @PostMapping("/sandbox-run")
+    public ProviderResponse sandboxRun(@RequestBody ProviderSandboxRunRequest request) {
+        return providerExecutionService.sandboxRun(request);
     }
 }

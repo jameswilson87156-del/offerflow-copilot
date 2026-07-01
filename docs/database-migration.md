@@ -33,6 +33,8 @@ V1 包含现有 15 张业务表，字段、主键类型和 API 数据结构保�
 
 本地 MySQL smoke 可按 [local-mysql.md](local-mysql.md) 执行。P4A 已验证 V1 在 MySQL 8 上创建 15 张业务表，连续两次启动时 migration 不重复、seed 计数不增加。
 
+P4B 没有修改 schema。Provider SPI sandbox 复用 V1 中已有的 `provider_trace_run` 和 `trace_step` 表写入 fallback 与 Trace Evidence；因此本轮不需要新增 `V2` migration，也不要求普通 `mvn test` 依赖 Docker MySQL。
+
 ## 边界
 
 Migration 能力不等于生产数据库治理。当前没有生产级备份恢复、最小权限、密钥轮换、数据保留/删除、可观测性或高可用方案。所有 seed 都是脱敏 demo 数据，业务计算仍是 deterministic `local-rule`。

@@ -3,7 +3,9 @@ export interface ProviderStatus {
   openaiCompatibleReady: boolean
   deepSeekReady: boolean
   realCallEnabled: boolean
+  rawResponseSave: boolean
   fallback: string
+  boundaryNotice: string
 }
 
 export interface Requirement {
@@ -373,21 +375,21 @@ export interface HumanReviewCenterData {
   compliancePrinciples: string[]
 }
 
-export type ProviderTraceStepStatus = 'success' | 'fallback' | 'warning'
+export type ProviderTraceStepStatus = 'success' | 'fallback' | 'warning' | 'SUCCESS' | 'FALLBACK' | 'WARNING' | 'BLOCKED' | 'ERROR'
 
 export interface ProviderCard {
-  id: string
-  name: string
-  status: string
-  baseUrlStatus: string
+  providerMode: string
+  displayName: string
+  baseUrlConfigured: boolean
+  configured: boolean
+  apiKeyStatus: string
   model: string
-  timeout: string
-  lastRun: string
+  timeoutMs: number
+  active: boolean
+  realCallEnabled: boolean
+  rawResponseSave: boolean
   fallbackPolicy: string
   boundaryNotice: string
-  realCallEnabled: boolean
-  rawResponseSave: string
-  apiKeyStatus: string
 }
 
 export interface SafetyBoundary {
@@ -401,6 +403,46 @@ export interface ProviderSettingsData {
   currentStatus: string
   providers: ProviderCard[]
   safetyBoundaries: SafetyBoundary[]
+}
+
+export interface ProviderConfigCheck {
+  providerMode: string
+  localRuleAvailable: boolean
+  openAiCompatibleConfigured: boolean
+  deepSeekConfigured: boolean
+  realCallEnabled: boolean
+  rawResponseSave: boolean
+  apiKeyStatus: Record<string, string>
+  warnings: string[]
+  boundaryNotice: string
+}
+
+export interface ProviderSandboxRunPayload {
+  taskType: string
+  inputText: string
+  providerMode: string
+  simulateFailure: boolean
+  simulateTimeout: boolean
+  actor: string
+  actorRole: string
+}
+
+export interface ProviderResponse {
+  success: boolean
+  providerMode: string
+  finalProvider: string
+  model: string
+  outputText: string
+  structuredJson: string
+  fallbackUsed: boolean
+  fallbackReason: string
+  errorCode: string
+  errorMessage: string
+  durationMs: number
+  traceId: string
+  riskFlags: string[]
+  rawResponseSaved: boolean
+  humanReviewRequired: boolean
 }
 
 export interface ProviderTraceSummary {

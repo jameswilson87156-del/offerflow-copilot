@@ -1,6 +1,6 @@
 # 架构说明
 
-## P4A 结构
+## P4B 结构
 
 ```text
 Vue 3 Workbench
@@ -14,6 +14,7 @@ Spring Boot 3
   |-- Flyway（应用数据访问前验证并迁移 schema）
   |-- Controllers（保持前端响应结构兼容）
   |-- Services（组合 local-rule 语义、数据库读取和状态流转）
+  |-- Provider SPI（local-rule/no-op adapters、router、sandbox execution）
   |-- Repositories（MyBatis-Plus BaseMapper 封装）
   |-- JsonCodec（TEXT JSON 字段统一编解码）
   |-- PersistenceSeedService（空库 seed 脱敏 demo）
@@ -36,6 +37,23 @@ H2 demo/test 或本地 MySQL 8 persistence
   |-- provider_trace_run
   |-- trace_step
 ```
+
+## Provider SPI 与 Sandbox 链路
+
+P4B 新增 `com.offerflow.copilot.provider` 包，为后续 OpenAI-compatible、DeepSeek 或中转站接入预留稳定边界，但当前不发起真实外部请求。
+
+核心结构：
+
+1. `AiProviderClient`：统一 `analyze`、`health`、`descriptor`。
+2. `LocalRuleProviderClient`：默认 deterministic provider，不访问网络。
+3. `NoOpOpenAiCompatibleProviderClient`：读取配置并返回 fallback-required，不访问网络。
+4. `NoOpDeepSeekProviderClient`：读取配置并返回 fallback-required，不访问网络。
+5. `ProviderRouter`：根据 provider mode、配置状态、simulate failure/timeout 决定是否 fallback 到 local-rule。
+6. `ProviderExecutionService`：创建 runId/traceId，执行 sandbox run，写入 `provider_trace_run` 与 `trace_step`。
+
+配置默认值为 `offerflow.ai.provider.mode=local-rule`、`real-call-enabled=false`、`raw-response-save=false`。API Key 只通过环境变量占位读取，接口和页面只返回 `masked` / `not configured` / `disabled`，不会返回明文。
+
+`POST /api/provider/sandbox-run` 每次至少写入 8 个 Trace Evidence 步骤：Provider Config Check、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Schema Validate、Risk Guard、Human Review Required。外部 provider 未配置、模拟失败或模拟超时时，`ProviderResponse` 会标记 `fallbackUsed=true`、`finalProvider=local-rule` 并记录 fallback reason。所有输出仍是 Draft，需要 Human Review。
 
 ## JD Intake 审计链路
 
@@ -105,7 +123,7 @@ P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 
 - MySQL 8 profile 与 Docker Compose 仅用于本地开发/演示；不代表生产部署、备份、权限或密钥管理已经完成。
 - 响应层继续使用 Java record，数据库 entity 与 API DTO 分离，便于后续审计、权限和状态机扩展。
 - JSON 字段暂存为 `TEXT`，由 `JsonCodec` 管理；审计事件先用结构化列保存关键字段，便于后续查询。
-- Provider 设置和 Dashboard 暂时仍为组合 service；核心 JD Intake、证据、复核、Trace、报告版本、面试准备和投递跟踪已优先读库。
+- Provider 设置已接入 Provider SPI 与 sandbox execution；Dashboard 仍为组合 service。核心 JD Intake、证据、复核、Trace、报告版本、面试准备和投递跟踪已优先读库。
 
 ## 边界
 

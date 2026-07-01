@@ -44,21 +44,24 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.openaiCompatibleReady").value(false))
                 .andExpect(jsonPath("$.deepSeekReady").value(false))
                 .andExpect(jsonPath("$.realCallEnabled").value(false))
-                .andExpect(jsonPath("$.fallback").value("local-rule"));
+                .andExpect(jsonPath("$.rawResponseSave").value(false))
+                .andExpect(jsonPath("$.fallback").value("local-rule"))
+                .andExpect(jsonPath("$.boundaryNotice").exists());
     }
 
     @Test
     void providerSettingsExposeFallbackBoundaryWithoutKeys() throws Exception {
         mockMvc.perform(get("/api/provider/settings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
-                .andExpect(jsonPath("$.currentStatus").value("local-rule fallback active"))
+                .andExpect(jsonPath("$.mode").value("local-rule"))
+                .andExpect(jsonPath("$.currentStatus").value("local-rule active; external provider adapters are no-op in P4B"))
                 .andExpect(jsonPath("$.providers", hasSize(3)))
-                .andExpect(jsonPath("$.providers[0].name").value("local-rule fallback"))
+                .andExpect(jsonPath("$.providers[0].displayName").value("local-rule"))
+                .andExpect(jsonPath("$.providers[0].configured").value(true))
                 .andExpect(jsonPath("$.providers[0].realCallEnabled").value(false))
-                .andExpect(jsonPath("$.providers[1].status").value("Not configured"))
-                .andExpect(jsonPath("$.providers[1].apiKeyStatus").value("masked / not configured"))
-                .andExpect(jsonPath("$.providers[2].status").value("Not configured"))
+                .andExpect(jsonPath("$.providers[1].configured").value(false))
+                .andExpect(jsonPath("$.providers[1].apiKeyStatus").value("not configured"))
+                .andExpect(jsonPath("$.providers[2].configured").value(false))
                 .andExpect(jsonPath("$.providers[2].realCallEnabled").value(false))
                 .andExpect(jsonPath("$.safetyBoundaries", hasSize(5)));
     }
@@ -67,7 +70,7 @@ class OfferFlowApiTest {
     void providerTracesReturnMockRunIndex() throws Exception {
         mockMvc.perform(get("/api/provider/traces"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.mode").value("local-rule"))
                 .andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].runId").value("JD-20260701-143522-9E4D"))
                 .andExpect(jsonPath("$.items[0].finalProvider").value("local-rule fallback"))

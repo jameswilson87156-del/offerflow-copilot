@@ -6,7 +6,7 @@ P4A 使用 Flyway 统一管理 H2 与 MySQL schema。默认 demo 和 test profil
 
 原 `src/main/resources/schema.sql` 保留为历史 fallback 参考，但 `spring.sql.init.mode=never`，默认、test 和 mysql profile 都不会再自动执行它，避免与 Flyway 重复建表。
 
-当前数据仍然是 `mock/local-rule` 演示数据，不是真实招聘数据，也不代表真实 Provider 能力。
+当前数据仍然是 `local-rule` / no-op 演示数据，不是真实招聘数据，也不代表真实 Provider 能力。
 
 ## 数据表
 
@@ -56,6 +56,10 @@ P4A 使用 Flyway 统一管理 H2 与 MySQL schema。默认 demo 和 test profil
 - `POST /api/reviews/{id}/flag-risk`
 - `GET /api/provider/traces`
 - `GET /api/provider/traces/{runId}`
+- `GET /api/provider/status`
+- `GET /api/provider/settings`
+- `GET /api/provider/config-check`
+- `POST /api/provider/sandbox-run`
 - `GET /api/match-report/demo`
 - `POST /api/jobs/{id}/match-reports/generate`
 - `GET /api/jobs/{id}/match-reports`
@@ -217,6 +221,30 @@ P3F 新增或扩展的 `match_report_audit_event.action` 包括：
 - `created_at`
 
 当前 actor 默认是 `demo-reviewer`，用于演示状态流转历史，不是生产鉴权主体。
+
+## Provider Trace 字段
+
+P4B 的 `ProviderExecutionService` 会在每次 sandbox run 中写入 `provider_trace_run`：
+
+- `run_id`
+- `provider_mode`
+- `final_provider`
+- `model`
+- `fallback_reason`
+- `prompt_version`
+- `schema_version`
+- `risk_flags_json`
+- `evidence_count`
+- `human_review_status`
+- `duration_ms`
+- `trace_hash`
+- `evidence_detail_json`
+- `technical_tags_json`
+- `created_at`
+
+同一 run 会写入 8 条 `trace_step`，步骤包括 Provider Config Check、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Schema Validate、Risk Guard 和 Human Review Required。状态可为 `SUCCESS`、`FALLBACK`、`WARNING`、`BLOCKED` 或 `ERROR`；seed demo 中仍保留历史 lowercase status 以兼容旧截图数据。
+
+当前 Provider Trace 不是生产审计系统，也不是模型网关调用日志。OpenAI-compatible 和 DeepSeek adapter 只记录 no-op / fallback，不保存原始模型响应，`rawResponseSaved` 固定为 false。
 
 ## MySQL Profile
 

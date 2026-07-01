@@ -1,50 +1,50 @@
-import type { ProviderSettingsData, ProviderTraceIndex, ProviderTraceRun } from '../types'
+import type { ProviderConfigCheck, ProviderSettingsData, ProviderTraceIndex, ProviderTraceRun } from '../types'
 
 export const providerSettingsFallback: ProviderSettingsData = {
-  mode: 'mock/local-rule',
-  currentStatus: 'local-rule fallback active',
+  mode: 'local-rule',
+  currentStatus: 'local-rule active; external provider adapters are no-op in P4B',
   providers: [
     {
-      id: 'local-rule',
-      name: 'local-rule fallback',
-      status: 'Active',
-      baseUrlStatus: '本地规则引擎',
-      model: 'local-rule-engine v2.1',
-      timeout: '无网络超时',
-      lastRun: '2026-07-01 14:35:22',
-      fallbackPolicy: 'primary fallback',
-      boundaryNotice: '仅本地规则，不访问外部服务',
-      realCallEnabled: false,
-      rawResponseSave: 'disabled',
+      providerMode: 'local-rule',
+      displayName: 'local-rule',
+      baseUrlConfigured: true,
+      configured: true,
       apiKeyStatus: 'disabled',
+      model: 'local-rule-engine v2.1',
+      timeoutMs: 8000,
+      active: true,
+      realCallEnabled: false,
+      rawResponseSave: false,
+      fallbackPolicy: 'primary local fallback',
+      boundaryNotice: 'Default deterministic provider; no external network calls.',
     },
     {
-      id: 'openai-compatible',
-      name: 'OpenAI-compatible',
-      status: 'Not configured',
-      baseUrlStatus: 'not configured',
-      model: 'not selected',
-      timeout: '30s',
-      lastRun: '未真实调用',
-      fallbackPolicy: 'fallback to local-rule',
-      boundaryNotice: '配置占位，本轮不发起真实请求',
+      providerMode: 'openai-compatible',
+      displayName: 'OpenAI-compatible',
+      baseUrlConfigured: false,
+      configured: false,
+      apiKeyStatus: 'not configured',
+      model: 'gpt-compatible-demo',
+      timeoutMs: 8000,
+      active: false,
       realCallEnabled: false,
-      rawResponseSave: 'disabled',
-      apiKeyStatus: 'masked / not configured',
+      rawResponseSave: false,
+      fallbackPolicy: 'fallback to local-rule when disabled, unconfigured, failed, or timed out',
+      boundaryNotice: 'Adapter structure exists, but P4B does not perform real OpenAI-compatible calls.',
     },
     {
-      id: 'deepseek',
-      name: 'DeepSeek',
-      status: 'Not configured',
-      baseUrlStatus: 'not configured',
-      model: 'disabled',
-      timeout: '30s',
-      lastRun: '未真实调用',
-      fallbackPolicy: 'fallback to local-rule',
-      boundaryNotice: 'DeepSeek 禁用，本轮不发起真实请求',
+      providerMode: 'deepseek',
+      displayName: 'DeepSeek',
+      baseUrlConfigured: false,
+      configured: false,
+      apiKeyStatus: 'not configured',
+      model: 'deepseek-chat',
+      timeoutMs: 8000,
+      active: false,
       realCallEnabled: false,
-      rawResponseSave: 'disabled',
-      apiKeyStatus: 'masked / not configured',
+      rawResponseSave: false,
+      fallbackPolicy: 'fallback to local-rule when disabled, unconfigured, failed, or timed out',
+      boundaryNotice: 'Adapter structure exists, but P4B does not perform real DeepSeek calls.',
     },
   ],
   safetyBoundaries: [
@@ -57,8 +57,8 @@ export const providerSettingsFallback: ProviderSettingsData = {
 }
 
 export const providerTraceIndexFallback: ProviderTraceIndex = {
-  mode: 'mock/local-rule',
-  currentStatus: 'local-rule fallback active',
+  mode: 'local-rule',
+  currentStatus: 'local-rule active; external provider adapters are no-op in P4B',
   items: [
     {
       runId: 'JD-20260701-143522-9E4D',
@@ -72,6 +72,24 @@ export const providerTraceIndexFallback: ProviderTraceIndex = {
       humanReviewStatus: '待人工确认',
     },
   ],
+}
+
+export const providerConfigCheckFallback: ProviderConfigCheck = {
+  providerMode: 'local-rule',
+  localRuleAvailable: true,
+  openAiCompatibleConfigured: false,
+  deepSeekConfigured: false,
+  realCallEnabled: false,
+  rawResponseSave: false,
+  apiKeyStatus: {
+    'openai-compatible': 'not configured',
+    deepseek: 'not configured',
+  },
+  warnings: [
+    'OpenAI-compatible is not configured; sandbox runs fallback to local-rule.',
+    'DeepSeek is not configured; sandbox runs fallback to local-rule.',
+  ],
+  boundaryNotice: 'P4B sandbox uses local-rule/no-op providers only; no real external model calls are made.',
 }
 
 export const providerTraceRunFallback: ProviderTraceRun = {

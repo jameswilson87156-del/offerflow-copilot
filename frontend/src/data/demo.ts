@@ -5,7 +5,9 @@ export const providerFallback: ProviderStatus = {
   openaiCompatibleReady: false,
   deepSeekReady: false,
   realCallEnabled: false,
+  rawResponseSave: false,
   fallback: 'local-rule',
+  boundaryNotice: 'P4B uses local-rule/no-op providers only; no real external model calls are made.',
 }
 
 export const demoFallback: DemoAnalysis = {

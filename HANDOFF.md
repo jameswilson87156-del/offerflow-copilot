@@ -2,13 +2,13 @@
 
 ## 当前交付
 
-P4A 已完成 Flyway Migration + MySQL/H2 Compatibility + Docker Compose。P3G 的页面、接口、审计和只读状态保持不变；本轮只收口数据库 migration、本地 MySQL 启动与兼容验证。
+P4B 已完成 Provider SPI & Sandbox Resilience。P4A 的 Flyway Migration、H2/MySQL 兼容和 Docker Compose 说明保持有效；本轮新增 Provider 抽象、配置校验、no-op adapter、sandbox run、fallback trace 写入和 `/provider-settings` 页面升级。
 
 Match Report、Human Review、Evidence Library 的审计事件均可卡内展开，展示 action、状态变化、actor/role、human note、trace、changed fields 和时间。copy-check 的 `allowed`、reason、version status、Human Review status 和 Boundary Notice 会随 `COPY_ENABLED` / `COPY_BLOCKED` 保存在 `match_report_audit_event`。
 
 只有 `CONFIRMED` 后才允许复制确认版摘要；`ARCHIVED` 是只读归档状态，不能送审。Evidence Archived 仅保留 restore，结束态 Human Review 禁用动作并展示原因；Returned / Risk Flagged / Archived 统一使用只读视觉提示。
 
-所有 15 张业务表由 `db/migration/V1__init_offerflow_schema.sql` 建立。默认/test 使用 H2，`mysql` profile 可连接本地 MySQL 8；Flyway 完成后才运行 count-guarded demo seed。核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
+所有 15 张业务表由 `db/migration/V1__init_offerflow_schema.sql` 建立。默认/test 使用 H2，`mysql` profile 可连接本地 MySQL 8；Flyway 完成后才运行 count-guarded demo seed。核心数据仍是脱敏 seed demo data。Provider 默认仍是 `local-rule`，OpenAI-compatible 与 DeepSeek 目前只是 no-op adapter 结构。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
 
 ## 启动顺序
 
@@ -22,6 +22,11 @@ Match Report、Human Review、Evidence Library 的审计事件均可卡内展开
 
 - Java package 固定为 `com.offerflow.copilot`。
 - 数据库 JSON 字段先用 `TEXT` 保存字符串，通过 `JsonCodec` 统一序列化/反序列化。
+- Provider SPI 位于 `com.offerflow.copilot.provider`，核心类型包括 `AiProviderClient`、`ProviderRequest`、`ProviderResponse`、`ProviderDescriptor`、`ProviderHealth`、`ProviderRouter` 和 `ProviderExecutionService`。
+- `AiProviderProperties` 默认 `mode=local-rule`、`realCallEnabled=false`、`rawResponseSave=false`、`timeoutMs=8000`。API Key 通过环境变量占位读取，不写入仓库配置，不在响应中明文展示。
+- OpenAI-compatible 与 DeepSeek adapter 是 `NoOpOpenAiCompatibleProviderClient` / `NoOpDeepSeekProviderClient`。即使配置存在，P4B 仍不发起真实网络请求。
+- 新增 `GET /api/provider/config-check` 与 `POST /api/provider/sandbox-run`。Sandbox run 支持 `simulateFailure`、`simulateTimeout`，外部 provider 未配置或失败时必须 fallback 到 `local-rule`。
+- 每次 sandbox run 都写入 `provider_trace_run` 和 8 条 `trace_step`：Provider Config Check、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Schema Validate、Risk Guard、Human Review Required。
 - 新增 JD Intake 表为 `jd_parse_version`、`jd_evidence_binding` 和 `jd_audit_event`，由 `JobIntakeService` 在 JD 创建、更新、解析和绑定证据时写入。
 - `GET /api/jobs/{id}` 已包含当前 parse version、版本历史、evidence bindings 和 audit trail；也可通过 `GET /api/jobs/{id}/parse-versions`、`GET /api/jobs/{id}/evidence-bindings`、`GET /api/jobs/{id}/audit-events` 单独读取。
 - JD 写接口支持 `actor`、`actorRole`、`humanNote`；当前 actor 是 demo user，不是生产鉴权。
@@ -47,14 +52,14 @@ Match Report、Human Review、Evidence Library 的审计事件均可卡内展开
 - Flyway 是 schema 唯一自动初始化入口；默认、test、mysql profile 均设置 `spring.sql.init.mode=never`。
 - `schema.sql` 仅保留为历史 fallback 参考，不自动执行，避免与 Flyway 重复建表。
 - H2 是默认 demo/test persistence；`mysql` profile 与 `docker-compose.yml` 仅用于本地开发/演示，不是生产部署声明。
-- Provider 状态必须如实展示，不能把 fallback 描述为真实 LLM。
+- Provider 状态必须如实展示，不能把 fallback 描述为真实 LLM。页面、日志和接口只能展示 API Key `masked` / `not configured` / `disabled`。
 - 不保存 API Key 明文，不保存真实隐私，不接招聘平台 API，不爬虫。
 
 ## 验收范围
 
 - 后端覆盖 COPY_ENABLED / COPY_BLOCKED 结构化详情、Archived send-to-review block、Archived copy block、restore to Draft 和审计详情字段。
 - 前端覆盖 Match Report、Human Review、Evidence Library 的 1366x768、1440x900、1920x1080 截图与横向溢出检查。
-- `mvn test`：56 tests，0 failures / errors；包含 Flyway history 与关键表存在性检查。
+- `mvn test`：72 tests，0 failures / errors；包含 Flyway history、关键表存在性、Provider SPI 默认值、fallback、trace 写入和 key masking 检查。
 - `npm run build`：Vue TypeScript 与 Vite production build 通过。
 - `npm run screenshots`：18 tests 通过。
 - MySQL smoke：MySQL 8 上 V1 migration 成功，15 张业务表存在；连续两次后端启动的 seed 计数稳定。

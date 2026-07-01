@@ -9,6 +9,8 @@ import com.offerflow.copilot.persistence.entity.ProviderTraceRunEntity;
 import com.offerflow.copilot.persistence.entity.TraceStepEntity;
 import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
 import com.offerflow.copilot.persistence.repository.TraceStepRepository;
+import com.offerflow.copilot.provider.AiProviderProperties;
+import com.offerflow.copilot.provider.ProviderRouter;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -17,18 +19,22 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 @Service
 public class ProviderTraceService {
 
-    private static final String MODE = "mock/local-rule";
-    private static final String CURRENT_STATUS = "local-rule fallback active";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    private final AiProviderProperties properties;
+    private final ProviderRouter providerRouter;
     private final ProviderTraceRunRepository providerTraceRunRepository;
     private final TraceStepRepository traceStepRepository;
     private final JsonCodec jsonCodec;
 
     public ProviderTraceService(
+            AiProviderProperties properties,
+            ProviderRouter providerRouter,
             ProviderTraceRunRepository providerTraceRunRepository,
             TraceStepRepository traceStepRepository,
             JsonCodec jsonCodec) {
+        this.properties = properties;
+        this.providerRouter = providerRouter;
         this.providerTraceRunRepository = providerTraceRunRepository;
         this.traceStepRepository = traceStepRepository;
         this.jsonCodec = jsonCodec;
@@ -36,48 +42,9 @@ public class ProviderTraceService {
 
     public ProviderTraceCenter.ProviderSettings settings() {
         return new ProviderTraceCenter.ProviderSettings(
-                MODE,
-                CURRENT_STATUS,
-                List.of(
-                        provider(
-                                "local-rule",
-                                "local-rule fallback",
-                                "Active",
-                                "本地规则引擎",
-                                "local-rule-engine v2.1",
-                                "无网络超时",
-                                "2026-07-01 14:35:22",
-                                "primary fallback",
-                                "仅本地规则，不访问外部服务",
-                                false,
-                                "disabled",
-                                "disabled"),
-                        provider(
-                                "openai-compatible",
-                                "OpenAI-compatible",
-                                "Not configured",
-                                "not configured",
-                                "not selected",
-                                "30s",
-                                "未真实调用",
-                                "fallback to local-rule",
-                                "配置占位，本轮不发起真实请求",
-                                false,
-                                "disabled",
-                                "masked / not configured"),
-                        provider(
-                                "deepseek",
-                                "DeepSeek",
-                                "Not configured",
-                                "not configured",
-                                "disabled",
-                                "30s",
-                                "未真实调用",
-                                "fallback to local-rule",
-                                "DeepSeek 禁用，本轮不发起真实请求",
-                                false,
-                                "disabled",
-                                "masked / not configured")),
+                properties.providerMode(),
+                currentStatus(),
+                providerRouter.descriptors(),
                 List.of(
                         boundary("不保存 API Key 明文", "API Key 仅显示 masked / not configured / disabled，本轮不落库。", "safe"),
                         boundary("不保存真实隐私", "输入输出使用匿名化演示数据，不保存 PII 原文。", "safe"),
@@ -88,8 +55,8 @@ public class ProviderTraceService {
 
     public ProviderTraceCenter.TraceIndex traces() {
         return new ProviderTraceCenter.TraceIndex(
-                MODE,
-                CURRENT_STATUS,
+                properties.providerMode(),
+                currentStatus(),
                 providerTraceRunRepository.findAll().stream()
                         .map(this::summary)
                         .toList());
@@ -123,7 +90,7 @@ public class ProviderTraceService {
                 run.getJobTitle(),
                 run.getProviderMode(),
                 run.getFinalProvider(),
-                "warning",
+                run.getFallbackReason() == null || run.getFallbackReason().isBlank() ? "success" : "warning",
                 run.getCreatedAt().format(FORMATTER),
                 duration(run.getDurationMs()),
                 run.getEvidenceCount(),
@@ -145,32 +112,8 @@ public class ProviderTraceService {
         return durationMs + "ms";
     }
 
-    private ProviderTraceCenter.ProviderCard provider(
-            String id,
-            String name,
-            String status,
-            String baseUrlStatus,
-            String model,
-            String timeout,
-            String lastRun,
-            String fallbackPolicy,
-            String boundaryNotice,
-            boolean realCallEnabled,
-            String rawResponseSave,
-            String apiKeyStatus) {
-        return new ProviderTraceCenter.ProviderCard(
-                id,
-                name,
-                status,
-                baseUrlStatus,
-                model,
-                timeout,
-                lastRun,
-                fallbackPolicy,
-                boundaryNotice,
-                realCallEnabled,
-                rawResponseSave,
-                apiKeyStatus);
+    private String currentStatus() {
+        return "local-rule active; external provider adapters are no-op in P4B";
     }
 
     private ProviderTraceCenter.SafetyBoundary boundary(String title, String description, String tone) {
