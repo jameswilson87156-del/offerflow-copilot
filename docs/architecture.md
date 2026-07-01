@@ -1,6 +1,6 @@
 # 架构说明
 
-## P3C 结构
+## P3D 结构
 
 ```text
 Vue 3 Workbench
@@ -22,6 +22,9 @@ H2 demo persistence
   |-- resume_evidence
   |-- resume_evidence_audit_event
   |-- job_post
+  |-- jd_parse_version
+  |-- jd_evidence_binding
+  |-- jd_audit_event
   |-- match_report
   |-- interview_prep
   |-- application_record
@@ -30,6 +33,18 @@ H2 demo persistence
   |-- provider_trace_run
   |-- trace_step
 ```
+
+## JD Intake 审计链路
+
+OfferFlow 不从招聘平台抓取 JD，也不接 Boss、牛客、实习僧等平台 API。P3D 中，JD 只来自用户手动粘贴或脱敏 seed demo。`JobIntakeService` 在同一个事务内完成：
+
+1. 创建或更新 `job_post`。
+2. 使用 deterministic local-rule parser 生成 `jd_parse_version`。
+3. 基于当前 parse version 和 `resume_evidence` 做关键词匹配，生成 `jd_evidence_binding`。
+4. 为 CREATE_JD、UPDATE_JD、PARSE_LOCAL_RULE、BIND_EVIDENCE、REBIND_EVIDENCE 写入 `jd_audit_event`。
+5. 组合返回 JD detail，包含当前解析版本、版本历史、证据绑定和 audit trail。
+
+当前解析不是 LLM 推理，不调用真实 Provider，不保存 API Key。解析文本会做基础脱敏，例如邮箱和手机号会替换为 redacted 标记。
 
 ## Resume Evidence 审计链路
 
@@ -62,7 +77,7 @@ H2 demo persistence
 - MySQL profile 只保留可切换配置，不在本阶段连接真实 MySQL。
 - 响应层继续使用 Java record，数据库 entity 与 API DTO 分离，便于后续审计、权限和状态机扩展。
 - JSON 字段暂存为 `TEXT`，由 `JsonCodec` 管理；审计事件先用结构化列保存关键字段，便于后续查询。
-- Provider 设置、Dashboard、Demo JD 分析暂时仍为组合 service；核心证据、复核、Trace、报告、面试准备和投递跟踪已优先读库。
+- Provider 设置和 Dashboard 暂时仍为组合 service；核心 JD Intake、证据、复核、Trace、报告、面试准备和投递跟踪已优先读库。
 
 ## 边界
 

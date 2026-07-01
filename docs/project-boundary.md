@@ -5,6 +5,7 @@
 - 使用虚构岗位与匿名化项目样例展示证据链工作流。
 - 使用确定性的 `local-rule` 和 H2 seeded demo data 生成演示拆解、匹配报告、面试前准备和投递跟踪。
 - 由用户主动粘贴、确认和修改非敏感内容。
+- JD 只支持用户手动粘贴或脱敏 seed demo；解析和证据绑定使用 deterministic local-rule，并保留版本历史与审计记录。
 - 生成内容默认进入 `Draft`，必须经过人工复核后才可复制使用。
 - 简历证据可以先作为 `Draft` 维护，人工确认后进入 `Confirmed`，每次编辑和状态流转都保留审计历史。
 - 手动记录投递状态与复盘，不自动对外执行动作。
@@ -36,3 +37,9 @@ P3B 已将 Human Review 状态和 audit trail 保存在 H2 demo persistence 中�
 简历证据不是随便写入的宣传素材。证据默认可以是 `Draft`，经过人工确认后才进入 `Confirmed`；当证据需要补充、风险边界不清或不应继续使用时，可以退回 Draft、归档或恢复。每次创建、编辑、确认、退回、归档和恢复都会写入 `resume_evidence_audit_event`。
 
 当前证据库仍使用脱敏 seed demo data，不保存真实手机号、邮箱、身份证、聊天记录等隐私，不虚构真实客户、真实用户、真实流量或生产级数据。
+
+## JD Intake 原则
+
+JD 分析台只接受用户手动粘贴的岗位描述或脱敏 seed demo，不接招聘平台 API，不爬取网页，不抓取 HR 聊天记录。每次 JD 创建、更新、local-rule 解析和证据绑定都会写入 `jd_audit_event`，每次解析都会生成新的 `jd_parse_version`，每次绑定都会生成或刷新 `jd_evidence_binding`。
+
+当前 JD 解析是 local-rule parsing，不是真实 LLM Provider 推理；证据绑定是关键词匹配和脱敏 demo 证据组合，不代表生产级招聘系统能力。

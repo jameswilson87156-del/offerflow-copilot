@@ -62,6 +62,125 @@ export interface DemoAnalysis {
   disclaimer: string
 }
 
+export type JobIntakeStatus = 'Draft' | 'Parsed' | 'Bound' | 'Review Required'
+
+export interface JobSummary {
+  id: string
+  title: string
+  company: string
+  city: string
+  sourceType: string
+  sourceNote: string
+  status: JobIntakeStatus
+  currentVersion: number
+  bindingCount: number
+  updatedAt: string
+}
+
+export interface JobListData {
+  mode: string
+  items: JobSummary[]
+  boundaryNotice: string
+}
+
+export interface JobPostDetail {
+  id: string
+  title: string
+  company: string
+  city: string
+  jdText: string
+  sourceType: string
+  sourceNote: string
+  sanitized: boolean
+  status: JobIntakeStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface JdParseVersion {
+  id: string
+  jobId: string
+  versionNo: number
+  parserMode: string
+  providerMode: string
+  promptVersion: string
+  schemaVersion: string
+  extractedRequirements: RequirementGroup[]
+  keywords: string[]
+  riskTerms: string[]
+  sanitizedText: string
+  parseStatus: string
+  createdAt: string
+}
+
+export interface JdEvidenceBinding {
+  id: string
+  jobId: string
+  parseVersionId: string
+  requirementKey: string
+  requirementLabel: string
+  evidenceId: string
+  evidenceProject: string
+  evidenceStrength: '强' | '中' | '弱' | string
+  bindingReason: string
+  evidenceSource: string
+  reviewStatus: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface JdSnapshot {
+  title: string
+  company: string
+  city: string
+  sourceType: string
+  sourceNote: string
+  status: string
+  currentVersion: number
+  bindingCount: number
+  keywords: string[]
+  riskTerms: string[]
+}
+
+export interface JdAuditEvent {
+  id: string
+  jobId: string
+  action: 'CREATE_JD' | 'UPDATE_JD' | 'PARSE_LOCAL_RULE' | 'CREATE_PARSE_VERSION' | 'BIND_EVIDENCE' | 'REBIND_EVIDENCE' | 'ARCHIVE_JD' | 'RESTORE_JD' | string
+  actionLabel: string
+  previousStatus: string
+  nextStatus: string
+  actor: string
+  actorRole: string
+  changedFields: string[]
+  beforeSnapshot: JdSnapshot
+  afterSnapshot: JdSnapshot
+  humanNote: string
+  createdAt: string
+}
+
+export interface JobDetailData {
+  mode: string
+  job: JobPostDetail
+  currentParseVersion: JdParseVersion | null
+  requirementGroups: RequirementGroup[]
+  evidenceBindings: JdEvidenceBinding[]
+  parseVersions: JdParseVersion[]
+  auditTrail: JdAuditEvent[]
+  boundaryNotice: string
+}
+
+export interface JobMutationPayload {
+  title?: string
+  company?: string
+  city?: string
+  jdText?: string
+  sourceType?: string
+  sourceNote?: string
+  actor?: string
+  actorRole?: string
+  humanNote?: string
+}
+
 export interface EvidenceCategory {
   key: string
   label: string

@@ -2,9 +2,9 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P3C Resume Evidence Editable Workflow
+## 当前阶段：P3D Structured JD Intake
 
-当前版本在 P3A H2/MyBatis-Plus 持久化基础层和 P3B 人工复核审计链路上，新增了简历证据库编辑、确认、退回草稿、归档、恢复和审计历史。核心页面仍然使用 `mock/local-rule` 语义，但数据来源优先读取 H2 seeded demo database。简历证据可以先进入 Draft，人工确认后才进入 Confirmed；每次编辑和状态流转都会写入 audit trail。
+当前版本在 P3A H2/MyBatis-Plus 持久化基础层、P3B 人工复核审计链路和 P3C 简历证据编辑工作流上，新增了结构化 JD Intake。JD 分析台现在支持用户手动粘贴 JD、保存 JD、生成 local-rule 解析版本、绑定简历证据，并记录 JD 审计历史。核心页面仍然使用 `mock/local-rule` 语义，但数据来源优先读取 H2 seeded demo database；每次 JD 创建、更新、解析和证据绑定都会留下可追溯记录。
 
 关键边界：
 
@@ -31,7 +31,16 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | GET | `/api/health` | local-rule 状态 |
 | GET | `/api/provider/status` | 组合 service，静态边界状态 |
 | GET | `/api/dashboard/summary` | 组合 service，演示统计 |
-| GET | `/api/jobs/demo-analysis` | 组合 service，演示 JD 分析 |
+| GET | `/api/jobs/demo-analysis` | H2 job_post + parse version + evidence binding 组合读取 |
+| GET | `/api/jobs` | H2 seeded/manual JD list |
+| GET | `/api/jobs/{id}` | H2 JD detail + parse versions + evidence bindings + audit trail |
+| POST | `/api/jobs` | H2 创建手动粘贴 JD + audit event |
+| PUT | `/api/jobs/{id}` | H2 更新 JD + audit event |
+| POST | `/api/jobs/{id}/parse` | H2 创建 local-rule parse version + audit event |
+| POST | `/api/jobs/{id}/bind-evidence` | H2 创建 JD evidence bindings + audit event |
+| GET | `/api/jobs/{id}/parse-versions` | H2 JD parse version history |
+| GET | `/api/jobs/{id}/audit-events` | H2 JD audit events |
+| GET | `/api/jobs/{id}/evidence-bindings` | H2 JD evidence bindings |
 | GET | `/api/evidence/library` | H2 seeded demo data |
 | GET | `/api/evidence/coverage` | H2 seeded demo data + deterministic local-rule |
 | GET | `/api/evidence/{id}` | H2 seeded demo data + evidence audit trail |
@@ -57,7 +66,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 
 ## 页面路径
 
-- `/jd-analyzer`：JD 证据匹配工作台
+- `/jd-analyzer`：结构化 JD Intake、解析版本、证据绑定与 JD Audit Trail
 - `/evidence-library`：简历证据库、Evidence Coverage Map、编辑工作流与 Audit Trail
 - `/match-report`：匹配报告
 - `/interview-prep`：面试前准备
@@ -77,7 +86,7 @@ npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md) 和 [docs/evidence-audit.md](docs/evidence-audit.md)。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md) 和 [docs/jd-intake.md](docs/jd-intake.md)。
 
 ## 验收
 

@@ -4,15 +4,20 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.offerflow.copilot.domain.ApplicationTracker;
+import com.offerflow.copilot.domain.DemoAnalysis;
 import com.offerflow.copilot.domain.EvidenceLibrary;
 import com.offerflow.copilot.domain.HumanReviewCenter;
 import com.offerflow.copilot.domain.InterviewPrepDemo;
+import com.offerflow.copilot.domain.JobIntake;
 import com.offerflow.copilot.domain.MatchReportDemo;
 import com.offerflow.copilot.domain.ProviderTraceCenter;
 import com.offerflow.copilot.persistence.entity.ApplicationRecordEntity;
 import com.offerflow.copilot.persistence.entity.HumanReviewAuditEventEntity;
 import com.offerflow.copilot.persistence.entity.HumanReviewItemEntity;
 import com.offerflow.copilot.persistence.entity.InterviewPrepEntity;
+import com.offerflow.copilot.persistence.entity.JdAuditEventEntity;
+import com.offerflow.copilot.persistence.entity.JdEvidenceBindingEntity;
+import com.offerflow.copilot.persistence.entity.JdParseVersionEntity;
 import com.offerflow.copilot.persistence.entity.JobPostEntity;
 import com.offerflow.copilot.persistence.entity.MatchReportEntity;
 import com.offerflow.copilot.persistence.entity.ProviderTraceRunEntity;
@@ -23,6 +28,9 @@ import com.offerflow.copilot.persistence.repository.ApplicationRecordRepository;
 import com.offerflow.copilot.persistence.repository.HumanReviewAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.HumanReviewItemRepository;
 import com.offerflow.copilot.persistence.repository.InterviewPrepRepository;
+import com.offerflow.copilot.persistence.repository.JdAuditEventRepository;
+import com.offerflow.copilot.persistence.repository.JdEvidenceBindingRepository;
+import com.offerflow.copilot.persistence.repository.JdParseVersionRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
 import com.offerflow.copilot.persistence.repository.MatchReportRepository;
 import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
@@ -55,6 +63,9 @@ public class PersistenceSeedService implements ApplicationRunner {
     private final HumanReviewItemRepository humanReviewItemRepository;
     private final HumanReviewAuditEventRepository humanReviewAuditEventRepository;
     private final ResumeEvidenceAuditEventRepository resumeEvidenceAuditEventRepository;
+    private final JdParseVersionRepository jdParseVersionRepository;
+    private final JdEvidenceBindingRepository jdEvidenceBindingRepository;
+    private final JdAuditEventRepository jdAuditEventRepository;
     private final ProviderTraceRunRepository providerTraceRunRepository;
     private final TraceStepRepository traceStepRepository;
 
@@ -69,6 +80,9 @@ public class PersistenceSeedService implements ApplicationRunner {
             HumanReviewItemRepository humanReviewItemRepository,
             HumanReviewAuditEventRepository humanReviewAuditEventRepository,
             ResumeEvidenceAuditEventRepository resumeEvidenceAuditEventRepository,
+            JdParseVersionRepository jdParseVersionRepository,
+            JdEvidenceBindingRepository jdEvidenceBindingRepository,
+            JdAuditEventRepository jdAuditEventRepository,
             ProviderTraceRunRepository providerTraceRunRepository,
             TraceStepRepository traceStepRepository) {
         this.seedDemoData = seedDemoData;
@@ -81,6 +95,9 @@ public class PersistenceSeedService implements ApplicationRunner {
         this.humanReviewItemRepository = humanReviewItemRepository;
         this.humanReviewAuditEventRepository = humanReviewAuditEventRepository;
         this.resumeEvidenceAuditEventRepository = resumeEvidenceAuditEventRepository;
+        this.jdParseVersionRepository = jdParseVersionRepository;
+        this.jdEvidenceBindingRepository = jdEvidenceBindingRepository;
+        this.jdAuditEventRepository = jdAuditEventRepository;
         this.providerTraceRunRepository = providerTraceRunRepository;
         this.traceStepRepository = traceStepRepository;
     }
@@ -97,6 +114,9 @@ public class PersistenceSeedService implements ApplicationRunner {
         seedJobPostIfEmpty();
         seedResumeEvidenceIfEmpty();
         seedResumeEvidenceAuditEventsIfEmpty();
+        seedJdParseVersionsIfEmpty();
+        seedJdEvidenceBindingsIfEmpty();
+        seedJdAuditEventsIfEmpty();
         seedMatchReportIfEmpty();
         seedInterviewPrepIfEmpty();
         seedApplicationsIfEmpty();
@@ -115,8 +135,8 @@ public class PersistenceSeedService implements ApplicationRunner {
         job.setCompany("匿名演示公司");
         job.setCity("上海");
         job.setJdText("熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；有 RAG、MCP 等相关实践优先。");
-        job.setSourceType("manual-demo");
-        job.setSourceNote("脱敏 seed demo，不来自真实招聘平台抓取。");
+        job.setSourceType("MANUAL_PASTE");
+        job.setSourceNote("用户手动粘贴的脱敏 seed demo，不来自真实招聘平台抓取。");
         job.setSanitized(true);
         job.setCreatedAt(ts(2026, 7, 1, 10, 0));
         job.setUpdatedAt(ts(2026, 7, 1, 14, 30));
@@ -324,6 +344,155 @@ public class PersistenceSeedService implements ApplicationRunner {
                 portfolioSnapshot,
                 "确认只表达截图、CI 与作品集聚合证据，不声称生产流量。",
                 ts(2026, 6, 28, 18, 0)));
+    }
+
+    private void seedJdParseVersionsIfEmpty() {
+        if (jdParseVersionRepository.count() > 0) {
+            return;
+        }
+        List<DemoAnalysis.RequirementGroup> requirements = List.of(
+                new DemoAnalysis.RequirementGroup("core", "核心要求", "primary", List.of(
+                        new DemoAnalysis.Requirement("req-core-java", "Java / Spring Boot", "熟悉 Java 后端与 Spring Boot API 开发", "核心", List.of("Java", "Spring Boot")),
+                        new DemoAnalysis.Requirement("req-core-data", "MySQL / Redis", "理解数据库、事务、索引或缓存相关基础", "核心", List.of("MySQL", "Redis")))),
+                new DemoAnalysis.RequirementGroup("bonus", "加分要求", "positive", List.of(
+                        new DemoAnalysis.Requirement("req-bonus-ai", "AI 应用与工具链", "涉及 RAG、MCP、Prompt Workflow 或 AI 工具集成", "加分", List.of("AI Workflow", "RAG", "MCP")),
+                        new DemoAnalysis.Requirement("req-bonus-rag-mcp", "RAG / MCP 实践", "关注知识检索、工具网关、引用追踪与证据链", "加分", List.of("RAG", "MCP", "Trace")),
+                        new DemoAnalysis.Requirement("req-bonus-delivery", "工程交付与前端协作", "包含持续集成、部署或交付协作要求", "加分", List.of("CI", "Deployment")))),
+                new DemoAnalysis.RequirementGroup("risk", "风险要求", "warning", List.of(
+                        new DemoAnalysis.Requirement("req-risk-boundary", "经验边界复核", "检查是否要求真实生产经验、真实用户或不可验证指标", "风险", List.of("人工复核", "边界")))));
+        jdParseVersionRepository.save(jdParseVersion(
+                DEMO_JOB_ID + "-parse-v1",
+                DEMO_JOB_ID,
+                1,
+                requirements,
+                List.of("Java", "Spring Boot", "RAG", "MCP", "AI Workflow", "CI", "Deployment"),
+                List.of(),
+                "熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；有 RAG、MCP 等相关实践优先。",
+                "success",
+                ts(2026, 7, 1, 14, 32)));
+    }
+
+    private void seedJdEvidenceBindingsIfEmpty() {
+        if (jdEvidenceBindingRepository.count() > 0) {
+            return;
+        }
+        String parseVersionId = DEMO_JOB_ID + "-parse-v1";
+        jdEvidenceBindingRepository.save(jdBinding(
+                "bind-jd-v1-java-mcp",
+                DEMO_JOB_ID,
+                parseVersionId,
+                "req-core-java",
+                "Java / Spring Boot",
+                "evidence-mcp",
+                "强",
+                "local-rule keyword matching：Spring Boot 要求与 MCP Tool Gateway 的后端网关证据匹配，需要人工复核后使用。",
+                "README",
+                ts(2026, 7, 1, 14, 33)));
+        jdEvidenceBindingRepository.save(jdBinding(
+                "bind-jd-v1-ai-devflow",
+                DEMO_JOB_ID,
+                parseVersionId,
+                "req-bonus-ai",
+                "AI 应用与工具链",
+                "evidence-devflow",
+                "强",
+                "local-rule keyword matching：AI Workflow / Human Review 要求与 DevFlow Copilot 工作流证据匹配。",
+                "截图",
+                ts(2026, 7, 1, 14, 34)));
+        jdEvidenceBindingRepository.save(jdBinding(
+                "bind-jd-v1-rag-ticket",
+                DEMO_JOB_ID,
+                parseVersionId,
+                "req-bonus-rag-mcp",
+                "RAG / MCP 实践",
+                "evidence-rag",
+                "中",
+                "local-rule keyword matching：RAG 要求与 Enterprise Ticket RAG Copilot 的检索、引用和 Trace 证据匹配。",
+                "Trace",
+                ts(2026, 7, 1, 14, 35)));
+        jdEvidenceBindingRepository.save(jdBinding(
+                "bind-jd-v1-delivery-portfolio",
+                DEMO_JOB_ID,
+                parseVersionId,
+                "req-bonus-delivery",
+                "工程交付与前端协作",
+                "evidence-portfolio",
+                "中",
+                "local-rule keyword matching：交付与 CI 要求与 Portfolio Hub 的截图、构建和部署记录匹配。",
+                "GitHub Actions",
+                ts(2026, 7, 1, 14, 35)));
+    }
+
+    private void seedJdAuditEventsIfEmpty() {
+        if (jdAuditEventRepository.count() > 0) {
+            return;
+        }
+        JobIntake.JdSnapshot draft = jdSnapshot(
+                "Java 后端 / AI 应用开发实习生",
+                "匿名演示公司",
+                "上海",
+                "MANUAL_PASTE",
+                "用户手动粘贴的脱敏 seed demo，不来自真实招聘平台抓取。",
+                "Draft",
+                0,
+                0,
+                List.of(),
+                List.of());
+        JobIntake.JdSnapshot parsed = jdSnapshot(
+                "Java 后端 / AI 应用开发实习生",
+                "匿名演示公司",
+                "上海",
+                "MANUAL_PASTE",
+                "用户手动粘贴的脱敏 seed demo，不来自真实招聘平台抓取。",
+                "Parsed",
+                1,
+                0,
+                List.of("Java", "Spring Boot", "RAG", "MCP", "AI Workflow", "CI", "Deployment"),
+                List.of());
+        JobIntake.JdSnapshot bound = jdSnapshot(
+                "Java 后端 / AI 应用开发实习生",
+                "匿名演示公司",
+                "上海",
+                "MANUAL_PASTE",
+                "用户手动粘贴的脱敏 seed demo，不来自真实招聘平台抓取。",
+                "Bound",
+                1,
+                4,
+                List.of("Java", "Spring Boot", "RAG", "MCP", "AI Workflow", "CI", "Deployment"),
+                List.of());
+        jdAuditEventRepository.save(jdAuditEvent(
+                "jd-audit-create-demo",
+                DEMO_JOB_ID,
+                "CREATE_JD",
+                "None",
+                "Draft",
+                List.of("title", "company", "city", "jdText", "sourceType"),
+                jdSnapshot("", "", "", "", "", "None", 0, 0, List.of(), List.of()),
+                draft,
+                "手动粘贴脱敏 demo JD；未接招聘平台 API。",
+                ts(2026, 7, 1, 14, 30)));
+        jdAuditEventRepository.save(jdAuditEvent(
+                "jd-audit-parse-demo",
+                DEMO_JOB_ID,
+                "PARSE_LOCAL_RULE",
+                "Draft",
+                "Parsed",
+                List.of("parseVersion", "keywords"),
+                draft,
+                parsed,
+                "使用 local-rule parser 生成 v1 解析版本。",
+                ts(2026, 7, 1, 14, 32)));
+        jdAuditEventRepository.save(jdAuditEvent(
+                "jd-audit-bind-demo",
+                DEMO_JOB_ID,
+                "BIND_EVIDENCE",
+                "Parsed",
+                "Bound",
+                List.of("evidenceBindings"),
+                parsed,
+                bound,
+                "使用 local-rule keyword matching 绑定 4 条简历证据。",
+                ts(2026, 7, 1, 14, 36)));
     }
 
     private void seedMatchReportIfEmpty() {
@@ -804,6 +973,111 @@ public class PersistenceSeedService implements ApplicationRunner {
         entity.setHumanNote(humanNote);
         entity.setCreatedAt(createdAt);
         return entity;
+    }
+
+    private JdParseVersionEntity jdParseVersion(
+            String id,
+            String jobId,
+            int versionNo,
+            List<DemoAnalysis.RequirementGroup> requirements,
+            List<String> keywords,
+            List<String> riskTerms,
+            String sanitizedText,
+            String parseStatus,
+            LocalDateTime createdAt) {
+        JdParseVersionEntity entity = new JdParseVersionEntity();
+        entity.setId(id);
+        entity.setJobId(jobId);
+        entity.setVersionNo(versionNo);
+        entity.setParserMode("local-rule");
+        entity.setProviderMode("local-rule fallback");
+        entity.setPromptVersion("manual-intake-no-llm");
+        entity.setSchemaVersion("jd-intake-v1");
+        entity.setExtractedRequirementsJson(jsonCodec.write(requirements));
+        entity.setKeywordsJson(jsonCodec.write(keywords));
+        entity.setRiskTermsJson(jsonCodec.write(riskTerms));
+        entity.setSanitizedText(sanitizedText);
+        entity.setParseStatus(parseStatus);
+        entity.setCreatedAt(createdAt);
+        return entity;
+    }
+
+    private JdEvidenceBindingEntity jdBinding(
+            String id,
+            String jobId,
+            String parseVersionId,
+            String requirementKey,
+            String requirementLabel,
+            String evidenceId,
+            String evidenceStrength,
+            String bindingReason,
+            String evidenceSource,
+            LocalDateTime timestamp) {
+        JdEvidenceBindingEntity entity = new JdEvidenceBindingEntity();
+        entity.setId(id);
+        entity.setJobId(jobId);
+        entity.setParseVersionId(parseVersionId);
+        entity.setRequirementKey(requirementKey);
+        entity.setRequirementLabel(requirementLabel);
+        entity.setEvidenceId(evidenceId);
+        entity.setEvidenceStrength(evidenceStrength);
+        entity.setBindingReason(bindingReason);
+        entity.setEvidenceSource(evidenceSource);
+        entity.setReviewStatus("Draft");
+        entity.setCreatedAt(timestamp);
+        entity.setUpdatedAt(timestamp);
+        return entity;
+    }
+
+    private JdAuditEventEntity jdAuditEvent(
+            String id,
+            String jobId,
+            String action,
+            String previousStatus,
+            String nextStatus,
+            List<String> changedFields,
+            JobIntake.JdSnapshot beforeSnapshot,
+            JobIntake.JdSnapshot afterSnapshot,
+            String humanNote,
+            LocalDateTime createdAt) {
+        JdAuditEventEntity entity = new JdAuditEventEntity();
+        entity.setId(id);
+        entity.setJobId(jobId);
+        entity.setAction(action);
+        entity.setPreviousStatus(previousStatus);
+        entity.setNextStatus(nextStatus);
+        entity.setActor("demo-jd-editor");
+        entity.setActorRole("JD reviewer");
+        entity.setChangedFieldsJson(jsonCodec.write(changedFields));
+        entity.setBeforeSnapshotJson(jsonCodec.write(beforeSnapshot));
+        entity.setAfterSnapshotJson(jsonCodec.write(afterSnapshot));
+        entity.setHumanNote(humanNote);
+        entity.setCreatedAt(createdAt);
+        return entity;
+    }
+
+    private JobIntake.JdSnapshot jdSnapshot(
+            String title,
+            String company,
+            String city,
+            String sourceType,
+            String sourceNote,
+            String status,
+            int currentVersion,
+            int bindingCount,
+            List<String> keywords,
+            List<String> riskTerms) {
+        return new JobIntake.JdSnapshot(
+                title,
+                company,
+                city,
+                sourceType,
+                sourceNote,
+                status,
+                currentVersion,
+                bindingCount,
+                keywords,
+                riskTerms);
     }
 
     private EvidenceLibrary.EvidenceSnapshot evidenceSnapshot(

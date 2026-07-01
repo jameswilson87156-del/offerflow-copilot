@@ -46,4 +46,4 @@ Human Review 是 OfferFlow 的核心安全链路。系统中的 AI 或 local-rul
 
 ## 后续扩展方向
 
-P3C 可将同样的审计模式扩展到证据库编辑：新增证据草稿、人工确认、回滚、字段级 diff 和修改历史。生产化前还需要真实鉴权、权限模型、租户隔离和审计日志防篡改策略。
+P3C 已将同样的审计模式扩展到证据库编辑；P3D 已扩展到 JD Intake、parse version 和 evidence binding。后续可以把 Match Report 版本生成也纳入 Human Review，生产化前还需要真实鉴权、权限模型、租户隔离和审计日志防篡改策略。

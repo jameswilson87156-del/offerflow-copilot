@@ -152,6 +152,114 @@ class OfferFlowApiTest {
     }
 
     @Test
+    void jobsListReturnsSeededManualJdIntake() throws Exception {
+        mockMvc.perform(get("/api/jobs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id").value("job-java-ai-intern"))
+                .andExpect(jsonPath("$.items[0].sourceType").value("MANUAL_PASTE"))
+                .andExpect(jsonPath("$.items[0].status").value("Bound"))
+                .andExpect(jsonPath("$.items[0].currentVersion").value(1))
+                .andExpect(jsonPath("$.items[0].bindingCount").value(4));
+    }
+
+    @Test
+    void jobDetailReturnsParseBindingsAndAuditTrail() throws Exception {
+        mockMvc.perform(get("/api/jobs/job-java-ai-intern"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.job.id").value("job-java-ai-intern"))
+                .andExpect(jsonPath("$.job.sourceType").value("MANUAL_PASTE"))
+                .andExpect(jsonPath("$.currentParseVersion.versionNo").value(1))
+                .andExpect(jsonPath("$.requirementGroups", hasSize(3)))
+                .andExpect(jsonPath("$.evidenceBindings", hasSize(4)))
+                .andExpect(jsonPath("$.auditTrail", hasSize(3)));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void createManualJobWritesJdAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/jobs")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Manual Java Intern\",\"company\":\"Demo Company\",\"city\":\"Shanghai\",\"jdText\":\"Java Spring Boot role, contact 13812345678 or hr@example.com\",\"sourceType\":\"MANUAL_PASTE\",\"sourceNote\":\"manual paste only\",\"actor\":\"demo-jd-editor\",\"actorRole\":\"JD reviewer\",\"humanNote\":\"create manual jd\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.job.title").value("Manual Java Intern"))
+                .andExpect(jsonPath("$.job.sourceType").value("MANUAL_PASTE"))
+                .andExpect(jsonPath("$.job.status").value("Draft"))
+                .andExpect(jsonPath("$.job.jdText").value("Java Spring Boot role, contact [redacted-phone] or [redacted-email]"))
+                .andExpect(jsonPath("$.auditTrail", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[0].action").value("CREATE_JD"))
+                .andExpect(jsonPath("$.auditTrail[0].humanNote").value("create manual jd"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void updateManualJobWritesJdAuditEvent() throws Exception {
+        mockMvc.perform(put("/api/jobs/job-java-ai-intern")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Java AI 应用开发实习生 Updated\",\"company\":\"匿名演示公司\",\"city\":\"上海\",\"jdText\":\"Java Spring Boot RAG MCP local rule updated\",\"sourceNote\":\"manual paste updated\",\"actor\":\"demo-jd-editor\",\"actorRole\":\"JD reviewer\",\"humanNote\":\"update manual jd\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.job.title").value("Java AI 应用开发实习生 Updated"))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'UPDATE_JD')]", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'update manual jd')]", hasSize(1)));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void parseManualJobCreatesParseVersion() throws Exception {
+        mockMvc.perform(post("/api/jobs/job-java-ai-intern/parse")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-jd-editor\",\"actorRole\":\"JD reviewer\",\"humanNote\":\"parse local rule\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentParseVersion.versionNo").value(2))
+                .andExpect(jsonPath("$.currentParseVersion.parserMode").value("local-rule"))
+                .andExpect(jsonPath("$.parseVersions", hasSize(2)))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'PARSE_LOCAL_RULE')]", hasSize(2)));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void bindEvidenceCreatesBindingsAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/jobs/job-java-ai-intern/parse")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-jd-editor\",\"actorRole\":\"JD reviewer\",\"humanNote\":\"parse before bind\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/jobs/job-java-ai-intern/bind-evidence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-jd-editor\",\"actorRole\":\"JD reviewer\",\"humanNote\":\"bind local rule\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.job.status").value("Bound"))
+                .andExpect(jsonPath("$.evidenceBindings", hasSize(4)))
+                .andExpect(jsonPath("$.auditTrail[?(@.action == 'BIND_EVIDENCE')]", hasSize(2)));
+    }
+
+    @Test
+    void jobParseVersionsEndpointReturnsHistory() throws Exception {
+        mockMvc.perform(get("/api/jobs/job-java-ai-intern/parse-versions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].versionNo").value(1))
+                .andExpect(jsonPath("$[0].schemaVersion").value("jd-intake-v1"))
+                .andExpect(jsonPath("$[0].parseStatus").value("success"));
+    }
+
+    @Test
+    void jobAuditAndBindingEndpointsReturnHistory() throws Exception {
+        mockMvc.perform(get("/api/jobs/job-java-ai-intern/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$[0].action").value("CREATE_JD"))
+                .andExpect(jsonPath("$[2].action").value("BIND_EVIDENCE"));
+
+        mockMvc.perform(get("/api/jobs/job-java-ai-intern/evidence-bindings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(4)))
+                .andExpect(jsonPath("$[0].evidenceProject").value("MCP Tool Gateway"));
+    }
+
+    @Test
     void evidenceLibraryReturnsReviewableProjectEvidence() throws Exception {
         mockMvc.perform(get("/api/evidence/library"))
                 .andExpect(status().isOk())

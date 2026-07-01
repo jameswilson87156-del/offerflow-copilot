@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-P3C 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
+P3D 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
 
 当前数据仍然是 `mock/local-rule` 演示数据，不是真实招聘数据，也不代表真实 Provider 能力。
 
@@ -11,6 +11,9 @@ P3C 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `resume_evidence`：匿名化项目证据、技能、来源链和边界说明。
 - `resume_evidence_audit_event`：简历证据创建、编辑、确认、退回、归档和恢复的审计事件，记录 changed fields 与 before/after snapshot。
 - `job_post`：手动录入的脱敏岗位描述。
+- `jd_parse_version`：JD local-rule 解析版本，包含 parser/provider mode、schema version、requirements、keywords、risk terms 和 sanitized text。
+- `jd_evidence_binding`：JD requirement 与简历证据的绑定关系，记录 evidence strength、binding reason、source 和 review status。
+- `jd_audit_event`：JD 创建、更新、解析、绑定、归档和恢复的审计事件，记录 changed fields 与 before/after snapshot。
 - `match_report`：匹配报告摘要、评分拆解、证据来源、技能差距和 Trace。
 - `interview_prep`：面试前准备重点、问题分组、STAR 草稿、风险提醒和复盘 Timeline。
 - `application_record`：手动投递记录与沟通 Timeline。
@@ -23,6 +26,16 @@ P3C 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 
 - `GET /api/evidence/library`
 - `GET /api/evidence/coverage`
+- `GET /api/jobs`
+- `GET /api/jobs/{id}`
+- `POST /api/jobs`
+- `PUT /api/jobs/{id}`
+- `POST /api/jobs/{id}/parse`
+- `POST /api/jobs/{id}/bind-evidence`
+- `GET /api/jobs/{id}/parse-versions`
+- `GET /api/jobs/{id}/audit-events`
+- `GET /api/jobs/{id}/evidence-bindings`
+- `GET /api/jobs/demo-analysis`
 - `GET /api/evidence/{id}`
 - `GET /api/evidence/{id}/audit-events`
 - `POST /api/evidence`
@@ -42,6 +55,53 @@ P3C 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `GET /api/match-report/demo`
 - `GET /api/interview-prep/demo`
 - `GET /api/applications`
+
+## JD Intake 字段
+
+`jd_parse_version` 当前保存：
+
+- `job_id`
+- `version_no`
+- `parser_mode`
+- `provider_mode`
+- `prompt_version`
+- `schema_version`
+- `extracted_requirements_json`
+- `keywords_json`
+- `risk_terms_json`
+- `sanitized_text`
+- `parse_status`
+- `created_at`
+
+`jd_evidence_binding` 当前保存：
+
+- `job_id`
+- `parse_version_id`
+- `requirement_key`
+- `requirement_label`
+- `evidence_id`
+- `evidence_strength`
+- `binding_reason`
+- `evidence_source`
+- `review_status`
+- `created_at`
+- `updated_at`
+
+`jd_audit_event` 当前保存：
+
+- `job_id`
+- `action`
+- `previous_status`
+- `next_status`
+- `actor`
+- `actor_role`
+- `changed_fields_json`
+- `before_snapshot_json`
+- `after_snapshot_json`
+- `human_note`
+- `created_at`
+
+当前 actor 默认是 `demo-jd-editor`，用于演示 JD Intake 状态流转，不是生产鉴权主体。
 
 ## 简历证据审计事件字段
 

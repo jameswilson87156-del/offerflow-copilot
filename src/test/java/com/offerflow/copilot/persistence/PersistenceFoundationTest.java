@@ -14,6 +14,9 @@ import com.offerflow.copilot.persistence.repository.ApplicationRecordRepository;
 import com.offerflow.copilot.persistence.repository.HumanReviewAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.HumanReviewItemRepository;
 import com.offerflow.copilot.persistence.repository.InterviewPrepRepository;
+import com.offerflow.copilot.persistence.repository.JdAuditEventRepository;
+import com.offerflow.copilot.persistence.repository.JdEvidenceBindingRepository;
+import com.offerflow.copilot.persistence.repository.JdParseVersionRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
 import com.offerflow.copilot.persistence.repository.MatchReportRepository;
 import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
@@ -61,6 +64,15 @@ class PersistenceFoundationTest {
     private ResumeEvidenceAuditEventRepository resumeEvidenceAuditEventRepository;
 
     @Autowired
+    private JdParseVersionRepository jdParseVersionRepository;
+
+    @Autowired
+    private JdEvidenceBindingRepository jdEvidenceBindingRepository;
+
+    @Autowired
+    private JdAuditEventRepository jdAuditEventRepository;
+
+    @Autowired
     private ProviderTraceRunRepository providerTraceRunRepository;
 
     @Autowired
@@ -79,6 +91,9 @@ class PersistenceFoundationTest {
         assertThat(humanReviewItemRepository.count()).isEqualTo(6);
         assertThat(humanReviewAuditEventRepository.count()).isGreaterThanOrEqualTo(4);
         assertThat(resumeEvidenceAuditEventRepository.count()).isGreaterThanOrEqualTo(4);
+        assertThat(jdParseVersionRepository.count()).isEqualTo(1);
+        assertThat(jdEvidenceBindingRepository.count()).isEqualTo(4);
+        assertThat(jdAuditEventRepository.count()).isEqualTo(3);
         assertThat(providerTraceRunRepository.count()).isEqualTo(1);
         assertThat(traceStepRepository.count()).isEqualTo(10);
     }
@@ -89,6 +104,9 @@ class PersistenceFoundationTest {
         long reviewCount = humanReviewItemRepository.count();
         long auditCount = humanReviewAuditEventRepository.count();
         long evidenceAuditCount = resumeEvidenceAuditEventRepository.count();
+        long jdParseCount = jdParseVersionRepository.count();
+        long jdBindingCount = jdEvidenceBindingRepository.count();
+        long jdAuditCount = jdAuditEventRepository.count();
         long stepCount = traceStepRepository.count();
 
         seedService.seedIfEmpty();
@@ -97,6 +115,9 @@ class PersistenceFoundationTest {
         assertThat(humanReviewItemRepository.count()).isEqualTo(reviewCount);
         assertThat(humanReviewAuditEventRepository.count()).isEqualTo(auditCount);
         assertThat(resumeEvidenceAuditEventRepository.count()).isEqualTo(evidenceAuditCount);
+        assertThat(jdParseVersionRepository.count()).isEqualTo(jdParseCount);
+        assertThat(jdEvidenceBindingRepository.count()).isEqualTo(jdBindingCount);
+        assertThat(jdAuditEventRepository.count()).isEqualTo(jdAuditCount);
         assertThat(traceStepRepository.count()).isEqualTo(stepCount);
     }
 

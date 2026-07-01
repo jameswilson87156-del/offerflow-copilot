@@ -44,6 +44,52 @@ CREATE TABLE IF NOT EXISTS job_post (
     updated_at TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS jd_parse_version (
+    id VARCHAR(80) PRIMARY KEY,
+    job_id VARCHAR(80) NOT NULL,
+    version_no INT NOT NULL,
+    parser_mode VARCHAR(80) NOT NULL,
+    provider_mode VARCHAR(80) NOT NULL,
+    prompt_version VARCHAR(80) NOT NULL,
+    schema_version VARCHAR(80) NOT NULL,
+    extracted_requirements_json TEXT NOT NULL,
+    keywords_json TEXT NOT NULL,
+    risk_terms_json TEXT NOT NULL,
+    sanitized_text TEXT NOT NULL,
+    parse_status VARCHAR(40) NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS jd_evidence_binding (
+    id VARCHAR(100) PRIMARY KEY,
+    job_id VARCHAR(80) NOT NULL,
+    parse_version_id VARCHAR(80) NOT NULL,
+    requirement_key VARCHAR(80) NOT NULL,
+    requirement_label VARCHAR(160) NOT NULL,
+    evidence_id VARCHAR(80) NOT NULL,
+    evidence_strength VARCHAR(40) NOT NULL,
+    binding_reason TEXT NOT NULL,
+    evidence_source VARCHAR(160) NOT NULL,
+    review_status VARCHAR(40) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS jd_audit_event (
+    id VARCHAR(80) PRIMARY KEY,
+    job_id VARCHAR(80) NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    previous_status VARCHAR(40) NOT NULL,
+    next_status VARCHAR(40) NOT NULL,
+    actor VARCHAR(120) NOT NULL,
+    actor_role VARCHAR(80) NOT NULL,
+    changed_fields_json TEXT NOT NULL,
+    before_snapshot_json TEXT NOT NULL,
+    after_snapshot_json TEXT NOT NULL,
+    human_note TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS match_report (
     id VARCHAR(80) PRIMARY KEY,
     job_id VARCHAR(80) NOT NULL,
