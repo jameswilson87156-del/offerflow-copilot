@@ -15,10 +15,16 @@
 - 1366×768：保留核心三栏，内容区域纵向滚动，不产生页面横向溢出。
 - 窄屏：侧栏收为图标轨道，核心区域改为纵向流。
 
+## 实际截图
+
+- `docs/images/offerflow-dashboard.png`：1440×900 视口的完整页面。
+- `docs/images/large/offerflow-dashboard.png`：1920×1080 视口的完整页面。
+
+两张截图均由本地应用真实渲染，不是设计参考图，也未使用参考图作为背景。
+
 ## 交互与状态
 
 - 搜索可过滤要求与证据行。
 - Provider 模式可切换展示，但只有 `local-rule` 标为当前可用演示模式。
 - Human Review 清晰区分 `Draft`、待确认与 `Confirmed`。
 - 支持键盘焦点与 `prefers-reduced-motion`。
-

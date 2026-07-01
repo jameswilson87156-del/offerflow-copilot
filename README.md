@@ -19,6 +19,21 @@ OfferFlow Copilot 是一个真实可运行的 Java + AI 应用作品集工程项
 - 前端：Vue 3、Vite、TypeScript、原生 CSS
 - 截图：Playwright
 
+## 工作台预览
+
+下图由本地 Vue 页面通过 Playwright 真实渲染生成，内容均为 mock/local-rule 演示数据。
+
+![OfferFlow Copilot JD 证据匹配工作台](docs/images/offerflow-dashboard.png)
+
+## P1 接口
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/health` | 工程状态与数据模式 |
+| GET | `/api/provider/status` | Provider 就绪状态与 fallback 边界 |
+| GET | `/api/dashboard/summary` | mock 首页统计 |
+| GET | `/api/jobs/demo-analysis` | 完整 JD 证据链演示数据 |
+
 ## 本地运行
 
 ```bash
@@ -44,4 +59,3 @@ git diff --check
 ```
 
 更多边界与实现说明见 [项目边界](docs/project-boundary.md)、[架构说明](docs/architecture.md) 与 [设计说明](docs/design/README.md)。
-

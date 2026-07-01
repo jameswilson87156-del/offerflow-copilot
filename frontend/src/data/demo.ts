@@ -1,0 +1,87 @@
+import type { DemoAnalysis, ProviderStatus } from '../types'
+
+export const providerFallback: ProviderStatus = {
+  mode: 'local-rule',
+  openaiCompatibleReady: false,
+  deepSeekReady: false,
+  realCallEnabled: false,
+  fallback: 'local-rule',
+}
+
+export const demoFallback: DemoAnalysis = {
+  job: {
+    title: 'Java 后端 / AI 应用开发实习生',
+    company: '示例科技',
+    source: '手动录入的演示 JD',
+    updatedAt: '2026-07-01 14:20',
+  },
+  requirementGroups: [
+    {
+      key: 'core', label: '核心要求', tone: 'primary', items: [
+        { id: 'req-1', title: 'Java / Spring Boot', description: '熟悉 Spring Boot 3，具备 REST API 与微服务基础', level: '核心', keywords: ['Java', 'Spring Boot'] },
+        { id: 'req-2', title: 'MySQL / Redis', description: '理解索引、事务、缓存与常见一致性问题', level: '核心', keywords: ['MySQL', 'Redis'] },
+      ],
+    },
+    {
+      key: 'bonus', label: '加分要求', tone: 'positive', items: [
+        { id: 'req-3', title: 'AI 应用开发', description: '有 RAG、LLM 集成或知识检索实践', level: '加分', keywords: ['RAG', 'LLM'] },
+        { id: 'req-4', title: 'Prompt Workflow', description: '能设计可追踪的 Prompt 流程与工具调用链', level: '加分', keywords: ['Prompt', 'Workflow'] },
+      ],
+    },
+    {
+      key: 'risk', label: '风险要求', tone: 'warning', items: [
+        { id: 'req-5', title: '项目落地经验', description: '希望有从 0 到 1 交付、部署与复盘经历', level: '风险', keywords: ['部署', '交付'] },
+      ],
+    },
+  ],
+  evidenceMatches: [
+    { requirement: 'Spring Boot', requirementDetail: '微服务框架与接口分层', project: 'MCP Tool Gateway', projectSlug: 'mcp-tool-gateway', strength: '强', rationale: 'Spring Boot 工具网关、统一异常处理与接口契约。', evidenceTypes: ['README', '接口设计', 'Trace'] },
+    { requirement: 'AI Workflow', requirementDetail: 'LLM 编排与工具链', project: 'DevFlow Copilot', projectSlug: 'devflow-copilot', strength: '强', rationale: '任务拆解、工具执行和 Human Review 的完整工作流。', evidenceTypes: ['README', '截图', '接口设计', 'Trace'] },
+    { requirement: 'RAG / Knowledge', requirementDetail: '知识检索与问答', project: 'Enterprise Ticket RAG Copilot', projectSlug: 'enterprise-ticket-rag', strength: '中', rationale: '有检索、引用与评估证据，仍需补充离线评测。', evidenceTypes: ['README', '截图', 'Trace', '效果评估'] },
+    { requirement: '部署 / CI / 截图', requirementDetail: '部署与持续集成', project: 'Portfolio Hub', projectSlug: 'portfolio-hub', strength: '中', rationale: '构建流程、GitHub Actions 与真实页面截图。', evidenceTypes: ['部署记录', 'GitHub Actions', '截图'] },
+  ],
+  score: {
+    total: 82,
+    maximum: 100,
+    items: [
+      { key: 'skills', label: '技能命中', value: 36, maximum: 40, description: '岗位关键词覆盖', tone: 'primary' },
+      { key: 'evidence', label: '项目证据', value: 28, maximum: 35, description: '深度与可验证性', tone: 'positive' },
+      { key: 'risk', label: '经验风险', value: -4, maximum: 10, description: '交付经历待核验', tone: 'warning' },
+      { key: 'interview', label: '面试准备', value: 22, maximum: 25, description: '追问与 STAR 草稿', tone: 'info' },
+    ],
+    note: '综合得分用于解释证据覆盖，不代表 Offer 或录取概率。',
+  },
+  interviewPreparation: {
+    followUpQuestions: [
+      'Spring Boot 项目中如何处理幂等、事务与并发问题？',
+      'MCP Tool Gateway 的鉴权、限流和失败回退如何设计？',
+      'RAG 召回与重排策略如何评估和优化？',
+    ],
+    starDraft: {
+      situation: '企业工单知识分散，检索和答复缺少证据引用。',
+      task: '构建可追踪的 RAG Copilot 演示链路，并保留人工复核。',
+      action: '设计检索、引用、Trace 和离线评估结构，补充页面与接口证据。',
+      result: '形成可运行作品集演示；效果数字仍需基于真实评测后填写。',
+    },
+    riskReminders: ['不要夸大模型能力与线上性能。', '不要把演示数据描述为真实客户数据。', '所有陈述需有 README、代码、截图或 Trace 支撑。'],
+  },
+  humanReview: {
+    aiOutputStatus: 'Draft',
+    humanStatus: 'Pending',
+    copyAllowed: false,
+    instruction: 'AI / 规则生成内容必须人工确认事实和措辞后才能复制使用。',
+  },
+  timeline: [
+    { key: 'not-applied', label: '未投递', status: 'current', detail: '材料整理中', timestamp: '—' },
+    { key: 'contacted', label: '已沟通', status: 'upcoming', detail: '等待主动沟通', timestamp: '—' },
+    { key: 'resume-sent', label: '已发送简历', status: 'upcoming', detail: '尚未发送', timestamp: '—' },
+    { key: 'interview', label: '已约面试', status: 'upcoming', detail: '尚未约面', timestamp: '—' },
+    { key: 'following-up', label: '跟进中', status: 'upcoming', detail: '尚未进入', timestamp: '—' },
+  ],
+  recommendedResumes: [
+    { name: 'Java 后端版', focus: '突出 Spring Boot、接口设计与工程交付', recommended: true },
+    { name: 'AI Coding 版', focus: '突出 AI Workflow、RAG 与工具编排', recommended: true },
+  ],
+  technicalTags: ['Spring Boot 3', 'Vue 3', 'TypeScript', 'MySQL', 'Redis', 'RAG', 'MCP', 'GitHub Actions', 'Human Review'],
+  disclaimer: '这是 mock/local-rule 演示结果，不是录取概率或真实招聘结论。所有内容需要人工复核。',
+}
