@@ -9,6 +9,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{ select: [id: string] }>()
 const projectIcons = [Box, BrainCircuit, Layers3, FolderGit2]
+
+const statusLabel = (item: EvidenceItem) => {
+  if (item.status === 'Confirmed') return 'Confirmed'
+  if (item.status === 'Returned') return 'Returned'
+  if (item.status === 'Archived') return 'Archived'
+  return 'Draft'
+}
 </script>
 
 <template>
@@ -19,8 +26,8 @@ const projectIcons = [Box, BrainCircuit, Layers3, FolderGit2]
         <h2 id="gallery-title">项目证据</h2>
       </div>
       <div class="gallery-legend">
-        <span><i class="verified" />人工确认</span>
-        <span><i class="review" />待补强</span>
+        <span><i class="verified" />Confirmed</span>
+        <span><i class="review" />Draft / Returned</span>
       </div>
     </header>
 
@@ -30,19 +37,24 @@ const projectIcons = [Box, BrainCircuit, Layers3, FolderGit2]
         :key="item.id"
         type="button"
         class="library-card"
-        :class="{ selected: props.selectedId === item.id }"
+        :class="{ selected: props.selectedId === item.id, archived: item.status === 'Archived' }"
         :aria-pressed="props.selectedId === item.id"
         @click="emit('select', item.id)"
       >
         <div class="library-card-top">
-          <span class="project-symbol" :class="`project-tone-${index}`">
-            <component :is="projectIcons[index]" :size="19" />
+          <span class="project-symbol" :class="`project-tone-${index % projectIcons.length}`">
+            <component :is="projectIcons[index % projectIcons.length]" :size="19" />
           </span>
           <div class="library-card-title">
             <small>PROJECT 0{{ index + 1 }}</small>
             <strong>{{ item.projectName }}</strong>
           </div>
           <span class="credibility" :class="item.credibility">{{ item.credibility }}支撑</span>
+        </div>
+
+        <div class="evidence-status-row">
+          <span class="evidence-status-chip" :class="item.status.toLowerCase()">{{ statusLabel(item) }}</span>
+          <small>{{ item.auditCount }} audit events</small>
         </div>
 
         <p class="library-summary">{{ item.summary }}</p>
@@ -65,10 +77,10 @@ const projectIcons = [Box, BrainCircuit, Layers3, FolderGit2]
         </dl>
 
         <footer class="library-card-footer">
-          <span :class="item.humanReviewStatus === 'Confirmed' ? 'confirmed' : 'needs-review'">
-            <BadgeCheck v-if="item.humanReviewStatus === 'Confirmed'" :size="13" />
+          <span :class="item.status === 'Confirmed' ? 'confirmed' : 'needs-review'">
+            <BadgeCheck v-if="item.status === 'Confirmed'" :size="13" />
             <ShieldCheck v-else :size="13" />
-            {{ item.humanReviewStatus === 'Confirmed' ? '已人工确认' : '需要人工复核' }}
+            {{ item.status === 'Confirmed' ? '已人工确认' : '需要人工维护' }}
           </span>
           <small>更新 {{ item.updatedAt }}</small>
         </footer>

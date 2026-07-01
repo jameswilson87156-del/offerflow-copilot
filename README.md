@@ -2,9 +2,9 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P3B Human Review Audit Trail
+## 当前阶段：P3C Resume Evidence Editable Workflow
 
-当前版本在 P3A H2/MyBatis-Plus 持久化基础层上，新增了人工复核审计日志与状态流转历史。核心页面仍然使用 `mock/local-rule` 语义，但数据来源优先读取 H2 seeded demo database。所有 AI 或规则生成内容默认是 Draft，必须经过人工确认后才允许复制使用。
+当前版本在 P3A H2/MyBatis-Plus 持久化基础层和 P3B 人工复核审计链路上，新增了简历证据库编辑、确认、退回草稿、归档、恢复和审计历史。核心页面仍然使用 `mock/local-rule` 语义，但数据来源优先读取 H2 seeded demo database。简历证据可以先进入 Draft，人工确认后才进入 Confirmed；每次编辑和状态流转都会写入 audit trail。
 
 关键边界：
 
@@ -34,6 +34,14 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | GET | `/api/jobs/demo-analysis` | 组合 service，演示 JD 分析 |
 | GET | `/api/evidence/library` | H2 seeded demo data |
 | GET | `/api/evidence/coverage` | H2 seeded demo data + deterministic local-rule |
+| GET | `/api/evidence/{id}` | H2 seeded demo data + evidence audit trail |
+| GET | `/api/evidence/{id}/audit-events` | H2 evidence audit events |
+| POST | `/api/evidence` | H2 创建 Draft evidence + audit event |
+| PUT | `/api/evidence/{id}` | H2 更新 evidence + changed fields audit event |
+| POST | `/api/evidence/{id}/confirm` | H2 evidence 状态更新 + audit event |
+| POST | `/api/evidence/{id}/return-to-draft` | H2 evidence 状态更新 + audit event |
+| POST | `/api/evidence/{id}/archive` | H2 evidence 状态更新 + audit event |
+| POST | `/api/evidence/{id}/restore` | H2 evidence 状态更新 + audit event |
 | GET | `/api/reviews` | H2 seeded demo data |
 | GET | `/api/reviews/{id}` | H2 seeded demo data + audit trail |
 | GET | `/api/reviews/{id}/audit-events` | H2 audit events |
@@ -50,7 +58,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 ## 页面路径
 
 - `/jd-analyzer`：JD 证据匹配工作台
-- `/evidence-library`：简历证据库与 Evidence Coverage Map
+- `/evidence-library`：简历证据库、Evidence Coverage Map、编辑工作流与 Audit Trail
 - `/match-report`：匹配报告
 - `/interview-prep`：面试前准备
 - `/application-tracker`：投递跟踪
@@ -69,7 +77,7 @@ npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md) 和 [docs/human-review-audit.md](docs/human-review-audit.md)。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md) 和 [docs/evidence-audit.md](docs/evidence-audit.md)。
 
 ## 验收
 

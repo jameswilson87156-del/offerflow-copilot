@@ -16,6 +16,7 @@ import com.offerflow.copilot.persistence.entity.InterviewPrepEntity;
 import com.offerflow.copilot.persistence.entity.JobPostEntity;
 import com.offerflow.copilot.persistence.entity.MatchReportEntity;
 import com.offerflow.copilot.persistence.entity.ProviderTraceRunEntity;
+import com.offerflow.copilot.persistence.entity.ResumeEvidenceAuditEventEntity;
 import com.offerflow.copilot.persistence.entity.ResumeEvidenceEntity;
 import com.offerflow.copilot.persistence.entity.TraceStepEntity;
 import com.offerflow.copilot.persistence.repository.ApplicationRecordRepository;
@@ -25,6 +26,7 @@ import com.offerflow.copilot.persistence.repository.InterviewPrepRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
 import com.offerflow.copilot.persistence.repository.MatchReportRepository;
 import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
+import com.offerflow.copilot.persistence.repository.ResumeEvidenceAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceRepository;
 import com.offerflow.copilot.persistence.repository.TraceStepRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +54,7 @@ public class PersistenceSeedService implements ApplicationRunner {
     private final ApplicationRecordRepository applicationRecordRepository;
     private final HumanReviewItemRepository humanReviewItemRepository;
     private final HumanReviewAuditEventRepository humanReviewAuditEventRepository;
+    private final ResumeEvidenceAuditEventRepository resumeEvidenceAuditEventRepository;
     private final ProviderTraceRunRepository providerTraceRunRepository;
     private final TraceStepRepository traceStepRepository;
 
@@ -65,6 +68,7 @@ public class PersistenceSeedService implements ApplicationRunner {
             ApplicationRecordRepository applicationRecordRepository,
             HumanReviewItemRepository humanReviewItemRepository,
             HumanReviewAuditEventRepository humanReviewAuditEventRepository,
+            ResumeEvidenceAuditEventRepository resumeEvidenceAuditEventRepository,
             ProviderTraceRunRepository providerTraceRunRepository,
             TraceStepRepository traceStepRepository) {
         this.seedDemoData = seedDemoData;
@@ -76,6 +80,7 @@ public class PersistenceSeedService implements ApplicationRunner {
         this.applicationRecordRepository = applicationRecordRepository;
         this.humanReviewItemRepository = humanReviewItemRepository;
         this.humanReviewAuditEventRepository = humanReviewAuditEventRepository;
+        this.resumeEvidenceAuditEventRepository = resumeEvidenceAuditEventRepository;
         this.providerTraceRunRepository = providerTraceRunRepository;
         this.traceStepRepository = traceStepRepository;
     }
@@ -91,6 +96,7 @@ public class PersistenceSeedService implements ApplicationRunner {
     public void seedIfEmpty() {
         seedJobPostIfEmpty();
         seedResumeEvidenceIfEmpty();
+        seedResumeEvidenceAuditEventsIfEmpty();
         seedMatchReportIfEmpty();
         seedInterviewPrepIfEmpty();
         seedApplicationsIfEmpty();
@@ -224,6 +230,99 @@ public class PersistenceSeedService implements ApplicationRunner {
                                 step("人工确认", "verified", "来源已复核"))),
                 "演示部署不等于生产环境经验。",
                 ts(2026, 7, 1, 9, 0),
+                ts(2026, 6, 28, 18, 0)));
+    }
+
+    private void seedResumeEvidenceAuditEventsIfEmpty() {
+        if (resumeEvidenceAuditEventRepository.count() > 0) {
+            return;
+        }
+        EvidenceLibrary.EvidenceSnapshot mcpSnapshot = evidenceSnapshot(
+                "MCP Tool Gateway",
+                "Spring Boot 工具网关，展示统一注册、调用审计与 Trace 证据。",
+                List.of("Java", "Spring Boot 3", "JSON-RPC", "Tool Registry", "Audit Log", "Trace Evidence"),
+                List.of("Java 后端", "AI Agent 工具", "Trace / Human Review"),
+                List.of("README", "接口设计", "后端测试", "Trace"),
+                "强",
+                List.of("Spring Boot", "MCP Tool", "接口设计", "审计与异常处理"),
+                "证据库仅保存匿名化作品集材料，不保存真实隐私。",
+                List.of("不声称真实生产流量", "不等同生产级安全", "性能数字需独立压测证据"));
+        resumeEvidenceAuditEventRepository.save(evidenceAuditEvent(
+                "evidence-audit-mcp-confirm",
+                "evidence-mcp",
+                "CONFIRM",
+                "Draft",
+                "Confirmed",
+                List.of("status"),
+                mcpSnapshot,
+                mcpSnapshot,
+                "人工确认 MCP Tool Gateway 只作为作品集级证据使用。",
+                ts(2026, 7, 1, 12, 0)));
+
+        EvidenceLibrary.EvidenceSnapshot devflowSnapshot = evidenceSnapshot(
+                "DevFlow Copilot",
+                "从任务拆解到工具执行的 AI Coding Workflow 演示。",
+                List.of("AI Workflow", "Prompt", "Tool Calling", "Vue 3", "Human Review"),
+                List.of("AI Coding", "AI 应用开发", "Trace / Human Review"),
+                List.of("README", "截图", "接口设计", "GitHub Actions"),
+                "强",
+                List.of("AI Workflow", "Prompt Workflow", "工程交付", "协作开发"),
+                "规则输出默认进入 Human Review。",
+                List.of("不声称真实 Provider 稳定性", "结果仍需人工复核", "不描述为生产平台"));
+        resumeEvidenceAuditEventRepository.save(evidenceAuditEvent(
+                "evidence-audit-devflow-confirm",
+                "evidence-devflow",
+                "CONFIRM",
+                "Draft",
+                "Confirmed",
+                List.of("status"),
+                devflowSnapshot,
+                devflowSnapshot,
+                "确认保留 workflow、fallback 与 Human Review 边界说明。",
+                ts(2026, 6, 30, 18, 0)));
+
+        EvidenceLibrary.EvidenceSnapshot ragSnapshot = evidenceSnapshot(
+                "Enterprise Ticket RAG Copilot",
+                "带引用、Trace 与 Human Review 的企业工单 RAG 演示。",
+                List.of("RAG", "Knowledge Retrieval", "Citation", "Trace", "Provider fallback"),
+                List.of("RAG / Knowledge", "AI 应用开发", "Trace / Human Review"),
+                List.of("README", "Trace", "效果评估", "截图"),
+                "中",
+                List.of("RAG", "知识检索", "Provider fallback", "引用追踪"),
+                "匿名化演示集不代表真实企业客户。",
+                List.of("没有真实客户数据", "没有大规模线上效果数据", "评测样本是匿名化演示集"));
+        resumeEvidenceAuditEventRepository.save(evidenceAuditEvent(
+                "evidence-audit-rag-draft",
+                "evidence-rag",
+                "UPDATE_DRAFT",
+                "Draft",
+                "Draft",
+                List.of("evidenceSources", "boundaryNote"),
+                ragSnapshot,
+                ragSnapshot,
+                "RAG 证据仍需补充离线评测与边界说明，暂不确认为 Confirmed。",
+                ts(2026, 6, 29, 18, 0)));
+
+        EvidenceLibrary.EvidenceSnapshot portfolioSnapshot = evidenceSnapshot(
+                "Portfolio Hub",
+                "作品集聚合、真实页面截图与持续构建证据。",
+                List.of("Vue 3", "TypeScript", "Vite", "Playwright", "GitHub Actions"),
+                List.of("前端工程", "CI / 部署"),
+                List.of("真实截图", "GitHub Actions", "部署记录", "README"),
+                "中",
+                List.of("Vue 3", "前端工程", "CI", "Deployment"),
+                "演示部署不等于生产环境经验。",
+                List.of("演示部署不代表生产 SLA", "截图只证明特定版本页面", "无真实用户或流量数据"));
+        resumeEvidenceAuditEventRepository.save(evidenceAuditEvent(
+                "evidence-audit-portfolio-confirm",
+                "evidence-portfolio",
+                "CONFIRM",
+                "Draft",
+                "Confirmed",
+                List.of("status"),
+                portfolioSnapshot,
+                portfolioSnapshot,
+                "确认只表达截图、CI 与作品集聚合证据，不声称生产流量。",
                 ts(2026, 6, 28, 18, 0)));
     }
 
@@ -678,6 +777,55 @@ public class PersistenceSeedService implements ApplicationRunner {
         entity.setTraceHash("audit-" + Integer.toHexString((traceId + ":" + reviewId).hashCode()));
         entity.setCreatedAt(createdAt);
         return entity;
+    }
+
+    private ResumeEvidenceAuditEventEntity evidenceAuditEvent(
+            String id,
+            String evidenceId,
+            String action,
+            String previousStatus,
+            String nextStatus,
+            List<String> changedFields,
+            EvidenceLibrary.EvidenceSnapshot beforeSnapshot,
+            EvidenceLibrary.EvidenceSnapshot afterSnapshot,
+            String humanNote,
+            LocalDateTime createdAt) {
+        ResumeEvidenceAuditEventEntity entity = new ResumeEvidenceAuditEventEntity();
+        entity.setId(id);
+        entity.setEvidenceId(evidenceId);
+        entity.setAction(action);
+        entity.setPreviousStatus(previousStatus);
+        entity.setNextStatus(nextStatus);
+        entity.setActor("demo-evidence-editor");
+        entity.setActorRole("Evidence reviewer");
+        entity.setChangedFieldsJson(jsonCodec.write(changedFields));
+        entity.setBeforeSnapshotJson(jsonCodec.write(beforeSnapshot));
+        entity.setAfterSnapshotJson(jsonCodec.write(afterSnapshot));
+        entity.setHumanNote(humanNote);
+        entity.setCreatedAt(createdAt);
+        return entity;
+    }
+
+    private EvidenceLibrary.EvidenceSnapshot evidenceSnapshot(
+            String projectName,
+            String summary,
+            List<String> skills,
+            List<String> abilityTags,
+            List<String> evidenceSources,
+            String strength,
+            List<String> matchableRequirements,
+            String boundaryNote,
+            List<String> riskBoundaries) {
+        return new EvidenceLibrary.EvidenceSnapshot(
+                projectName,
+                summary,
+                skills,
+                abilityTags,
+                evidenceSources,
+                strength,
+                matchableRequirements,
+                boundaryNote,
+                riskBoundaries);
     }
 
     private EvidenceLibrary.EvidenceDetail detail(

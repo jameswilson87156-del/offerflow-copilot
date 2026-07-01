@@ -16,6 +16,21 @@ CREATE TABLE IF NOT EXISTS resume_evidence (
     updated_at TIMESTAMP NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS resume_evidence_audit_event (
+    id VARCHAR(80) PRIMARY KEY,
+    evidence_id VARCHAR(80) NOT NULL,
+    action VARCHAR(40) NOT NULL,
+    previous_status VARCHAR(40) NOT NULL,
+    next_status VARCHAR(40) NOT NULL,
+    actor VARCHAR(120) NOT NULL,
+    actor_role VARCHAR(80) NOT NULL,
+    changed_fields_json TEXT NOT NULL,
+    before_snapshot_json TEXT NOT NULL,
+    after_snapshot_json TEXT NOT NULL,
+    human_note TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS job_post (
     id VARCHAR(80) PRIMARY KEY,
     title VARCHAR(160) NOT NULL,

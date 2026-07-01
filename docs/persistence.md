@@ -2,13 +2,14 @@
 
 ## 当前状态
 
-P3B 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
+P3C 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
 
 当前数据仍然是 `mock/local-rule` 演示数据，不是真实招聘数据，也不代表真实 Provider 能力。
 
 ## 数据表
 
 - `resume_evidence`：匿名化项目证据、技能、来源链和边界说明。
+- `resume_evidence_audit_event`：简历证据创建、编辑、确认、退回、归档和恢复的审计事件，记录 changed fields 与 before/after snapshot。
 - `job_post`：手动录入的脱敏岗位描述。
 - `match_report`：匹配报告摘要、评分拆解、证据来源、技能差距和 Trace。
 - `interview_prep`：面试前准备重点、问题分组、STAR 草稿、风险提醒和复盘 Timeline。
@@ -22,6 +23,14 @@ P3B 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 
 - `GET /api/evidence/library`
 - `GET /api/evidence/coverage`
+- `GET /api/evidence/{id}`
+- `GET /api/evidence/{id}/audit-events`
+- `POST /api/evidence`
+- `PUT /api/evidence/{id}`
+- `POST /api/evidence/{id}/confirm`
+- `POST /api/evidence/{id}/return-to-draft`
+- `POST /api/evidence/{id}/archive`
+- `POST /api/evidence/{id}/restore`
 - `GET /api/reviews`
 - `GET /api/reviews/{id}`
 - `GET /api/reviews/{id}/audit-events`
@@ -34,7 +43,25 @@ P3B 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启�
 - `GET /api/interview-prep/demo`
 - `GET /api/applications`
 
-## 审计事件字段
+## 简历证据审计事件字段
+
+`resume_evidence_audit_event` 当前保存：
+
+- `evidence_id`
+- `action`
+- `previous_status`
+- `next_status`
+- `actor`
+- `actor_role`
+- `changed_fields_json`
+- `before_snapshot_json`
+- `after_snapshot_json`
+- `human_note`
+- `created_at`
+
+当前 actor 默认是 `demo-evidence-editor`，用于演示证据维护历史，不是生产鉴权主体。
+
+## 人工复核审计事件字段
 
 `human_review_audit_event` 当前保存：
 

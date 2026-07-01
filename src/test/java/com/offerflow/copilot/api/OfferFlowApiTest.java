@@ -3,6 +3,7 @@ package com.offerflow.copilot.api;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -156,7 +157,7 @@ class OfferFlowApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mode").value("mock/local-rule"))
                 .andExpect(jsonPath("$.items", hasSize(4)))
-                .andExpect(jsonPath("$.categories", hasSize(9)))
+                .andExpect(jsonPath("$.categories", hasSize(10)))
                 .andExpect(jsonPath("$.items[0].projectName").value("MCP Tool Gateway"))
                 .andExpect(jsonPath("$.items[0].credibility").value("强"))
                 .andExpect(jsonPath("$.items[0].detail.sourceChain", hasSize(5)))
@@ -173,6 +174,94 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.items[0].level").value("强支撑"))
                 .andExpect(jsonPath("$.items[7].level").value("弱支撑"))
                 .andExpect(jsonPath("$.items[7].gap").value("仅有演示部署，不代表生产运维"));
+    }
+
+    @Test
+    void evidenceDetailReturnsAuditTrail() throws Exception {
+        mockMvc.perform(get("/api/evidence/evidence-mcp"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.item.projectName").value("MCP Tool Gateway"))
+                .andExpect(jsonPath("$.item.status").value("Confirmed"))
+                .andExpect(jsonPath("$.auditTrail", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[0].action").value("CONFIRM"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void createEvidenceDraftWritesResumeEvidenceAndAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/evidence")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"create draft note\",\"projectName\":\"Demo Evidence Draft\",\"summary\":\"Draft evidence summary\",\"abilityTags\":[\"Java backend\"],\"evidenceSources\":[\"README\"],\"credibility\":\"medium\",\"matchableRequirements\":[\"Spring Boot\"],\"boundaryNote\":\"No real privacy.\",\"relatedSkills\":[\"Java\"],\"riskBoundaries\":[\"No real user data\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.item.projectName").value("Demo Evidence Draft"))
+                .andExpect(jsonPath("$.item.status").value("Draft"))
+                .andExpect(jsonPath("$.auditTrail", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[0].action").value("CREATE_DRAFT"))
+                .andExpect(jsonPath("$.auditTrail[0].humanNote").value("create draft note"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void updateEvidenceDraftWritesAuditEventWithChangedFields() throws Exception {
+        mockMvc.perform(put("/api/evidence/evidence-rag")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"update draft note\",\"evidenceSources\":[\"README\",\"Trace\",\"Evaluation\"],\"boundaryNote\":\"Keep as anonymized demo evidence.\",\"relatedSkills\":[\"RAG\",\"Trace\",\"Citation\"]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.item.status").value("Draft"))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'update draft note')]", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'update draft note')].action").value("UPDATE_DRAFT"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void confirmEvidenceUpdatesStatusAndWritesAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/evidence/evidence-rag/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"confirm evidence note\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.item.status").value("Confirmed"))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'confirm evidence note')]", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'confirm evidence note')].action").value("CONFIRM"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void archiveEvidenceUpdatesStatusAndWritesAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/evidence/evidence-mcp/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"archive evidence note\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.item.status").value("Archived"))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'archive evidence note')]", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'archive evidence note')].action").value("ARCHIVE"));
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void restoreEvidenceUpdatesStatusAndWritesAuditEvent() throws Exception {
+        mockMvc.perform(post("/api/evidence/evidence-mcp/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"archive before restore\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/evidence/evidence-mcp/restore")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"restore evidence note\",\"targetStatus\":\"Draft\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.item.status").value("Draft"))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'restore evidence note')]", hasSize(1)))
+                .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'restore evidence note')].action").value("RESTORE"));
+    }
+
+    @Test
+    void evidenceAuditEventsEndpointReturnsHistory() throws Exception {
+        mockMvc.perform(get("/api/evidence/evidence-mcp/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].evidenceId").value("evidence-mcp"))
+                .andExpect(jsonPath("$[0].action").value("CONFIRM"))
+                .andExpect(jsonPath("$[0].actor").value("demo-evidence-editor"));
     }
 
     @Test

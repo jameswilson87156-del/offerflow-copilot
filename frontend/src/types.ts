@@ -82,6 +82,8 @@ export interface EvidenceDetail {
   sourceChain: EvidenceSourceStep[]
 }
 
+export type EvidenceStatus = 'Draft' | 'Confirmed' | 'Returned' | 'Archived'
+
 export interface EvidenceItem {
   id: string
   projectName: string
@@ -92,8 +94,63 @@ export interface EvidenceItem {
   credibility: '强' | '中' | '弱'
   matchableRequirements: string[]
   humanReviewStatus: 'Confirmed' | 'Needs review'
+  status: EvidenceStatus
   updatedAt: string
+  auditCount: number
   detail: EvidenceDetail
+}
+
+export interface EvidenceSnapshot {
+  projectName: string | null
+  summary: string | null
+  skills: string[]
+  abilityTags: string[]
+  evidenceSources: string[]
+  strength: string | null
+  matchableRequirements: string[]
+  boundaryNote: string | null
+  riskBoundaries: string[]
+}
+
+export interface EvidenceAuditEvent {
+  id: string
+  evidenceId: string
+  action: 'CREATE_DRAFT' | 'UPDATE_DRAFT' | 'CONFIRM' | 'RETURN_TO_DRAFT' | 'ARCHIVE' | 'RESTORE' | string
+  actionLabel: string
+  previousStatus: string
+  nextStatus: string
+  actor: string
+  actorRole: string
+  changedFields: string[]
+  beforeSnapshot: EvidenceSnapshot
+  afterSnapshot: EvidenceSnapshot
+  humanNote: string
+  createdAt: string
+}
+
+export interface EvidenceItemDetail {
+  mode: string
+  item: EvidenceItem
+  auditTrail: EvidenceAuditEvent[]
+  boundaryNotice: string
+}
+
+export interface EvidenceMutationPayload {
+  actor?: string
+  actorRole?: string
+  humanNote?: string
+  projectName?: string
+  summary?: string
+  abilityTags?: string[]
+  evidenceSources?: string[]
+  credibility?: string
+  matchableRequirements?: string[]
+  boundaryNote?: string
+  relatedSkills?: string[]
+  suitableRoles?: string[]
+  interviewAnswers?: string[]
+  riskBoundaries?: string[]
+  targetStatus?: EvidenceStatus
 }
 
 export interface EvidenceLibraryData {

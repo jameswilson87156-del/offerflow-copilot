@@ -27,7 +27,7 @@ const items: EvidenceItem[] = [
     abilityTags: ['Java 后端', 'AI Agent 工具', 'Trace / Human Review'],
     evidenceSources: ['README', '接口设计', '后端测试', 'Trace'], credibility: '强',
     matchableRequirements: ['Spring Boot', 'MCP Tool', '接口设计', '审计与异常处理'],
-    humanReviewStatus: 'Confirmed', updatedAt: '2026-07-01',
+    humanReviewStatus: 'Confirmed', status: 'Confirmed', updatedAt: '2026-07-01', auditCount: 1,
     detail: detail(
       ['Java', 'Spring Boot 3', 'JSON-RPC', 'Tool Registry', 'Audit Log', 'Trace Evidence'],
       ['Java 后端实习生', 'AI Agent 工程实习生', '后端开发工程师'],
@@ -42,7 +42,7 @@ const items: EvidenceItem[] = [
     abilityTags: ['AI Coding', 'AI 应用开发', 'Trace / Human Review'],
     evidenceSources: ['README', '截图', '接口设计', 'GitHub Actions'], credibility: '强',
     matchableRequirements: ['AI Workflow', 'Prompt Workflow', '工程交付', '协作开发'],
-    humanReviewStatus: 'Confirmed', updatedAt: '2026-06-30',
+    humanReviewStatus: 'Confirmed', status: 'Confirmed', updatedAt: '2026-06-30', auditCount: 1,
     detail: detail(
       ['AI Workflow', 'Prompt', 'Tool Calling', 'Vue 3', 'Human Review'],
       ['AI Coding 实习生', 'AI 应用开发实习生', '全栈开发实习生'],
@@ -57,7 +57,7 @@ const items: EvidenceItem[] = [
     abilityTags: ['RAG / Knowledge', 'AI 应用开发', 'Trace / Human Review'],
     evidenceSources: ['README', 'Trace', '效果评估', '截图'], credibility: '中',
     matchableRequirements: ['RAG', '知识检索', 'Provider fallback', '引用追踪'],
-    humanReviewStatus: 'Needs review', updatedAt: '2026-06-29',
+    humanReviewStatus: 'Needs review', status: 'Draft', updatedAt: '2026-06-29', auditCount: 1,
     detail: detail(
       ['RAG', 'Knowledge Retrieval', 'Citation', 'Trace', 'Provider fallback'],
       ['AI 应用开发实习生', 'RAG 工程实习生', 'Java 后端实习生'],
@@ -72,7 +72,7 @@ const items: EvidenceItem[] = [
     abilityTags: ['前端工程', 'CI / 部署'],
     evidenceSources: ['真实截图', 'GitHub Actions', '部署记录', 'README'], credibility: '中',
     matchableRequirements: ['Vue 3', '前端工程', 'CI', 'Deployment'],
-    humanReviewStatus: 'Confirmed', updatedAt: '2026-06-28',
+    humanReviewStatus: 'Confirmed', status: 'Confirmed', updatedAt: '2026-06-28', auditCount: 1,
     detail: detail(
       ['Vue 3', 'TypeScript', 'Vite', 'Playwright', 'GitHub Actions'],
       ['前端开发实习生', 'AI Coding 实习生', '全栈开发实习生'],
@@ -96,6 +96,7 @@ export const evidenceLibraryFallback: EvidenceLibraryData = {
     { key: 'frontend', label: '前端工程', count: 2 },
     { key: 'ci', label: 'CI / 部署', count: 2 },
     { key: 'trace', label: 'Trace / Human Review', count: 3 },
+    { key: 'archived', label: 'Archived', count: 0 },
   ],
   items,
   disclaimer: '证据库仅使用匿名化演示项目数据，不代表真实客户、用户、线上流量或生产级效果。',

@@ -1,6 +1,6 @@
 # 架构说明
 
-## P3B 结构
+## P3C 结构
 
 ```text
 Vue 3 Workbench
@@ -20,6 +20,7 @@ Spring Boot 3
           v
 H2 demo persistence
   |-- resume_evidence
+  |-- resume_evidence_audit_event
   |-- job_post
   |-- match_report
   |-- interview_prep
@@ -29,6 +30,19 @@ H2 demo persistence
   |-- provider_trace_run
   |-- trace_step
 ```
+
+## Resume Evidence 审计链路
+
+简历证据库是 OfferFlow 的核心数据资产。P3C 中，证据不再只是只读 seed demo，而是可维护、可确认、可回滚、可审计的工作流。`EvidenceLibraryService` 在同一个事务内完成：
+
+1. 读取或创建当前 `resume_evidence`。
+2. 记录 previous status。
+3. 计算 changed fields，并生成 before/after snapshot。
+4. 根据动作更新 Draft、Confirmed、Returned、Archived 等状态。
+5. 写入 `resume_evidence_audit_event`。
+6. 返回包含 `auditTrail` 的 evidence detail。
+
+支持的动作包括 `CREATE_DRAFT`、`UPDATE_DRAFT`、`CONFIRM`、`RETURN_TO_DRAFT`、`ARCHIVE` 和 `RESTORE`。当前 actor 是 demo user，用于展示状态流转，不是生产鉴权或生产级权限系统。
 
 ## Human Review 审计链路
 

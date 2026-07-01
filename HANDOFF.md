@@ -2,9 +2,9 @@
 
 ## 当前交付
 
-P3B 已完成 Human Review Audit Trail。人工复核中心现在可以持久化记录 `confirm`、`return`、`flag-risk` 的状态流转，每条审计事件包含操作者、角色、动作、前后状态、前后风险等级、人工备注、Trace ID、Trace Hash 和时间。
+P3C 已完成 Resume Evidence Editable Workflow。简历证据库现在可以创建 Draft、编辑证据、确认、退回草稿、归档和恢复，每次写操作都会持久化 `resume_evidence_audit_event`，记录操作者、角色、动作、前后状态、修改字段、before/after snapshot、人工备注和时间。
 
-核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
+P3B 的 Human Review Audit Trail 仍然保留。核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
 
 ## 启动顺序
 
@@ -18,6 +18,9 @@ P3B 已完成 Human Review Audit Trail。人工复核中心现在可以持久化
 
 - Java package 固定为 `com.offerflow.copilot`。
 - 数据库 JSON 字段先用 `TEXT` 保存字符串，通过 `JsonCodec` 统一序列化/反序列化。
+- 新增证据审计表为 `resume_evidence_audit_event`，由 `EvidenceLibraryService` 在证据写操作事务内写入。
+- `GET /api/evidence/{id}` 已包含 `auditTrail`，也可通过 `GET /api/evidence/{id}/audit-events` 单独读取。
+- Evidence 写接口支持 `actor`、`actorRole`、`humanNote` 和证据 payload；当前 actor 是 demo user，不是生产鉴权。
 - 新增审计表为 `human_review_audit_event`，由 `HumanReviewService` 在状态变更事务内写入。
 - `GET /api/reviews/{id}` 已包含 `auditTrail`，也可通过 `GET /api/reviews/{id}/audit-events` 单独读取。
 - POST action request 支持 `actor`、`actorRole`、`humanNote`；当前 actor 是 demo user，不是生产鉴权。
@@ -27,6 +30,6 @@ P3B 已完成 Human Review Audit Trail。人工复核中心现在可以持久化
 
 ## 已验证
 
-- `mvn test`：23 个测试通过，包含 API 合约、audit event 写入、audit endpoint、seed 幂等和 JSON 字段验证。
-- `npm run build`：待本轮最终验收刷新。
-- `npm run screenshots`：待本轮最终验收刷新，会更新 Human Review 审计时间线截图。
+- `mvn test`：30 个测试通过，包含 API 合约、evidence audit event 写入、human review audit event 写入、audit endpoint、seed 幂等和 JSON 字段验证。
+- `npm run build`：P3C 已通过。
+- `npm run screenshots`：待本轮最终验收刷新，会更新 Evidence Library 截图。

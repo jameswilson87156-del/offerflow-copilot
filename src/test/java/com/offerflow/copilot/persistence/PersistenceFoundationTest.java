@@ -17,6 +17,7 @@ import com.offerflow.copilot.persistence.repository.InterviewPrepRepository;
 import com.offerflow.copilot.persistence.repository.JobPostRepository;
 import com.offerflow.copilot.persistence.repository.MatchReportRepository;
 import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
+import com.offerflow.copilot.persistence.repository.ResumeEvidenceAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceRepository;
 import com.offerflow.copilot.persistence.repository.TraceStepRepository;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,9 @@ class PersistenceFoundationTest {
     private HumanReviewAuditEventRepository humanReviewAuditEventRepository;
 
     @Autowired
+    private ResumeEvidenceAuditEventRepository resumeEvidenceAuditEventRepository;
+
+    @Autowired
     private ProviderTraceRunRepository providerTraceRunRepository;
 
     @Autowired
@@ -74,6 +78,7 @@ class PersistenceFoundationTest {
         assertThat(applicationRecordRepository.count()).isEqualTo(3);
         assertThat(humanReviewItemRepository.count()).isEqualTo(6);
         assertThat(humanReviewAuditEventRepository.count()).isGreaterThanOrEqualTo(4);
+        assertThat(resumeEvidenceAuditEventRepository.count()).isGreaterThanOrEqualTo(4);
         assertThat(providerTraceRunRepository.count()).isEqualTo(1);
         assertThat(traceStepRepository.count()).isEqualTo(10);
     }
@@ -83,6 +88,7 @@ class PersistenceFoundationTest {
         long evidenceCount = resumeEvidenceRepository.count();
         long reviewCount = humanReviewItemRepository.count();
         long auditCount = humanReviewAuditEventRepository.count();
+        long evidenceAuditCount = resumeEvidenceAuditEventRepository.count();
         long stepCount = traceStepRepository.count();
 
         seedService.seedIfEmpty();
@@ -90,6 +96,7 @@ class PersistenceFoundationTest {
         assertThat(resumeEvidenceRepository.count()).isEqualTo(evidenceCount);
         assertThat(humanReviewItemRepository.count()).isEqualTo(reviewCount);
         assertThat(humanReviewAuditEventRepository.count()).isEqualTo(auditCount);
+        assertThat(resumeEvidenceAuditEventRepository.count()).isEqualTo(evidenceAuditCount);
         assertThat(traceStepRepository.count()).isEqualTo(stepCount);
     }
 
