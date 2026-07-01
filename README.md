@@ -2,9 +2,9 @@
 
 OfferFlow Copilot 是一个真实可运行的 Java + AI 应用作品集工程项目。它面向实习求职场景，用可审阅的工作台串联“JD 要求 → 简历证据 → 项目证明 → 面试准备 → 人工复核”。
 
-## 当前阶段：P1A + P1B
+## 当前阶段：P1A + P1B + P2A
 
-当前版本只提供高保真静态工作台、mock 数据与 `local-rule` 后端接口。它不代表完整招聘业务，也不代表真实 Provider 已稳定接入。
+当前版本提供 JD 证据匹配工作台、简历证据库、mock 数据与 `local-rule` 后端接口。它不代表完整招聘业务，也不代表真实 Provider 已稳定接入。
 
 - 不接招聘平台 API，不爬取网页。
 - 不保存真实手机号、邮箱、身份证、聊天记录等隐私。
@@ -25,7 +25,9 @@ OfferFlow Copilot 是一个真实可运行的 Java + AI 应用作品集工程项
 
 ![OfferFlow Copilot JD 证据匹配工作台](docs/images/offerflow-dashboard.png)
 
-## P1 接口
+![OfferFlow Copilot 简历证据库](docs/images/offerflow-evidence-library.png)
+
+## 当前接口
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -33,6 +35,13 @@ OfferFlow Copilot 是一个真实可运行的 Java + AI 应用作品集工程项
 | GET | `/api/provider/status` | Provider 就绪状态与 fallback 边界 |
 | GET | `/api/dashboard/summary` | mock 首页统计 |
 | GET | `/api/jobs/demo-analysis` | 完整 JD 证据链演示数据 |
+| GET | `/api/evidence/library` | 匿名化项目证据库与可复核来源链 |
+| GET | `/api/evidence/coverage` | local-rule 能力覆盖度与证据缺口 |
+
+## 页面路径
+
+- `/jd-analyzer`：JD 证据匹配工作台。
+- `/evidence-library`：简历证据库与 Evidence Coverage Map。
 
 ## 本地运行
 

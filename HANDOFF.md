@@ -2,9 +2,9 @@
 
 ## 当前交付
 
-P1A + P1B 聚焦工程骨架、高保真静态工作台与 mock/local-rule API。所有岗位、项目、评分和面试材料均为演示数据。
+P1A + P1B + P2A 聚焦工程骨架、JD 证据匹配工作台、简历证据库与 mock/local-rule API。所有岗位、项目、评分、证据和面试材料均为匿名化演示数据。
 
-已实现接口：`/api/health`、`/api/provider/status`、`/api/dashboard/summary`、`/api/jobs/demo-analysis`。前端截图位于 `docs/images`，由 `npm run screenshots` 可重复生成。
+新增接口：`/api/evidence/library`、`/api/evidence/coverage`。页面路由为 `/jd-analyzer` 与 `/evidence-library`。前端截图位于 `docs/images`，由 `npm run screenshots` 可重复生成。
 
 ## 启动顺序
 
@@ -22,6 +22,6 @@ P1A + P1B 聚焦工程骨架、高保真静态工作台与 mock/local-rule API�
 
 ## 已验证
 
-- `mvn test`：4 个 API 测试。
+- `mvn test`：6 个 API 测试。
 - `npm run build`：TypeScript 与 Vite 生产构建。
-- `npm run screenshots`：1440×900、1920×1080 截图和 1366×768 横向溢出检查。
+- `npm run screenshots`：两个页面的 1440×900、1920×1080 截图和 1366×768 横向溢出检查。

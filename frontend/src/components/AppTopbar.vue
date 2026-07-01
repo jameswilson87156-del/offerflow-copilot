@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { Bell, ChevronDown, Search } from 'lucide-vue-next'
+import { Bell, CheckCircle2, ChevronDown, Search } from 'lucide-vue-next'
 
 const props = defineProps<{
   searchQuery: string
   providerMode: string
   source: 'api' | 'fallback'
+  statusLabel: string
+  statusTone: 'draft' | 'ready'
 }>()
 
 const emit = defineEmits<{
@@ -22,8 +24,8 @@ const providers = ['local-rule', 'OpenAI-compatible', 'DeepSeek']
       <input
         :value="props.searchQuery"
         type="search"
-        placeholder="搜索岗位、公司、技能或项目"
-        aria-label="搜索岗位、公司、技能或项目"
+        placeholder="搜索岗位、项目、技能或证据来源"
+        aria-label="搜索岗位、项目、技能或证据来源"
         @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
       />
       <kbd>⌘ K</kbd>
@@ -48,7 +50,11 @@ const providers = ['local-rule', 'OpenAI-compatible', 'DeepSeek']
         <span class="pulse-dot" />
         {{ props.source === 'api' ? '本地 API' : '演示快照' }}
       </span>
-      <span class="draft-pill"><span />Draft · 需复核</span>
+      <span class="page-status-pill" :class="props.statusTone">
+        <CheckCircle2 v-if="props.statusTone === 'ready'" :size="13" />
+        <span v-else />
+        {{ props.statusLabel }}
+      </span>
       <button class="icon-button" type="button" aria-label="通知">
         <Bell :size="18" />
       </button>

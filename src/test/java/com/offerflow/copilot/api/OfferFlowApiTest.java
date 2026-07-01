@@ -61,4 +61,29 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.humanReview.copyAllowed").value(false))
                 .andExpect(jsonPath("$.timeline", hasSize(5)));
     }
+
+    @Test
+    void evidenceLibraryReturnsReviewableProjectEvidence() throws Exception {
+        mockMvc.perform(get("/api/evidence/library"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.items", hasSize(4)))
+                .andExpect(jsonPath("$.categories", hasSize(9)))
+                .andExpect(jsonPath("$.items[0].projectName").value("MCP Tool Gateway"))
+                .andExpect(jsonPath("$.items[0].credibility").value("强"))
+                .andExpect(jsonPath("$.items[0].detail.sourceChain", hasSize(5)))
+                .andExpect(jsonPath("$.items[2].humanReviewStatus").value("Needs review"));
+    }
+
+    @Test
+    void evidenceCoverageExplainsSupportAndGaps() throws Exception {
+        mockMvc.perform(get("/api/evidence/coverage"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.items", hasSize(8)))
+                .andExpect(jsonPath("$.items[0].skill").value("Java"))
+                .andExpect(jsonPath("$.items[0].level").value("强支撑"))
+                .andExpect(jsonPath("$.items[7].level").value("弱支撑"))
+                .andExpect(jsonPath("$.items[7].gap").value("仅有演示部署，不代表生产运维"));
+    }
 }

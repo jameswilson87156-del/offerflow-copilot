@@ -61,3 +61,59 @@ export interface DemoAnalysis {
   technicalTags: string[]
   disclaimer: string
 }
+
+export interface EvidenceCategory {
+  key: string
+  label: string
+  count: number
+}
+
+export interface EvidenceSourceStep {
+  label: string
+  status: 'verified' | 'partial' | 'missing'
+  note: string
+}
+
+export interface EvidenceDetail {
+  relatedSkills: string[]
+  suitableRoles: string[]
+  interviewAnswers: string[]
+  riskBoundaries: string[]
+  sourceChain: EvidenceSourceStep[]
+}
+
+export interface EvidenceItem {
+  id: string
+  projectName: string
+  projectSlug: string
+  summary: string
+  abilityTags: string[]
+  evidenceSources: string[]
+  credibility: '强' | '中' | '弱'
+  matchableRequirements: string[]
+  humanReviewStatus: 'Confirmed' | 'Needs review'
+  updatedAt: string
+  detail: EvidenceDetail
+}
+
+export interface EvidenceLibraryData {
+  mode: string
+  total: number
+  categories: EvidenceCategory[]
+  items: EvidenceItem[]
+  disclaimer: string
+}
+
+export interface CoverageItem {
+  skill: string
+  level: '强支撑' | '中支撑' | '弱支撑' | '暂无证据'
+  score: number
+  supportingProjects: string[]
+  gap: string
+}
+
+export interface EvidenceCoverageData {
+  mode: string
+  items: CoverageItem[]
+  note: string
+}
