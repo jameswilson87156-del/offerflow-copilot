@@ -1,0 +1,170 @@
+import type { HumanReviewCenterData, HumanReviewDetail, HumanReviewProject, HumanReviewTraceStep } from '../types'
+
+const riskTerms = ['生产级', '稳定接入', '真实用户', '提升 Offer 率', '保证通过', '自动投递', '实时面试辅助']
+const compliancePrinciples = ['不输出 Offer 概率', '不做实时面试作弊', '不虚构真实客户', '不保存真实隐私', '不夸大模型能力']
+
+const traceEvidence: HumanReviewTraceStep[] = [
+  { label: 'JD Input', status: 'done', detail: '已解析岗位要求' },
+  { label: 'Resume Evidence', status: 'done', detail: '引用匿名化项目证据' },
+  { label: 'Provider fallback', status: 'done', detail: 'local-rule，无外部调用' },
+  { label: 'Schema Validate', status: 'done', detail: '结构校验通过' },
+  { label: 'Risk Guard', status: 'warning', detail: '命中风险词，需人工确认' },
+  { label: 'Human Review', status: 'current', detail: '复制前必须确认' },
+]
+
+function project(name: string, excerpt: string, sourceTypes: string[]): HumanReviewProject {
+  return { name, excerpt, sourceTypes }
+}
+
+function detail(
+  id: string,
+  group: string,
+  title: string,
+  sourcePage: string,
+  riskLevel: string,
+  providerMode: string,
+  traceId: string,
+  status: HumanReviewDetail['status'],
+  aiSuggestion: string,
+  jdSnippet: string,
+  resumeProjects: HumanReviewProject[],
+  evidenceNote: string,
+): HumanReviewDetail {
+  return {
+    id,
+    group,
+    title,
+    sourcePage,
+    riskLevel,
+    providerMode,
+    traceId,
+    status,
+    updatedAt: '2026-07-01 14:21',
+    reviewer: 'you@example.com',
+    humanNote: '需要把“生产级”改成“作品集级”，不要声称真实用户。',
+    aiSuggestion,
+    evidence: { jdSnippet, resumeProjects, evidenceNote },
+    riskTerms,
+    traceEvidence,
+    compliancePrinciples,
+    copyAllowed: status === 'Confirmed',
+    lastAction: '等待人工确认',
+  }
+}
+
+export const humanReviewDetailsFallback: Record<string, HumanReviewDetail> = {
+  'review-match-java-ai': detail(
+    'review-match-java-ai',
+    'high-risk',
+    '匹配报告：Java AI 应用开发实习生',
+    '匹配报告',
+    '高',
+    'local-rule',
+    'JD-042-REP-21F3',
+    'Draft',
+    'AI 建议候选材料匹配度高，已稳定接入真实用户场景，并能提升 Offer 率。建议突出 Spring Boot、RAG、MCP Tool Gateway 与自动投递效率。',
+    '熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；希望工程化项目有可验证截图、Trace 与人工复核。',
+    [
+      project('MCP Tool Gateway', 'Spring Boot 工具网关，包含注册、调用审计与 Trace 证据。', ['README', '后端测试', 'Trace']),
+      project('Enterprise Ticket RAG Copilot', '带引用和复核链路的 RAG 演示，仍缺少大规模离线评测。', ['README', '截图', 'Trace']),
+    ],
+    '多处措辞把作品集演示写成真实用户和结果承诺，需要人工改写。',
+  ),
+  'review-star-mcp': detail(
+    'review-star-mcp',
+    'pending',
+    'STAR 回答草稿：MCP Tool Gateway 项目深挖',
+    '面试准备',
+    '中',
+    'local-rule',
+    'JD-042-STAR-9E4D',
+    'Draft',
+    '在 MCP Tool Gateway 项目中，我主导了后端开发与 AI 集成，构建了生产级服务架构，已在真实用户场景中稳定接入使用，显著提升 Offer 率。系统支持自动投递简历与实时面试辅助，并保证通过各类基础测评。',
+    '熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；有 RAG、MCP 等相关实践优先。',
+    [
+      project('MCP Tool Gateway', '统一 Tool Registry、接口契约、异常处理与 Trace Evidence。', ['README', '后端测试', 'Trace']),
+      project('DevFlow Copilot', '任务拆解、Provider fallback、Schema Validate、Human Review。', ['README', '截图', 'Trace']),
+      project('Portfolio Hub', '作品集聚合与 Playwright 截图证据。', ['截图', 'GitHub Actions']),
+    ],
+    '未提供线上环境、真实用户或录取结果证据，STAR 回答必须降级为作品集级表述。',
+  ),
+  'review-opening-boss': detail(
+    'review-opening-boss',
+    'pending',
+    '开场白建议：Boss 直聘沟通',
+    '投递跟踪',
+    '低',
+    'OpenAI-compatible',
+    'JD-042-OPEN-3C9D',
+    'Draft',
+    '您好，我正在找 Java 后端 / AI 应用开发实习机会。我的作品集包含 Spring Boot、RAG 与 Human Review 演示，能提供 README、截图和 Trace 证据，方便您快速核验。',
+    'Java 后端实习生，要求 Spring Boot、接口开发、AI 应用实践；欢迎提供作品集或项目链接。',
+    [project('Portfolio Hub', '聚合项目截图、README 与构建记录。', ['截图', 'README', 'GitHub Actions'])],
+    '开场白未承诺结果，但需要保持礼貌和证据链接边界。',
+  ),
+  'review-risk-model': detail(
+    'review-risk-model',
+    'high-risk',
+    '风险提醒：真实模型能力表述',
+    'Provider 设置',
+    '高',
+    'DeepSeek',
+    'JD-042-RISK-7B1A',
+    'Draft',
+    '当前系统可稳定接入 DeepSeek 并提供生产级推理能力，适用于自动投递和实时面试辅助。',
+    'Provider 设置仅展示 local-rule / OpenAI-compatible / DeepSeek 模式，不在本轮发起真实调用。',
+    [project('Provider fallback', '未配置真实 Provider，所有结果均来自 mock/local-rule。', ['Trace', '配置说明'])],
+    'Provider 能力、自动投递和实时面试辅助均超出本轮边界。',
+  ),
+  'review-returned-devops': detail(
+    'review-returned-devops',
+    'returned',
+    '匹配报告：DevOps 工程师',
+    '匹配报告',
+    '中',
+    'local-rule',
+    'JD-042-REP-11A7',
+    'Returned',
+    '建议强调 CI / 部署经验，但不能把演示部署描述为生产 SLA。',
+    '关注 CI、部署、可观测和基础设施经验。',
+    [project('Portfolio Hub', 'GitHub Actions 和截图证据完整，生产运维证据不足。', ['GitHub Actions', '截图'])],
+    '已退回等待补充边界说明。',
+  ),
+  'review-confirmed-resume': detail(
+    'review-confirmed-resume',
+    'confirmed',
+    '简历亮点建议：多模态检索系统',
+    '简历证据库',
+    '低',
+    'DeepSeek',
+    'JD-039-HIL-5582',
+    'Confirmed',
+    '可以写为作品集级多模态检索演示，强调截图、README 与人工复核，不声明真实客户或生产流量。',
+    '候选材料可展示检索、引用、评估与复核链路。',
+    [project('Enterprise Ticket RAG Copilot', '匿名化演示数据，支持引用与 Trace。', ['README', 'Trace', '截图'])],
+    '已人工确认，允许复制。',
+  ),
+}
+
+export const humanReviewFallback: HumanReviewCenterData = {
+  mode: 'mock/local-rule',
+  pendingReviewCount: 12,
+  groups: [
+    { key: 'high-risk', label: '高风险', count: 2 },
+    { key: 'pending', label: '待确认', count: 2 },
+    { key: 'returned', label: '已退回', count: 1 },
+    { key: 'confirmed', label: '已确认', count: 1 },
+  ],
+  items: Object.values(humanReviewDetailsFallback).map((item) => ({
+    id: item.id,
+    group: item.group,
+    title: item.title,
+    sourcePage: item.sourcePage,
+    riskLevel: item.riskLevel,
+    providerMode: item.providerMode,
+    traceId: item.traceId,
+    status: item.status,
+    updatedAt: item.updatedAt,
+  })),
+  compliancePrinciples,
+}

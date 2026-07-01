@@ -2,6 +2,7 @@ package com.offerflow.copilot.api;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = OfferFlowCopilotApplication.class)
@@ -85,5 +87,55 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.items[0].level").value("强支撑"))
                 .andExpect(jsonPath("$.items[7].level").value("弱支撑"))
                 .andExpect(jsonPath("$.items[7].gap").value("仅有演示部署，不代表生产运维"));
+    }
+
+    @Test
+    void humanReviewCenterReturnsReviewQueue() throws Exception {
+        mockMvc.perform(get("/api/reviews"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.pendingReviewCount").value(12))
+                .andExpect(jsonPath("$.groups", hasSize(4)))
+                .andExpect(jsonPath("$.items", hasSize(6)))
+                .andExpect(jsonPath("$.items[0].title").value("匹配报告：Java AI 应用开发实习生"))
+                .andExpect(jsonPath("$.items[0].status").value("Draft"))
+                .andExpect(jsonPath("$.compliancePrinciples", hasSize(5)));
+    }
+
+    @Test
+    void humanReviewDetailKeepsDraftCopyLocked() throws Exception {
+        mockMvc.perform(get("/api/reviews/review-star-mcp"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Draft"))
+                .andExpect(jsonPath("$.copyAllowed").value(false))
+                .andExpect(jsonPath("$.riskTerms", hasSize(7)))
+                .andExpect(jsonPath("$.traceEvidence", hasSize(6)))
+                .andExpect(jsonPath("$.evidence.resumeProjects", hasSize(3)));
+    }
+
+    @Test
+    void humanReviewActionsReturnUpdatedState() throws Exception {
+        mockMvc.perform(post("/api/reviews/review-confirmed-resume/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"note\":\"人工确认后仅保留作品集级表述。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Confirmed"))
+                .andExpect(jsonPath("$.copyAllowed").value(true))
+                .andExpect(jsonPath("$.humanNote").value("人工确认后仅保留作品集级表述。"));
+
+        mockMvc.perform(post("/api/reviews/review-returned-devops/return")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"note\":\"需要补充部署证据边界。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("Returned"))
+                .andExpect(jsonPath("$.copyAllowed").value(false));
+
+        mockMvc.perform(post("/api/reviews/review-risk-model/flag-risk")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"note\":\"Provider 能力超出本轮边界。\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.riskLevel").value("高风险"))
+                .andExpect(jsonPath("$.status").value("Draft"))
+                .andExpect(jsonPath("$.copyAllowed").value(false));
     }
 }

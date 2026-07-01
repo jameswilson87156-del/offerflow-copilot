@@ -46,6 +46,24 @@ async function verifyEvidenceLibrary(page: Page) {
   expect(consoleErrors).toEqual([])
 }
 
+async function verifyHumanReview(page: Page) {
+  const consoleErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
+  })
+
+  await page.goto('/human-review')
+  await expect(page.getByRole('heading', { name: '人工复核中心' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '审核队列' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '人工复核操作' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Trace Evidence' })).toBeVisible()
+  await expect(page.getByRole('banner').getByText('12 个待复核', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'STAR 回答草稿：MCP Tool Gateway 项目深挖' })).toBeVisible()
+  await expect(page.locator('.risk-highlight')).toHaveCount(7)
+  await expectNoHorizontalOverflow(page)
+  expect(consoleErrors).toEqual([])
+}
+
 test('captures 1440 JD workbench', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await verifyJdWorkbench(page)
@@ -70,8 +88,21 @@ test('captures 1920 evidence library', async ({ page }) => {
   await page.screenshot({ path: path.join(docsDir, 'large/offerflow-evidence-library.png'), fullPage: true })
 })
 
-test('both routes avoid horizontal overflow at 1366 by 768', async ({ page }) => {
+test('captures 1440 human review center', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await verifyHumanReview(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-human-review.png'), fullPage: true })
+})
+
+test('captures 1920 human review center', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  await verifyHumanReview(page)
+  await page.screenshot({ path: path.join(docsDir, 'large/offerflow-human-review.png'), fullPage: true })
+})
+
+test('routes avoid horizontal overflow at 1366 by 768', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 })
   await verifyJdWorkbench(page)
   await verifyEvidenceLibrary(page)
+  await verifyHumanReview(page)
 })

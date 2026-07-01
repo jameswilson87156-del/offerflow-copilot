@@ -117,3 +117,61 @@ export interface EvidenceCoverageData {
   items: CoverageItem[]
   note: string
 }
+
+export type HumanReviewStatus = 'Draft' | 'Returned' | 'Confirmed'
+
+export interface HumanReviewGroup {
+  key: string
+  label: string
+  count: number
+}
+
+export interface HumanReviewSummary {
+  id: string
+  group: string
+  title: string
+  sourcePage: string
+  riskLevel: string
+  providerMode: string
+  traceId: string
+  status: HumanReviewStatus
+  updatedAt: string
+}
+
+export interface HumanReviewProject {
+  name: string
+  excerpt: string
+  sourceTypes: string[]
+}
+
+export interface HumanReviewEvidence {
+  jdSnippet: string
+  resumeProjects: HumanReviewProject[]
+  evidenceNote: string
+}
+
+export interface HumanReviewTraceStep {
+  label: string
+  status: 'done' | 'warning' | 'current'
+  detail: string
+}
+
+export interface HumanReviewDetail extends HumanReviewSummary {
+  reviewer: string
+  humanNote: string
+  aiSuggestion: string
+  evidence: HumanReviewEvidence
+  riskTerms: string[]
+  traceEvidence: HumanReviewTraceStep[]
+  compliancePrinciples: string[]
+  copyAllowed: boolean
+  lastAction: string
+}
+
+export interface HumanReviewCenterData {
+  mode: string
+  pendingReviewCount: number
+  groups: HumanReviewGroup[]
+  items: HumanReviewSummary[]
+  compliancePrinciples: string[]
+}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bell, CheckCircle2, ChevronDown, Search } from 'lucide-vue-next'
+import { Bell, CheckCircle2, ChevronDown, ClipboardCheck, Search } from 'lucide-vue-next'
 
 const props = defineProps<{
   searchQuery: string
@@ -7,6 +7,8 @@ const props = defineProps<{
   source: 'api' | 'fallback'
   statusLabel: string
   statusTone: 'draft' | 'ready'
+  searchPlaceholder?: string
+  reviewStatusLabel?: string
 }>()
 
 const emit = defineEmits<{
@@ -24,8 +26,8 @@ const providers = ['local-rule', 'OpenAI-compatible', 'DeepSeek']
       <input
         :value="props.searchQuery"
         type="search"
-        placeholder="搜索岗位、项目、技能或证据来源"
-        aria-label="搜索岗位、项目、技能或证据来源"
+        :placeholder="props.searchPlaceholder ?? '搜索岗位、项目、技能或证据来源'"
+        :aria-label="props.searchPlaceholder ?? '搜索岗位、项目、技能或证据来源'"
         @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
       />
       <kbd>⌘ K</kbd>
@@ -49,6 +51,10 @@ const providers = ['local-rule', 'OpenAI-compatible', 'DeepSeek']
       <span class="source-pill" :class="props.source">
         <span class="pulse-dot" />
         {{ props.source === 'api' ? '本地 API' : '演示快照' }}
+      </span>
+      <span v-if="props.reviewStatusLabel" class="review-count-pill">
+        <ClipboardCheck :size="13" />
+        {{ props.reviewStatusLabel }}
       </span>
       <span class="page-status-pill" :class="props.statusTone">
         <CheckCircle2 v-if="props.statusTone === 'ready'" :size="13" />

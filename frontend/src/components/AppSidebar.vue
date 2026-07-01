@@ -21,7 +21,7 @@ const navigation = [
   { label: '面试准备', icon: MessageSquareText },
   { label: '投递跟踪', icon: BriefcaseBusiness },
   { label: '证据链', icon: GitBranch },
-  { label: '人工复核', icon: ClipboardCheck, count: 2 },
+  { label: '人工复核', icon: ClipboardCheck, to: '/human-review', count: 12 },
 ]
 </script>
 
