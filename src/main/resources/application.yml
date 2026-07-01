@@ -12,8 +12,17 @@ spring:
       path: /h2-console
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
+      mode: never
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    clean-disabled: true
+
+offerflow:
+  persistence:
+    seed-demo-data: true
 
 mybatis-plus:
   configuration:

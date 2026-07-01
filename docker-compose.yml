@@ -1,0 +1,26 @@
+services:
+  mysql:
+    image: mysql:8
+    container_name: offerflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: offerflow
+      MYSQL_USER: offerflow
+      MYSQL_PASSWORD: offerflow_dev_password
+      MYSQL_ROOT_PASSWORD: offerflow_root_password
+    ports:
+      - "${OFFERFLOW_MYSQL_PORT:-3306}:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+    volumes:
+      - offerflow_mysql_data:/var/lib/mysql
+
+volumes:
+  offerflow_mysql_data:

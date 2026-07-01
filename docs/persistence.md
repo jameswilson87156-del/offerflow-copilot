@@ -2,7 +2,9 @@
 
 ## 当前状态
 
-P3F 使用 H2 in-memory 数据库作为本地 demo/test persistence。应用启动时执行 `schema.sql` 建表，并由 `PersistenceSeedService` 在空表中插入脱敏 seed demo 数据。重复调用 seed 不会重复插入已有数据。
+P4A 使用 Flyway 统一管理 H2 与 MySQL schema。默认 demo 和 test profile 使用 H2 in-memory；本地开发也可显式启用 `mysql` profile。应用先执行 `db/migration/V1__init_offerflow_schema.sql`，再由 `PersistenceSeedService` 对空表插入脱敏 seed demo 数据。重复启动不会重复 migration，也不会重复插入已有 seed。
+
+原 `src/main/resources/schema.sql` 保留为历史 fallback 参考，但 `spring.sql.init.mode=never`，默认、test 和 mysql profile 都不会再自动执行它，避免与 Flyway 重复建表。
 
 当前数据仍然是 `mock/local-rule` 演示数据，不是真实招聘数据，也不代表真实 Provider 能力。
 
@@ -218,7 +220,7 @@ P3F 新增或扩展的 `match_report_audit_event.action` 包括：
 
 ## MySQL Profile
 
-`application-mysql.yml` 保留 MySQL datasource 配置，供后续切换使用。本轮不要求连接真实 MySQL，也不提供真实账号、密码或 API Key。
+`application-mysql.yml` 提供可运行的本地 MySQL datasource 配置。先用 `docker compose up -d mysql` 启动 MySQL 8，再启用 profile：
 
 示例：
 
@@ -226,7 +228,7 @@ P3F 新增或扩展的 `match_report_audit_event.action` 包括：
 mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 ```
 
-使用 MySQL 前需要先提供独立 migration、备份、脱敏、删除策略和权限模型。
+默认本地 database/user 是 `offerflow`，默认密码是公开的开发演示密码；可通过 `OFFERFLOW_DB_URL`、`OFFERFLOW_DB_USERNAME`、`OFFERFLOW_DB_PASSWORD` 覆盖。该 profile 和 Docker Compose 不是生产部署声明，不包含生产级备份、密钥管理、权限模型、脱敏或删除策略。详见 [database-migration.md](database-migration.md) 与 [local-mysql.md](local-mysql.md)。
 
 ## JSON 字段
 

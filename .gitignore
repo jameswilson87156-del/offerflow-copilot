@@ -2,6 +2,7 @@
 target/
 *.class
 *.log
+logs/
 
 # Node / Vite
 node_modules/
@@ -28,8 +29,11 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
+mysql-data/
+.mysql-data/
+.mysql-run/
+.docker-data/
 
 # Playwright browser artifacts (keep curated docs/images screenshots)
 frontend/test-results/
 frontend/playwright-report/
-

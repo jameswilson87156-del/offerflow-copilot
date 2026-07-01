@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
         properties = "spring.datasource.url=jdbc:h2:mem:offerflow-api;MODE=MySQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=0;DB_CLOSE_ON_EXIT=false")
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
+@ActiveProfiles("test")
 class OfferFlowApiTest {
 
     @Autowired

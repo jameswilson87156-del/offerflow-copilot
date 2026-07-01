@@ -2,13 +2,13 @@
 
 ## 当前交付
 
-P3G 已完成 Audit UX & Archived Readonly Polish。P3F 的 Match Report Review Sync 状态机保持不变；本轮只补审计详情、copy-check 历史结构和前端只读边界。
+P4A 已完成 Flyway Migration + MySQL/H2 Compatibility + Docker Compose。P3G 的页面、接口、审计和只读状态保持不变；本轮只收口数据库 migration、本地 MySQL 启动与兼容验证。
 
 Match Report、Human Review、Evidence Library 的审计事件均可卡内展开，展示 action、状态变化、actor/role、human note、trace、changed fields 和时间。copy-check 的 `allowed`、reason、version status、Human Review status 和 Boundary Notice 会随 `COPY_ENABLED` / `COPY_BLOCKED` 保存在 `match_report_audit_event`。
 
 只有 `CONFIRMED` 后才允许复制确认版摘要；`ARCHIVED` 是只读归档状态，不能送审。Evidence Archived 仅保留 restore，结束态 Human Review 禁用动作并展示原因；Returned / Risk Flagged / Archived 统一使用只读视觉提示。
 
-P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human Review Audit Trail 仍然保留。核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
+所有 15 张业务表由 `db/migration/V1__init_offerflow_schema.sql` 建立。默认/test 使用 H2，`mysql` profile 可连接本地 MySQL 8；Flyway 完成后才运行 count-guarded demo seed。核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
 
 ## 启动顺序
 
@@ -16,7 +16,7 @@ P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human R
 2. `frontend` 目录执行 `npm install && npm run dev`。
 3. 打开 `http://localhost:5173`。
 
-默认 H2 in-memory 数据库会在启动时建表并 seed 脱敏 demo 数据。重复启动或重复调用 seed 不会重复插入已有表数据。
+默认 H2 in-memory 数据库由 Flyway 建表并 seed 脱敏 demo 数据。重复启动或重复调用 seed 不会重复插入已有表数据。本地 MySQL 可执行 `docker compose up -d mysql` 后，以 `mvn spring-boot:run -Dspring-boot.run.profiles=mysql` 启动；结束后执行 `docker compose stop mysql`，named volume 会保留。
 
 ## 关键约定
 
@@ -44,7 +44,9 @@ P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human R
 - 新增审计表为 `human_review_audit_event`，由 `HumanReviewService` 在状态变更事务内写入。
 - `GET /api/reviews/{id}` 已包含 `auditTrail`，也可通过 `GET /api/reviews/{id}/audit-events` 单独读取。
 - POST action request 支持 `actor`、`actorRole`、`humanNote`；当前 actor 是 demo user，不是生产鉴权。
-- H2 是本地 demo/test persistence；`mysql` profile 仅保留后续可切换配置，本轮不连接真实 MySQL。
+- Flyway 是 schema 唯一自动初始化入口；默认、test、mysql profile 均设置 `spring.sql.init.mode=never`。
+- `schema.sql` 仅保留为历史 fallback 参考，不自动执行，避免与 Flyway 重复建表。
+- H2 是默认 demo/test persistence；`mysql` profile 与 `docker-compose.yml` 仅用于本地开发/演示，不是生产部署声明。
 - Provider 状态必须如实展示，不能把 fallback 描述为真实 LLM。
 - 不保存 API Key 明文，不保存真实隐私，不接招聘平台 API，不爬虫。
 
@@ -52,6 +54,7 @@ P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human R
 
 - 后端覆盖 COPY_ENABLED / COPY_BLOCKED 结构化详情、Archived send-to-review block、Archived copy block、restore to Draft 和审计详情字段。
 - 前端覆盖 Match Report、Human Review、Evidence Library 的 1366x768、1440x900、1920x1080 截图与横向溢出检查。
-- `mvn test`：55 tests，0 failures / errors。
+- `mvn test`：56 tests，0 failures / errors；包含 Flyway history 与关键表存在性检查。
 - `npm run build`：Vue TypeScript 与 Vite production build 通过。
 - `npm run screenshots`：18 tests 通过。
+- MySQL smoke：MySQL 8 上 V1 migration 成功，15 张业务表存在；连续两次后端启动的 seed 计数稳定。

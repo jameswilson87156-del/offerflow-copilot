@@ -1,6 +1,6 @@
 # 架构说明
 
-## P3F 结构
+## P4A 结构
 
 ```text
 Vue 3 Workbench
@@ -11,6 +11,7 @@ Vue 3 Workbench
           |
           v
 Spring Boot 3
+  |-- Flyway（应用数据访问前验证并迁移 schema）
   |-- Controllers（保持前端响应结构兼容）
   |-- Services（组合 local-rule 语义、数据库读取和状态流转）
   |-- Repositories（MyBatis-Plus BaseMapper 封装）
@@ -18,7 +19,7 @@ Spring Boot 3
   |-- PersistenceSeedService（空库 seed 脱敏 demo）
           |
           v
-H2 demo persistence
+H2 demo/test 或本地 MySQL 8 persistence
   |-- resume_evidence
   |-- resume_evidence_audit_event
   |-- job_post
@@ -98,8 +99,10 @@ P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 
 
 ## 设计取舍
 
-- H2 用于本地 demo/test，避免引入真实用户数据和外部依赖。
-- MySQL profile 只保留可切换配置，不在本阶段连接真实 MySQL。
+- H2 继续作为默认 demo/test 数据库，避免默认启动依赖 Docker 或真实外部服务。
+- Flyway 是 H2/MySQL 的统一 schema source of truth；初始化顺序为 Flyway migration -> MyBatis-Plus repository 可用 -> `PersistenceSeedService` 空表 seed。
+- `schema.sql` 不再自动执行，只保留作历史 fallback 参考，避免两套初始化同时建表。
+- MySQL 8 profile 与 Docker Compose 仅用于本地开发/演示；不代表生产部署、备份、权限或密钥管理已经完成。
 - 响应层继续使用 Java record，数据库 entity 与 API DTO 分离，便于后续审计、权限和状态机扩展。
 - JSON 字段暂存为 `TEXT`，由 `JsonCodec` 管理；审计事件先用结构化列保存关键字段，便于后续查询。
 - Provider 设置和 Dashboard 暂时仍为组合 service；核心 JD Intake、证据、复核、Trace、报告版本、面试准备和投递跟踪已优先读库。

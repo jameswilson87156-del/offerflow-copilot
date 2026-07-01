@@ -25,14 +25,18 @@ import com.offerflow.copilot.persistence.repository.ProviderTraceRunRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceAuditEventRepository;
 import com.offerflow.copilot.persistence.repository.ResumeEvidenceRepository;
 import com.offerflow.copilot.persistence.repository.TraceStepRepository;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest(classes = OfferFlowCopilotApplication.class)
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class PersistenceFoundationTest {
 
     @Autowired
@@ -88,6 +92,30 @@ class PersistenceFoundationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private Flyway flyway;
+
+    @Test
+    void flywayCreatesCoreSchemaAndRecordsMigrationHistory() {
+        List<String> tables = jdbcTemplate.queryForList(
+                "SELECT LOWER(TABLE_NAME) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'PUBLIC'",
+                String.class);
+
+        assertThat(tables).contains(
+                "job_post",
+                "resume_evidence",
+                "match_report_version",
+                "human_review_item",
+                "match_report_audit_event",
+                "flyway_schema_history");
+        assertThat(flyway.info().current()).isNotNull();
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(flyway.info().applied()).hasSize(1);
+    }
 
     @Test
     void seedOnEmptyCreatesDemoPersistenceRows() {

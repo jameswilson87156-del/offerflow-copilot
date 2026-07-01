@@ -1,12 +1,19 @@
 spring:
   datasource:
-    url: ${OFFERFLOW_MYSQL_URL:jdbc:mysql://localhost:3306/offerflow_copilot?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    url: ${OFFERFLOW_DB_URL:${OFFERFLOW_MYSQL_URL:jdbc:mysql://localhost:3306/offerflow?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false}}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${OFFERFLOW_MYSQL_USER:offerflow}
-    password: ${OFFERFLOW_MYSQL_PASSWORD:}
+    username: ${OFFERFLOW_DB_USERNAME:${OFFERFLOW_MYSQL_USER:offerflow}}
+    password: ${OFFERFLOW_DB_PASSWORD:${OFFERFLOW_MYSQL_PASSWORD:offerflow_dev_password}}
   sql:
     init:
       mode: never
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    connect-retries: 10
+    baseline-on-migrate: false
+    validate-on-migrate: true
+    clean-disabled: true
 
 offerflow:
   persistence:

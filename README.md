@@ -2,9 +2,9 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P3G Audit UX & Archived Readonly Polish
+## 当前阶段：P4A Flyway Migration + MySQL/H2 Compatibility
 
-当前版本在 P3F 匹配报告与 Human Review 双向同步基础上，完成 P3G 审计交互与归档只读态收口。Match Report、Human Review、Evidence Library 的单条审计事件都可在卡片内展开；状态标签统一为草稿、复核中、已确认、已退回、风险标记和已归档。
+当前版本保留 P3G 的完整产品闭环，并将数据库初始化从开发期 `schema.sql` 升级为 Flyway migration。默认和测试环境仍使用 H2；`mysql` profile 与 `docker-compose.yml` 用于本地 MySQL 8 开发/演示。两种数据库均执行同一份 V1 migration，之后才运行空表 seed。
 
 匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。每次 copy-check 都会写入 `COPY_ENABLED` 或 `COPY_BLOCKED`，并保留许可结果、原因、版本状态、Human Review 状态和 Boundary Notice。`ARCHIVED` 是只读归档状态，不能送审；当前 actor 仍是 demo user，当前仍不是生产级权限系统。
 
@@ -21,8 +21,8 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 
 ## 技术栈
 
-- 后端：Java 17、Spring Boot 3、MyBatis-Plus、H2、Maven
-- 数据库：默认 H2 in-memory demo；`mysql` profile 仅保留后续切换配置，本轮不连接真实 MySQL
+- 后端：Java 17、Spring Boot 3、MyBatis-Plus、Flyway、H2/MySQL、Maven
+- 数据库：默认 H2 in-memory demo；`mysql` profile + Docker Compose 仅用于本地开发/演示，不是生产部署方案
 - 前端：Vue 3、Vite、TypeScript、原生 CSS
 - 截图：Playwright
 
@@ -98,6 +98,16 @@ npm run dev
 
 默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
 
+Schema 统一由 `src/main/resources/db/migration` 下的 Flyway migration 管理，`schema.sql` 仅作为未启用的历史 fallback 参考，不再由默认、test 或 mysql profile 自动执行。启动本地 MySQL：
+
+```bash
+docker compose up -d mysql
+mvn spring-boot:run -Dspring-boot.run.profiles=mysql
+docker compose stop mysql
+```
+
+默认本地凭据仅供 demo 使用，可通过 `OFFERFLOW_DB_URL`、`OFFERFLOW_DB_USERNAME`、`OFFERFLOW_DB_PASSWORD` 覆盖。完整说明见 [docs/database-migration.md](docs/database-migration.md) 和 [docs/local-mysql.md](docs/local-mysql.md)。不要提交 `.env`、真实凭据、API Key 或真实招聘隐私数据。
+
 ## 验收
 
 ```bash
@@ -108,4 +118,4 @@ npm run screenshots
 git diff --check
 ```
 
-更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md)、[docs/match-report-review-sync.md](docs/match-report-review-sync.md) 和 [docs/design/README.md](docs/design/README.md)。
+更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。

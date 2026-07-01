@@ -14,6 +14,7 @@
 - 持久化保存 demo 简历证据状态和审计事件，展示证据维护、确认、归档和恢复历史。
 - Human Review 对 MATCH_REPORT 的 confirm、return、flag-risk 可以同步更新关联匹配报告版本状态，并保留匹配报告审计事件。
 - Match Report、Human Review、Evidence Library 的审计事件允许在本地页面展开查看；copy-check 结果会作为审计历史保留。
+- 允许使用 Flyway 管理 H2/MySQL 共用 schema，并用 Docker Compose 启动仅供本地开发/演示的 MySQL 8。
 
 ## 明确不做
 
@@ -26,6 +27,7 @@
 - 不计算 Offer/录取概率，不保证通过。
 - 不宣称生产级招聘系统、真实客户、真实流量或商业数据。
 - 不将规则 fallback 包装成真实 LLM 能力。
+- 不将本地 MySQL profile 或 Docker Compose 描述为生产部署；不在仓库保存 `.env`、真实数据库凭据、API Key 或数据库数据目录。
 
 ## 人工复核原则
 

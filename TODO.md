@@ -15,9 +15,9 @@
 - [x] P3E：基于 JD parse version 与 evidence binding 生成可版本化 Match Report，并进入 Human Review
 - [x] P3F：Match Report 与 Human Review 双向状态同步、复制许可检查、恢复与归档闭环
 - [x] P3G：三处 Audit Trail 卡内展开、copy-check 结构化历史、状态标签与 Archived 只读视觉态统一
+- [x] P4A：Flyway V1 migration、H2/MySQL schema 兼容验证、本地 MySQL 8 Docker Compose 与启动文档
 
 ## 下一阶段候选
 
-- [ ] P4A：增加 Flyway/MySQL migration、schema 兼容验证和本地 Docker Compose 示例
-- [ ] 引入 Provider SPI、超时、审计与失败回退；仍需显式配置后才允许沙箱调用
+- [ ] P4B：抽象 Provider SPI、超时、审计与失败回退；默认继续 local-rule，不配置时禁止外部调用
 - [ ] 增加 service 层单元测试、前端组件测试和无障碍自动检查
