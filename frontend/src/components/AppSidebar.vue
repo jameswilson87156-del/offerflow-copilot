@@ -63,10 +63,10 @@ const navigation = [
     </nav>
 
     <div class="sidebar-footer">
-      <button class="nav-item pending-nav" type="button" title="Provider 设置将在后续阶段开放" disabled>
+      <RouterLink to="/provider-settings" class="nav-item" active-class="active" title="Provider 设置与证据链">
         <Settings2 :size="18" :stroke-width="1.8" />
         <span>Provider 设置</span>
-      </button>
+      </RouterLink>
       <div class="local-boundary">
         <span class="pulse-dot" />
         <div>

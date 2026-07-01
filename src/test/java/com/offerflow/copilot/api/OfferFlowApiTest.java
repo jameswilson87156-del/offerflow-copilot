@@ -41,6 +41,47 @@ class OfferFlowApiTest {
     }
 
     @Test
+    void providerSettingsExposeFallbackBoundaryWithoutKeys() throws Exception {
+        mockMvc.perform(get("/api/provider/settings"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.currentStatus").value("local-rule fallback active"))
+                .andExpect(jsonPath("$.providers", hasSize(3)))
+                .andExpect(jsonPath("$.providers[0].name").value("local-rule fallback"))
+                .andExpect(jsonPath("$.providers[0].realCallEnabled").value(false))
+                .andExpect(jsonPath("$.providers[1].status").value("Not configured"))
+                .andExpect(jsonPath("$.providers[1].apiKeyStatus").value("masked / not configured"))
+                .andExpect(jsonPath("$.providers[2].status").value("Not configured"))
+                .andExpect(jsonPath("$.providers[2].realCallEnabled").value(false))
+                .andExpect(jsonPath("$.safetyBoundaries", hasSize(5)));
+    }
+
+    @Test
+    void providerTracesReturnMockRunIndex() throws Exception {
+        mockMvc.perform(get("/api/provider/traces"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("mock/local-rule"))
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].runId").value("JD-20260701-143522-9E4D"))
+                .andExpect(jsonPath("$.items[0].finalProvider").value("local-rule fallback"))
+                .andExpect(jsonPath("$.items[0].humanReviewStatus").value("待人工确认"));
+    }
+
+    @Test
+    void providerTraceDetailExplainsFallbackAndEvidence() throws Exception {
+        mockMvc.perform(get("/api/provider/traces/JD-20260701-143522-9E4D"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.runId").value("JD-20260701-143522-9E4D"))
+                .andExpect(jsonPath("$.finalProvider").value("local-rule fallback"))
+                .andExpect(jsonPath("$.model").value("local-rule-engine v2.1"))
+                .andExpect(jsonPath("$.riskFlags", hasSize(2)))
+                .andExpect(jsonPath("$.pipeline", hasSize(10)))
+                .andExpect(jsonPath("$.pipeline[3].status").value("fallback"))
+                .andExpect(jsonPath("$.evidenceDetail.resumeEvidence", hasSize(3)))
+                .andExpect(jsonPath("$.technicalTags", hasSize(10)));
+    }
+
+    @Test
     void dashboardReturnsDemoCounts() throws Exception {
         mockMvc.perform(get("/api/dashboard/summary"))
                 .andExpect(status().isOk())

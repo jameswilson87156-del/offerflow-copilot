@@ -175,3 +175,95 @@ export interface HumanReviewCenterData {
   items: HumanReviewSummary[]
   compliancePrinciples: string[]
 }
+
+export type ProviderTraceStepStatus = 'success' | 'fallback' | 'warning'
+
+export interface ProviderCard {
+  id: string
+  name: string
+  status: string
+  baseUrlStatus: string
+  model: string
+  timeout: string
+  lastRun: string
+  fallbackPolicy: string
+  boundaryNotice: string
+  realCallEnabled: boolean
+  rawResponseSave: string
+  apiKeyStatus: string
+}
+
+export interface SafetyBoundary {
+  title: string
+  description: string
+  tone: string
+}
+
+export interface ProviderSettingsData {
+  mode: string
+  currentStatus: string
+  providers: ProviderCard[]
+  safetyBoundaries: SafetyBoundary[]
+}
+
+export interface ProviderTraceSummary {
+  runId: string
+  jobTitle: string
+  providerMode: string
+  finalProvider: string
+  status: string
+  startedAt: string
+  duration: string
+  evidenceCount: number
+  humanReviewStatus: string
+}
+
+export interface ProviderTraceIndex {
+  mode: string
+  currentStatus: string
+  items: ProviderTraceSummary[]
+}
+
+export interface ProviderPipelineStep {
+  key: string
+  label: string
+  status: ProviderTraceStepStatus
+  duration: string
+  inputSummary: string
+  outputSummary: string
+  linkedEvidence: string
+}
+
+export interface ProviderResumeEvidenceRef {
+  id: string
+  title: string
+  excerpt: string
+  sources: string[]
+}
+
+export interface ProviderTraceEvidenceDetail {
+  jdSnippet: string
+  resumeEvidence: ProviderResumeEvidenceRef[]
+  jsonSummary: string
+  fallbackReason: string
+  humanNote: string
+}
+
+export interface ProviderTraceRun {
+  runId: string
+  jobTitle: string
+  providerMode: string
+  finalProvider: string
+  model: string
+  fallbackReason: string
+  promptVersion: string
+  schemaVersion: string
+  riskFlags: string[]
+  evidenceCount: number
+  humanReviewStatus: string
+  duration: string
+  traceHash: string
+  pipeline: ProviderPipelineStep[]
+  evidenceDetail: ProviderTraceEvidenceDetail
+  technicalTags: string[]
+}

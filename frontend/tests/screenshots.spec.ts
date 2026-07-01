@@ -64,6 +64,26 @@ async function verifyHumanReview(page: Page) {
   expect(consoleErrors).toEqual([])
 }
 
+async function verifyProviderTrace(page: Page) {
+  const consoleErrors: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push(message.text())
+  })
+
+  await page.goto('/provider-settings')
+  await expect(page.getByRole('heading', { name: 'Provider 设置与证据链' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Provider 状态' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '安全边界' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Trace Timeline / Run Pipeline' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Run Details' })).toBeVisible()
+  await expect(page.getByText('local-rule fallback active', { exact: true }).first()).toBeVisible()
+  await expect(page.locator('.provider-card')).toHaveCount(3)
+  await expect(page.locator('.pipeline-step')).toHaveCount(10)
+  await expect(page.getByText('OpenAI-compatible 与 DeepSeek 均未配置')).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  expect(consoleErrors).toEqual([])
+}
+
 test('captures 1440 JD workbench', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await verifyJdWorkbench(page)
@@ -100,9 +120,22 @@ test('captures 1920 human review center', async ({ page }) => {
   await page.screenshot({ path: path.join(docsDir, 'large/offerflow-human-review.png'), fullPage: true })
 })
 
+test('captures 1440 provider trace settings', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await verifyProviderTrace(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-provider-trace.png'), fullPage: true })
+})
+
+test('captures 1920 provider trace settings', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 })
+  await verifyProviderTrace(page)
+  await page.screenshot({ path: path.join(docsDir, 'large/offerflow-provider-trace.png'), fullPage: true })
+})
+
 test('routes avoid horizontal overflow at 1366 by 768', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 })
   await verifyJdWorkbench(page)
   await verifyEvidenceLibrary(page)
   await verifyHumanReview(page)
+  await verifyProviderTrace(page)
 })
