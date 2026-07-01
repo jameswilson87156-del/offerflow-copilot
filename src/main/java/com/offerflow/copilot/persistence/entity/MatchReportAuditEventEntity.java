@@ -19,6 +19,11 @@ public class MatchReportAuditEventEntity {
     private String changedFieldsJson;
     private String humanNote;
     private String traceId;
+    private Boolean copyAllowed;
+    private String copyReason;
+    private String versionStatus;
+    private String humanReviewStatus;
+    private String boundaryNotice;
     private LocalDateTime createdAt;
 
     public String getId() {
@@ -99,6 +104,46 @@ public class MatchReportAuditEventEntity {
 
     public void setTraceId(String traceId) {
         this.traceId = traceId;
+    }
+
+    public Boolean getCopyAllowed() {
+        return copyAllowed;
+    }
+
+    public void setCopyAllowed(Boolean copyAllowed) {
+        this.copyAllowed = copyAllowed;
+    }
+
+    public String getCopyReason() {
+        return copyReason;
+    }
+
+    public void setCopyReason(String copyReason) {
+        this.copyReason = copyReason;
+    }
+
+    public String getVersionStatus() {
+        return versionStatus;
+    }
+
+    public void setVersionStatus(String versionStatus) {
+        this.versionStatus = versionStatus;
+    }
+
+    public String getHumanReviewStatus() {
+        return humanReviewStatus;
+    }
+
+    public void setHumanReviewStatus(String humanReviewStatus) {
+        this.humanReviewStatus = humanReviewStatus;
+    }
+
+    public String getBoundaryNotice() {
+        return boundaryNotice;
+    }
+
+    public void setBoundaryNotice(String boundaryNotice) {
+        this.boundaryNotice = boundaryNotice;
     }
 
     public LocalDateTime getCreatedAt() {

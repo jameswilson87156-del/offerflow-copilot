@@ -1,6 +1,7 @@
 import { onMounted, shallowRef } from 'vue'
 import { matchReportFallback } from '../data/workflow'
 import type { MatchReportAuditEvent, MatchReportCopyCheck, MatchReportData, MatchReportVersionSummary } from '../types'
+import { statusLabel } from '../utils/status'
 
 const COPY_BOUNDARY_NOTICE = '匹配报告只有 Confirmed 后才允许复制使用；Human Review 是正式使用前的安全门。当前 scoring 是 local-rule，不做录用结果预测，也不承诺 Offer 结果。'
 
@@ -79,7 +80,7 @@ function deriveCopyCheck(detail: MatchReportData): MatchReportCopyCheck {
 function confirmedSummaryText(detail: MatchReportData) {
   return [
     `匹配报告 v${detail.versionNo} · ${detail.summary.jobTitle}`,
-    `状态：${detail.status} / Human Review: ${detail.humanReviewStatus}`,
+    `状态：${statusLabel(detail.status)} / Human Review: ${statusLabel(detail.humanReviewStatus)}`,
     `综合匹配得分：${detail.summary.totalScore}/${detail.summary.maximumScore}`,
     `推荐简历版本：${detail.summary.recommendedResumeVersions.join('、')}`,
     `Trace ID：${detail.traceId}`,

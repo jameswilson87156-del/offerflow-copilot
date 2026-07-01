@@ -2,9 +2,11 @@
 
 ## 当前交付
 
-P3F 已完成 Match Report Review Sync。匹配报告现在基于当前最新 `jd_parse_version` 与 `jd_evidence_binding` 生成 `match_report_version`，每次生成形成一个独立 version，默认 `DRAFT`，写入 `match_report_audit_event`，并创建或关联 `MATCH_REPORT` 类型的 `human_review_item`。
+P3G 已完成 Audit UX & Archived Readonly Polish。P3F 的 Match Report Review Sync 状态机保持不变；本轮只补审计详情、copy-check 历史结构和前端只读边界。
 
-P3F 在 P3E 基础上建立了闭环：Human Review confirm / return / flag-risk 会同步更新关联的 `match_report_version` 状态，并写入 `match_report_audit_event`。报告只有 `CONFIRMED` 后才允许复制确认版摘要；`DRAFT`、`IN_REVIEW`、`RETURNED`、`RISK_FLAGGED`、`ARCHIVED` 都不可作为正式建议使用。
+Match Report、Human Review、Evidence Library 的审计事件均可卡内展开，展示 action、状态变化、actor/role、human note、trace、changed fields 和时间。copy-check 的 `allowed`、reason、version status、Human Review status 和 Boundary Notice 会随 `COPY_ENABLED` / `COPY_BLOCKED` 保存在 `match_report_audit_event`。
+
+只有 `CONFIRMED` 后才允许复制确认版摘要；`ARCHIVED` 是只读归档状态，不能送审。Evidence Archived 仅保留 restore，结束态 Human Review 禁用动作并展示原因；Returned / Risk Flagged / Archived 统一使用只读视觉提示。
 
 P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human Review Audit Trail 仍然保留。核心数据仍是脱敏 seed demo data，接口语义仍是 `mock/local-rule`。本轮没有接真实 LLM、DeepSeek、中转站、招聘平台 API 或爬虫，也没有保存 API Key 或真实隐私。
 
@@ -31,6 +33,8 @@ P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human R
 - `POST /api/match-reports/{versionId}/send-to-review` 和 `/archive` 会更新版本状态并写入 match report audit event。
 - `POST /api/match-reports/{versionId}/restore` 会把 `ARCHIVED`、`RETURNED` 或 `RISK_FLAGGED` 版本恢复到 `DRAFT`，并写入 `RESTORE_VERSION` audit event。
 - `POST /api/match-reports/{versionId}/copy-check` 会按版本状态返回复制许可，并写入 `COPY_ENABLED` 或 `COPY_BLOCKED` audit event。
+- copy-check audit event 额外保存 `copy_allowed`、`copy_reason`、`version_status`、`human_review_status` 和 `boundary_notice`，供前端展开查看历史。
+- 三处 Audit Trail 共用 `AuditEventDisclosure` 组件；状态文案共用 `utils/status.ts`，避免页面间颜色和翻译漂移。
 - `HumanReviewService` 对 MATCH_REPORT review item 执行 confirm / return / flag-risk 时，会同步写入 `HUMAN_REVIEW_CONFIRMED`、`HUMAN_REVIEW_RETURNED` 或 `HUMAN_REVIEW_FLAGGED_RISK` 到 `match_report_audit_event`。
 - `ARCHIVED` 版本只读，不能再次 send-to-review；可以 restore 后回到 Draft。
 - 当前 scoring 是 deterministic local-rule，不是 Offer 概率、录取概率或真实 LLM 推理。
@@ -44,8 +48,10 @@ P3D Structured JD Intake、P3C Resume Evidence Editable Workflow 和 P3B Human R
 - Provider 状态必须如实展示，不能把 fallback 描述为真实 LLM。
 - 不保存 API Key 明文，不保存真实隐私，不接招聘平台 API，不爬虫。
 
-## 已验证
+## 验收范围
 
-- `mvn test`：P3F 要求全部通过，包含原有 47 个测试与新增 Match Report / Human Review 同步、copy-check、restore、archived send-to-review block 覆盖。
-- `npm run build`：P3F 前端状态与复制许可区通过构建。
-- `npm run screenshots`：刷新 Match Report 与 Human Review 等页面截图，保留其它页面截图。
+- 后端覆盖 COPY_ENABLED / COPY_BLOCKED 结构化详情、Archived send-to-review block、Archived copy block、restore to Draft 和审计详情字段。
+- 前端覆盖 Match Report、Human Review、Evidence Library 的 1366x768、1440x900、1920x1080 截图与横向溢出检查。
+- `mvn test`：55 tests，0 failures / errors。
+- `npm run build`：Vue TypeScript 与 Vite production build 通过。
+- `npm run screenshots`：18 tests 通过。

@@ -22,7 +22,9 @@
 - `ARCHIVE`
 - `RESTORE`
 
-每条事件记录 evidence id、动作、前后状态、操作者、操作者角色、修改字段、before/after snapshot、人工备注和时间。字段级 diff 当前保持轻量，使用 `changed_fields_json` 展示例如 `skills changed`、`evidenceSources changed`、`boundaryNote changed` 和 `strength changed`。
+每条事件记录 evidence id、动作、前后状态、操作者、操作者角色、修改字段、before/after snapshot、人工备注和时间。API 还返回可追踪的 Trace ID / Trace Hash。字段级 diff 当前保持轻量，使用 `changed_fields_json` 展示例如 `skills changed`、`evidenceSources changed`、`boundaryNote changed` 和 `strength changed`。
+
+P3G 中单条 Evidence Audit Trail 可在卡片内展开。Archived 证据统一弱化显示并进入只读态：不能编辑、确认或退回，只允许 restore 回到 Draft 后继续维护。
 
 ## API
 

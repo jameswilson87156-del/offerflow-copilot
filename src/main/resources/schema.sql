@@ -152,6 +152,11 @@ CREATE TABLE IF NOT EXISTS match_report_audit_event (
     changed_fields_json TEXT NOT NULL,
     human_note TEXT NOT NULL,
     trace_id VARCHAR(100) NOT NULL,
+    copy_allowed BOOLEAN,
+    copy_reason TEXT,
+    version_status VARCHAR(40),
+    human_review_status VARCHAR(40),
+    boundary_notice TEXT,
     created_at TIMESTAMP NOT NULL
 );
 

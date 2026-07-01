@@ -94,7 +94,7 @@ const selectedItem = computed<EvidenceItem>(() =>
 )
 
 const auditTrail = computed(() => detail.value?.item.id === selectedItem.value?.id ? detail.value.auditTrail : [])
-const boundaryNotice = computed(() => detail.value?.boundaryNotice ?? '证据默认 Draft，人工确认后才进入 Confirmed。')
+const boundaryNotice = computed(() => detail.value?.boundaryNotice ?? '证据默认为草稿，人工确认后才进入已确认。')
 const confirmedCount = computed(() => library.value.items.filter((item) => item.status === 'Confirmed').length)
 const draftCount = computed(() => library.value.items.filter((item) => item.status === 'Draft' || item.status === 'Returned').length)
 
@@ -107,6 +107,7 @@ watch(filteredItems, (items) => {
 })
 
 watch(selectedId, (id) => {
+  editOpen.value = false
   if (id) void loadDetail(id)
 }, { immediate: true })
 
@@ -133,6 +134,7 @@ function openCreate() {
 
 function openEdit() {
   const item = selectedItem.value
+  if (item.status === 'Archived') return
   editForm.id = item.id
   editForm.projectName = item.projectName
   editForm.summary = item.summary
@@ -218,7 +220,7 @@ function semi(value: string) {
         <button type="button" class="secondary-button" :disabled="loading || detailLoading" @click="reloadAll">
           <RefreshCw :size="15" :class="{ spinning: loading || detailLoading }" />刷新证据
         </button>
-        <button type="button" class="primary-evidence-button" :disabled="actionLoading" @click="openCreate"><Plus :size="15" />新建 Draft</button>
+        <button type="button" class="primary-evidence-button" :disabled="actionLoading" @click="openCreate"><Plus :size="15" />新建草稿</button>
       </div>
     </section>
 
@@ -226,8 +228,8 @@ function semi(value: string) {
       <div class="evidence-context-main">
         <span class="evidence-ready-icon"><ShieldCheck :size="16" /></span>
         <strong>{{ library.total }} 个匿名化项目证据</strong>
-        <span>{{ confirmedCount }} 个 Confirmed</span>
-        <span>{{ draftCount }} 个 Draft / Returned</span>
+        <span>{{ confirmedCount }} 个已确认</span>
+        <span>{{ draftCount }} 个草稿 / 已退回</span>
       </div>
       <div class="evidence-context-meta">
         <span :class="source">{{ source === 'api' ? 'LOCAL API LIVE' : 'DEMO SNAPSHOT' }}</span>
@@ -288,7 +290,7 @@ function semi(value: string) {
           </div>
           <footer class="evidence-edit-actions">
             <button type="button" class="secondary-button" @click="editOpen = false">取消</button>
-            <button type="button" class="primary-evidence-button" :disabled="actionLoading" @click="saveDraft"><Save :size="15" />保存 Draft</button>
+            <button type="button" class="primary-evidence-button" :disabled="actionLoading" @click="saveDraft"><Save :size="15" />保存草稿</button>
           </footer>
         </aside>
       </div>

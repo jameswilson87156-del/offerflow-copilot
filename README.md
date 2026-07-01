@@ -2,11 +2,11 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P3F Match Report Review Sync
+## 当前阶段：P3G Audit UX & Archived Readonly Polish
 
-当前版本在 P3A H2/MyBatis-Plus 持久化基础层、P3B 人工复核审计链路、P3C 简历证据编辑工作流、P3D 结构化 JD Intake 和 P3E 匹配报告版本化上，新增了 P3F 匹配报告与 Human Review 双向状态同步。每个 `match_report_version` 都关联一个 `human_review_id`；当 MATCH_REPORT 类型的 Human Review item 被 confirm、return 或 flag-risk 时，报告版本会同步为 `CONFIRMED`、`RETURNED` 或 `RISK_FLAGGED`，并写入 `match_report_audit_event`。
+当前版本在 P3F 匹配报告与 Human Review 双向同步基础上，完成 P3G 审计交互与归档只读态收口。Match Report、Human Review、Evidence Library 的单条审计事件都可在卡片内展开；状态标签统一为草稿、复核中、已确认、已退回、风险标记和已归档。
 
-匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。`DRAFT`、`IN_REVIEW`、`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 都会被 copy-check 阻止。当前 scoring 仍为 `local-rule`，不是录取概率，也不承诺 Offer 结果。
+匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。每次 copy-check 都会写入 `COPY_ENABLED` 或 `COPY_BLOCKED`，并保留许可结果、原因、版本状态、Human Review 状态和 Boundary Notice。`ARCHIVED` 是只读归档状态，不能送审；当前 actor 仍是 demo user，当前仍不是生产级权限系统。
 
 关键边界：
 

@@ -24,6 +24,8 @@ import {
   Target,
 } from 'lucide-vue-next'
 import { useMatchReport } from '../composables/useMatchReport'
+import AuditEventDisclosure from '../components/AuditEventDisclosure.vue'
+import { isReadonlyStatus, statusClass, statusLabel } from '../utils/status'
 
 const props = defineProps<{
   searchQuery: string
@@ -75,14 +77,15 @@ const sourceStats = computed(() => [
 const copyAllowedLabel = computed(() => copyCheck.value.allowed ? '允许复制' : '禁止复制')
 
 const canRestoreVersion = computed(() => ['RETURNED', 'RISK_FLAGGED', 'ARCHIVED'].includes(report.value.status))
+const isReadonlyVersion = computed(() => isReadonlyStatus(report.value.status))
 
 const currentStatusHint = computed(() => ({
-  DRAFT: 'Draft 标签：需要送入 Human Review，确认前不可复制为正式建议。',
+  DRAFT: '草稿：需要送入 Human Review，确认前不可复制为正式建议。',
   IN_REVIEW: '等待人工复核：复核完成前不可复制。',
-  CONFIRMED: 'Confirmed：已通过 Human Review，可复制确认版摘要。',
-  RETURNED: '已退回，需要修改或恢复为 Draft 后重新复核。',
+  CONFIRMED: '已确认：已通过 Human Review，可复制确认版摘要。',
+  RETURNED: '已退回，需要修改或恢复为草稿后重新复核。',
   RISK_FLAGGED: '风险标记：不可作为正式建议，需要人工处理。',
-  ARCHIVED: '只读归档：不可送审，不可复制，可恢复为 Draft。',
+  ARCHIVED: '只读归档：不可送审，不可复制，可恢复为草稿。',
 } as Record<string, string>)[report.value.status] ?? '未知状态，需要人工复核。')
 
 function scorePercent(value: number, maximum: number) {
@@ -93,21 +96,6 @@ function severityClass(severity: string) {
   if (severity === '高') return 'high'
   if (severity === '中') return 'medium'
   return 'low'
-}
-
-function statusClass(status: string) {
-  return status.toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-')
-}
-
-function statusLabel(status: string) {
-  return ({
-    DRAFT: 'Draft',
-    IN_REVIEW: 'In Review',
-    CONFIRMED: 'Confirmed',
-    RETURNED: 'Returned',
-    RISK_FLAGGED: 'Risk Flagged',
-    ARCHIVED: 'Archived',
-  } as Record<string, string>)[status] ?? status
 }
 
 function auditTone(action: string) {
@@ -122,7 +110,7 @@ function auditTone(action: string) {
 </script>
 
 <template>
-  <main class="main-content workflow-page match-report-page">
+  <main class="main-content workflow-page match-report-page" :class="{ 'readonly-state': isReadonlyVersion }">
     <section class="page-intro">
       <div class="intro-copy">
         <div class="breadcrumbs"><span>匹配报告</span><ChevronRight :size="13" /><strong>Evidence Match</strong></div>
@@ -143,11 +131,17 @@ function auditTone(action: string) {
       </div>
     </section>
 
+    <section v-if="isReadonlyVersion" class="readonly-state-banner" role="status">
+      <Archive :size="15" />
+      <strong>{{ statusLabel(report.status) }}只读态</strong>
+      <span>{{ report.status === 'ARCHIVED' ? '归档版本不可送审或复制；如需继续处理，请先恢复为草稿。' : '当前版本不可作为正式建议；请恢复为草稿后重新进入复核。' }}</span>
+    </section>
+
     <section class="workflow-context" aria-label="匹配报告摘要">
       <div class="workflow-context-main">
         <span class="workflow-ready-icon"><ShieldCheck :size="16" /></span>
         <strong>{{ report.summary.jobTitle }}</strong>
-        <span>v{{ report.versionNo }} · {{ statusLabel(report.status) }} · Human Review: {{ report.humanReviewStatus }}</span>
+        <span>v{{ report.versionNo }} · {{ statusLabel(report.status) }} · Human Review: {{ statusLabel(report.humanReviewStatus) }}</span>
       </div>
       <div class="workflow-context-meta">
         <span :class="source">{{ source === 'api' ? 'LOCAL API LIVE' : 'DEMO SNAPSHOT' }}</span>
@@ -173,7 +167,7 @@ function auditTone(action: string) {
         <article>
           <ShieldCheck :size="15" />
           <span>Human Review 状态</span>
-          <strong>{{ report.humanReviewStatus }}</strong>
+          <strong>{{ statusLabel(report.humanReviewStatus) }}</strong>
           <small>{{ report.humanReviewId }}</small>
         </article>
         <article :class="copyCheck.allowed ? 'allowed' : 'blocked'">
@@ -193,13 +187,13 @@ function auditTone(action: string) {
         <button type="button" class="copy-action-button check" :disabled="actionBusy || loading" @click="checkCopyPermission">
           <ClipboardCheck :size="15" />检查复制许可
         </button>
-        <button type="button" class="copy-action-button copy" :disabled="actionBusy" @click="copyConfirmedSummary">
+        <button type="button" class="copy-action-button copy" :disabled="actionBusy || report.status !== 'CONFIRMED'" title="仅已确认状态允许复制" @click="copyConfirmedSummary">
           <Copy :size="15" />复制确认版摘要
         </button>
         <button type="button" class="copy-action-button restore" :disabled="actionBusy || loading || !canRestoreVersion" @click="restoreVersion">
           <RotateCcw :size="15" />恢复版本
         </button>
-        <button type="button" class="copy-action-button review" :disabled="actionBusy || loading || report.status === 'ARCHIVED'" @click="sendToReview">
+        <button type="button" class="copy-action-button review" :disabled="actionBusy || loading || report.status !== 'DRAFT'" title="只有草稿可以送入人工复核；归档版本需先恢复" @click="sendToReview">
           <Send :size="15" />送入人工复核
         </button>
         <button type="button" class="copy-action-button archive" :disabled="actionBusy || loading || report.status === 'ARCHIVED'" @click="archiveVersion">
@@ -239,7 +233,7 @@ function auditTone(action: string) {
             <strong>v{{ version.versionNo }} {{ version.providerMode }}</strong>
             <span>{{ version.createdAt }} · {{ statusLabel(version.status) }}</span>
             <small>JD parse v{{ version.parseVersionNo }} · {{ version.evidenceBindingCount }} bindings</small>
-            <em>{{ version.humanReviewStatus }}</em>
+            <em>{{ statusLabel(version.humanReviewStatus) }}</em>
           </button>
         </div>
 
@@ -261,14 +255,12 @@ function auditTone(action: string) {
             <strong>审计历史</strong>
             <em>{{ auditEvents.length }} 条</em>
           </header>
-          <article v-for="event in auditEvents" :key="event.id" :class="auditTone(event.action)">
-            <span />
-            <div>
-              <strong>{{ event.actionLabel }}</strong>
-              <small>{{ event.previousStatus }} → {{ event.nextStatus }} · {{ event.createdAt }}</small>
-              <p>{{ event.humanNote }}</p>
-            </div>
-          </article>
+          <AuditEventDisclosure
+            v-for="event in auditEvents"
+            :key="event.id"
+            :event="event"
+            :tone="auditTone(event.action)"
+          />
         </div>
       </div>
     </section>

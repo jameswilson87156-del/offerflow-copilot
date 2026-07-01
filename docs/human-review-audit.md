@@ -33,9 +33,12 @@ Human Review 是 OfferFlow 的核心安全链路。系统中的 AI 或 local-rul
 - 前后风险等级。
 - 人工备注。
 - Trace ID / Trace Hash。
+- changed fields。
 - 创建时间。
 
 `GET /api/reviews/{id}` 会返回包含 `auditTrail` 的 review detail；`GET /api/reviews/{id}/audit-events` 可以单独读取审计历史。
+
+P3G 前端支持点击单条事件在卡片内展开完整详情。Confirmed、Returned、Risk Flagged、Archived 属于已结束或只读状态，操作按钮会禁用并解释原因；状态标签统一显示中文语义。
 
 ## Match Report Handoff & Sync
 

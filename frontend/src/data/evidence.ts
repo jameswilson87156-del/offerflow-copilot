@@ -96,7 +96,7 @@ export const evidenceLibraryFallback: EvidenceLibraryData = {
     { key: 'frontend', label: '前端工程', count: 2 },
     { key: 'ci', label: 'CI / 部署', count: 2 },
     { key: 'trace', label: 'Trace / Human Review', count: 3 },
-    { key: 'archived', label: 'Archived', count: 0 },
+    { key: 'archived', label: '已归档', count: 0 },
   ],
   items,
   disclaimer: '证据库仅使用匿名化演示项目数据，不代表真实客户、用户、线上流量或生产级效果。',

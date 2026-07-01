@@ -106,15 +106,16 @@ public class MatchReportVersionService {
         MatchReportVersionEntity entity = requireVersion(versionId);
         String reviewStatus = humanReviewStatus(entity);
         CopyDecision decision = copyDecision(entity.getStatus());
-        audit(entity, decision.allowed() ? "COPY_ENABLED" : "COPY_BLOCKED", entity.getStatus(), entity.getStatus(),
-                List.of("copyPermission"), actor(request), actorRole(request), note(request, decision.reason()),
-                LocalDateTime.now());
-        return new MatchReportVersioning.CopyCheck(
+        MatchReportVersioning.CopyCheck result = new MatchReportVersioning.CopyCheck(
                 decision.allowed(),
                 decision.reason(),
                 entity.getStatus(),
                 reviewStatus,
                 COPY_BOUNDARY_NOTICE);
+        audit(entity, decision.allowed() ? "COPY_ENABLED" : "COPY_BLOCKED", entity.getStatus(), entity.getStatus(),
+                List.of("copyPermission"), actor(request), actorRole(request), note(request, decision.reason()),
+                LocalDateTime.now(), result);
+        return result;
     }
 
     @Transactional
@@ -313,6 +314,11 @@ public class MatchReportVersionService {
                 jsonCodec.readList(entity.getChangedFieldsJson(), String.class),
                 entity.getHumanNote(),
                 entity.getTraceId(),
+                entity.getCopyAllowed(),
+                entity.getCopyReason(),
+                entity.getVersionStatus(),
+                entity.getHumanReviewStatus(),
+                entity.getBoundaryNotice(),
                 format(entity.getCreatedAt()));
     }
 
@@ -458,6 +464,20 @@ public class MatchReportVersionService {
             String actorRole,
             String humanNote,
             LocalDateTime timestamp) {
+        audit(report, action, previousStatus, nextStatus, changedFields, actor, actorRole, humanNote, timestamp, null);
+    }
+
+    private void audit(
+            MatchReportVersionEntity report,
+            String action,
+            String previousStatus,
+            String nextStatus,
+            List<String> changedFields,
+            String actor,
+            String actorRole,
+            String humanNote,
+            LocalDateTime timestamp,
+            MatchReportVersioning.CopyCheck copyCheck) {
         MatchReportAuditEventEntity event = new MatchReportAuditEventEntity();
         event.setId("match-audit-" + UUID.randomUUID());
         event.setReportVersionId(report.getId());
@@ -469,6 +489,13 @@ public class MatchReportVersionService {
         event.setChangedFieldsJson(jsonCodec.write(changedFields));
         event.setHumanNote(humanNote);
         event.setTraceId(report.getTraceId());
+        if (copyCheck != null) {
+            event.setCopyAllowed(copyCheck.allowed());
+            event.setCopyReason(copyCheck.reason());
+            event.setVersionStatus(copyCheck.versionStatus());
+            event.setHumanReviewStatus(copyCheck.humanReviewStatus());
+            event.setBoundaryNotice(copyCheck.boundaryNotice());
+        }
         event.setCreatedAt(timestamp);
         auditEventRepository.save(event);
     }

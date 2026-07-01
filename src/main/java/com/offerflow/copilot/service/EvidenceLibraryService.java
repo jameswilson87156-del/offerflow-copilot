@@ -1,5 +1,6 @@
 package com.offerflow.copilot.service;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 import java.text.Normalizer;
@@ -105,6 +106,7 @@ public class EvidenceLibraryService {
     @Transactional
     public EvidenceLibrary.EvidenceItemDetail updateDraft(String id, EvidenceLibrary.EvidenceMutationRequest request) {
         ResumeEvidenceEntity entity = requireEntity(id);
+        ensureNotArchived(entity);
         EvidenceLibrary.EvidenceSnapshot before = snapshot(entity);
         String previousStatus = displayStatus(entity.getReviewStatus());
         applyRequest(entity, request);
@@ -163,6 +165,9 @@ public class EvidenceLibraryService {
             String nextRawStatus,
             List<String> changedFields) {
         ResumeEvidenceEntity entity = requireEntity(id);
+        if (!"RESTORE".equals(action)) {
+            ensureNotArchived(entity);
+        }
         EvidenceLibrary.EvidenceSnapshot before = snapshot(entity);
         String previousStatus = displayStatus(entity.getReviewStatus());
         entity.setReviewStatus(nextRawStatus);
@@ -171,6 +176,12 @@ public class EvidenceLibraryService {
         EvidenceLibrary.EvidenceSnapshot after = snapshot(entity);
         audit(entity, action, previousStatus, displayStatus(nextRawStatus), request, changedFields, before, after);
         return getDetail(id);
+    }
+
+    private void ensureNotArchived(ResumeEvidenceEntity entity) {
+        if ("ARCHIVED".equals(entity.getReviewStatus())) {
+            throw new ResponseStatusException(BAD_REQUEST, "Archived evidence is read-only; restore before editing");
+        }
     }
 
     private void applyRequest(ResumeEvidenceEntity entity, EvidenceLibrary.EvidenceMutationRequest request) {
@@ -289,6 +300,8 @@ public class EvidenceLibraryService {
                 jsonCodec.read(entity.getBeforeSnapshotJson(), EvidenceLibrary.EvidenceSnapshot.class),
                 jsonCodec.read(entity.getAfterSnapshotJson(), EvidenceLibrary.EvidenceSnapshot.class),
                 entity.getHumanNote(),
+                "EVIDENCE-" + entity.getEvidenceId(),
+                "audit-" + Integer.toHexString((entity.getEvidenceId() + ":" + entity.getId()).hashCode()),
                 entity.getCreatedAt().format(FORMATTER));
     }
 

@@ -48,6 +48,8 @@ public record EvidenceLibrary(
             EvidenceSnapshot beforeSnapshot,
             EvidenceSnapshot afterSnapshot,
             String humanNote,
+            String traceId,
+            String traceHash,
             String createdAt) {
     }
 

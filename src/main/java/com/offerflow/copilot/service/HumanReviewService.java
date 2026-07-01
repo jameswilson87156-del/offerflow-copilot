@@ -234,10 +234,20 @@ public class HumanReviewService {
                 entity.getNextRiskLevel(),
                 entity.getActor(),
                 entity.getActorRole(),
+                changedFields(entity.getAction()),
                 entity.getHumanNote(),
                 entity.getTraceId(),
                 entity.getTraceHash(),
                 format(entity.getCreatedAt()));
+    }
+
+    private List<String> changedFields(String action) {
+        return switch (action) {
+            case "CONFIRM", "RETURN" -> List.of("status", "humanNote", "lastAction");
+            case "FLAG_RISK", "AUTO_RISK_GUARD" -> List.of("status", "riskLevel", "humanNote", "lastAction");
+            case "ADD_NOTE" -> List.of("humanNote", "lastAction");
+            default -> List.of("status");
+        };
     }
 
     private String actionLabel(String action) {

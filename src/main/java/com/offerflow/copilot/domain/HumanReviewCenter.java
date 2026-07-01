@@ -75,6 +75,7 @@ public record HumanReviewCenter(
             String nextRiskLevel,
             String actor,
             String actorRole,
+            List<String> changedFields,
             String humanNote,
             String traceId,
             String traceHash,

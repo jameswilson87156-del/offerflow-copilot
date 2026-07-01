@@ -19,7 +19,9 @@ import {
   UserCheck,
 } from 'lucide-vue-next'
 import { useHumanReviews } from '../composables/useHumanReviews'
-import type { HumanReviewDetail, HumanReviewStatus, HumanReviewSummary } from '../types'
+import AuditEventDisclosure from '../components/AuditEventDisclosure.vue'
+import { isClosedReviewStatus, statusClass, statusLabel } from '../utils/status'
+import type { HumanReviewDetail, HumanReviewSummary } from '../types'
 
 const props = defineProps<{
   searchQuery: string
@@ -30,7 +32,7 @@ const { center, details, loading, source, reload, loadDetail, reviewAction } = u
 const selectedId = shallowRef('review-star-mcp')
 const manualNote = shallowRef('需要把“生产级”改成“作品集级”，不要声称真实用户。')
 const actionBusy = shallowRef(false)
-const actionMessage = shallowRef('所有 AI 输出保持 Draft，人工确认前不可复制。')
+const actionMessage = shallowRef('所有 AI 输出保持草稿，人工确认前不可复制。')
 
 const filteredItems = computed(() => {
   const query = props.searchQuery.trim().toLowerCase()
@@ -64,6 +66,16 @@ const highlightedSuggestion = computed(() =>
 )
 
 const auditTrail = computed(() => selectedDetail.value.auditTrail ?? [])
+const isReviewReadonly = computed(() => isClosedReviewStatus(selectedDetail.value.status))
+const readonlyReason = computed(() => selectedDetail.value.status === 'Archived'
+  ? '已归档复核项不可继续操作，请回到来源资产恢复。'
+  : `${statusLabel(selectedDetail.value.status)}状态已结束；如需修改，请回到来源资产重新进入复核。`)
+const auditFieldLabels: Record<string, string> = {
+  status: '状态',
+  riskLevel: '风险等级',
+  humanNote: '人工备注',
+  lastAction: '最后动作',
+}
 
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? 'local-rule 审核流 · 无外部调用'
@@ -114,10 +126,6 @@ function riskClass(riskLevel: string) {
   return 'low'
 }
 
-function statusClass(status: HumanReviewStatus) {
-  return status.toLowerCase().replace(/\s+/g, '-')
-}
-
 function formatRiskLevel(riskLevel: string) {
   return riskLevel.endsWith('风险') ? riskLevel : `${riskLevel}风险`
 }
@@ -132,12 +140,6 @@ function auditClass(action: string) {
   if (action === 'FLAG_RISK') return 'flag'
   if (action === 'AUTO_RISK_GUARD') return 'guard'
   return 'note'
-}
-
-function riskFlow(event: { previousRiskLevel: string; nextRiskLevel: string }) {
-  return event.previousRiskLevel === event.nextRiskLevel
-    ? formatRiskLevel(event.nextRiskLevel)
-    : `${formatRiskLevel(event.previousRiskLevel)} → ${formatRiskLevel(event.nextRiskLevel)}`
 }
 
 async function applyAction(action: 'confirm' | 'return' | 'flag-risk') {
@@ -156,7 +158,7 @@ function rememberNote() {
 </script>
 
 <template>
-  <main class="main-content human-review-page">
+  <main class="main-content human-review-page" :class="{ 'readonly-state': isReviewReadonly }">
     <section class="page-intro human-review-intro">
       <div class="intro-copy">
         <div class="breadcrumbs"><span>人工复核</span><ChevronRight :size="13" /><strong>Human Review Center</strong></div>
@@ -178,7 +180,7 @@ function rememberNote() {
       <div class="human-context-main">
         <span class="human-ready-icon"><ShieldAlert :size="16" /></span>
         <strong>{{ center.pendingReviewCount }} 个待复核</strong>
-        <span>当前状态：Draft，需要人工确认</span>
+        <span>当前状态：草稿，需要人工确认</span>
       </div>
       <div class="human-context-meta">
         <span :class="source">{{ source === 'api' ? 'LOCAL API LIVE' : 'DEMO SNAPSHOT' }}</span>
@@ -217,7 +219,7 @@ function rememberNote() {
                 <small>{{ sourceLabel(item) }}</small>
               </span>
               <span class="queue-trace">Trace: {{ item.traceId }}</span>
-              <span :class="['status-chip', statusClass(item.status)]">{{ item.status }}</span>
+              <span :class="['status-chip', statusClass(item.status)]">{{ statusLabel(item.status) }}</span>
             </button>
           </section>
         </div>
@@ -229,7 +231,7 @@ function rememberNote() {
             <span class="panel-kicker">REVIEW DETAIL</span>
             <h2>{{ selectedDetail.title }}</h2>
           </div>
-          <span :class="['status-chip', statusClass(selectedDetail.status)]">{{ selectedDetail.status }}</span>
+          <span :class="['status-chip', statusClass(selectedDetail.status)]">{{ statusLabel(selectedDetail.status) }}</span>
         </header>
 
         <div class="detail-section ai-original">
@@ -280,23 +282,23 @@ function rememberNote() {
         </header>
 
         <div class="action-button-grid">
-          <button type="button" class="review-action confirm" :disabled="actionBusy" @click="applyAction('confirm')">
+          <button type="button" class="review-action confirm" :disabled="actionBusy || isReviewReadonly" @click="applyAction('confirm')">
             <CheckCircle2 :size="16" />确认可用
           </button>
-          <button type="button" class="review-action return" :disabled="actionBusy" @click="applyAction('return')">
+          <button type="button" class="review-action return" :disabled="actionBusy || isReviewReadonly" @click="applyAction('return')">
             <RotateCcw :size="16" />退回修改
           </button>
-          <button type="button" class="review-action flag" :disabled="actionBusy" @click="applyAction('flag-risk')">
+          <button type="button" class="review-action flag" :disabled="actionBusy || isReviewReadonly" @click="applyAction('flag-risk')">
             <Flag :size="16" />标记风险
           </button>
-          <button type="button" class="review-action note" :disabled="actionBusy" @click="rememberNote">
+          <button type="button" class="review-action note" :disabled="actionBusy || isReviewReadonly" @click="rememberNote">
             <MessageSquarePlus :size="16" />添加人工备注
           </button>
         </div>
 
         <label class="manual-note">
           <span>人工备注</span>
-          <textarea v-model="manualNote" maxlength="500" />
+          <textarea v-model="manualNote" maxlength="500" :disabled="isReviewReadonly" />
           <small>{{ manualNote.length }}/500</small>
         </label>
 
@@ -307,7 +309,7 @@ function rememberNote() {
           <div><dt>Human Review</dt><dd>{{ selectedDetail.copyAllowed ? '已人工确认' : '待人工确认' }}</dd></div>
         </dl>
 
-        <p class="action-message">{{ actionMessage }}</p>
+        <p class="action-message" :class="{ readonly: isReviewReadonly }">{{ isReviewReadonly ? readonlyReason : actionMessage }}</p>
 
         <section class="review-audit-card" aria-label="Review History">
           <header>
@@ -319,23 +321,13 @@ function rememberNote() {
           </header>
 
           <div class="audit-timeline">
-            <article v-for="event in auditTrail" :key="event.id" class="audit-event">
-              <span :class="['audit-dot', auditClass(event.action)]" />
-              <div class="audit-event-body">
-                <div class="audit-event-top">
-                  <strong>{{ event.actionLabel }}</strong>
-                  <time>{{ event.createdAt }}</time>
-                </div>
-                <p>{{ event.previousStatus }} → {{ event.nextStatus }}</p>
-                <small>{{ event.actor }} · {{ event.actorRole }}</small>
-                <dl>
-                  <div><dt>Risk</dt><dd>{{ riskFlow(event) }}</dd></div>
-                  <div><dt>Trace</dt><dd>{{ event.traceId }}</dd></div>
-                  <div><dt>Hash</dt><dd>{{ event.traceHash }}</dd></div>
-                </dl>
-                <blockquote>{{ event.humanNote }}</blockquote>
-              </div>
-            </article>
+            <AuditEventDisclosure
+              v-for="event in auditTrail"
+              :key="event.id"
+              :event="event"
+              :tone="auditClass(event.action)"
+              :field-labels="auditFieldLabels"
+            />
             <p v-if="!auditTrail.length" class="empty-audit">暂无审计记录，状态变更后会自动写入。</p>
           </div>
         </section>

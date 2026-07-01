@@ -192,6 +192,12 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].reportVersionId").value("match-java-ai-demo-v1"))
                 .andExpect(jsonPath("$[0].action").value("GENERATE_LOCAL_RULE"))
+                .andExpect(jsonPath("$[0].actor").value("local-rule report generator"))
+                .andExpect(jsonPath("$[0].actorRole").value("System"))
+                .andExpect(jsonPath("$[0].changedFields", hasSize(3)))
+                .andExpect(jsonPath("$[0].humanNote").exists())
+                .andExpect(jsonPath("$[0].traceId").value("JD-042-REP-21F3"))
+                .andExpect(jsonPath("$[0].createdAt").exists())
                 .andExpect(jsonPath("$[1].action").value("CREATE_DRAFT"));
     }
 
@@ -305,6 +311,15 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.versionStatus").value("CONFIRMED"))
                 .andExpect(jsonPath("$.humanReviewStatus").value("Confirmed"))
                 .andExpect(jsonPath("$.boundaryNotice").exists());
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.action == 'COPY_ENABLED')]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.action == 'COPY_ENABLED')].copyAllowed").value(true))
+                .andExpect(jsonPath("$[?(@.action == 'COPY_ENABLED')].copyReason").value("已通过人工复核，可复制使用。"))
+                .andExpect(jsonPath("$[?(@.action == 'COPY_ENABLED')].versionStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$[?(@.action == 'COPY_ENABLED')].humanReviewStatus").value("Confirmed"))
+                .andExpect(jsonPath("$[?(@.action == 'COPY_ENABLED')].boundaryNotice").exists());
     }
 
     @Test
@@ -364,6 +379,13 @@ class OfferFlowApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.allowed").value(false))
                 .andExpect(jsonPath("$.versionStatus").value("ARCHIVED"));
+
+        mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v1/audit-events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.action == 'COPY_BLOCKED')]", hasSize(5)))
+                .andExpect(jsonPath("$[?(@.versionStatus == 'ARCHIVED')].copyAllowed").value(false))
+                .andExpect(jsonPath("$[?(@.versionStatus == 'ARCHIVED')].copyReason").value("已归档"))
+                .andExpect(jsonPath("$[?(@.versionStatus == 'ARCHIVED')].humanReviewStatus").value("Archived"));
     }
 
     @Test
@@ -648,6 +670,25 @@ class OfferFlowApiTest {
 
     @Test
     @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
+    void archivedEvidenceIsReadonlyUntilRestored() throws Exception {
+        mockMvc.perform(post("/api/evidence/evidence-mcp/archive")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"archive before readonly check\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/evidence/evidence-mcp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"summary\":\"should not update archived evidence\"}"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(post("/api/evidence/evidence-mcp/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"humanNote\":\"should not confirm archived evidence\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DirtiesContext(methodMode = DirtiesContext.MethodMode.AFTER_METHOD)
     void restoreEvidenceUpdatesStatusAndWritesAuditEvent() throws Exception {
         mockMvc.perform(post("/api/evidence/evidence-mcp/archive")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -670,7 +711,12 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].evidenceId").value("evidence-mcp"))
                 .andExpect(jsonPath("$[0].action").value("CONFIRM"))
-                .andExpect(jsonPath("$[0].actor").value("demo-evidence-editor"));
+                .andExpect(jsonPath("$[0].actor").value("demo-evidence-editor"))
+                .andExpect(jsonPath("$[0].changedFields", hasSize(1)))
+                .andExpect(jsonPath("$[0].humanNote").exists())
+                .andExpect(jsonPath("$[0].traceId").value("EVIDENCE-evidence-mcp"))
+                .andExpect(jsonPath("$[0].traceHash").exists())
+                .andExpect(jsonPath("$[0].createdAt").exists());
     }
 
     @Test
@@ -736,7 +782,12 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].reviewId").value("review-star-mcp"))
                 .andExpect(jsonPath("$[0].action").value("AUTO_RISK_GUARD"))
-                .andExpect(jsonPath("$[0].traceHash").exists());
+                .andExpect(jsonPath("$[0].actorRole").exists())
+                .andExpect(jsonPath("$[0].changedFields", hasSize(4)))
+                .andExpect(jsonPath("$[0].humanNote").exists())
+                .andExpect(jsonPath("$[0].traceId").exists())
+                .andExpect(jsonPath("$[0].traceHash").exists())
+                .andExpect(jsonPath("$[0].createdAt").exists());
     }
 
     @Test

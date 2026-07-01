@@ -66,6 +66,11 @@ public final class MatchReportVersioning {
             List<String> changedFields,
             String humanNote,
             String traceId,
+            Boolean copyAllowed,
+            String copyReason,
+            String versionStatus,
+            String humanReviewStatus,
+            String boundaryNotice,
             String createdAt) {
     }
 

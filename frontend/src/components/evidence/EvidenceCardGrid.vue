@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { BadgeCheck, Box, BrainCircuit, FolderGit2, Layers3, ShieldCheck } from 'lucide-vue-next'
 import type { EvidenceItem } from '../../types'
+import { statusClass, statusLabel } from '../../utils/status'
 
 const props = defineProps<{
   items: EvidenceItem[]
@@ -10,12 +11,6 @@ const props = defineProps<{
 const emit = defineEmits<{ select: [id: string] }>()
 const projectIcons = [Box, BrainCircuit, Layers3, FolderGit2]
 
-const statusLabel = (item: EvidenceItem) => {
-  if (item.status === 'Confirmed') return 'Confirmed'
-  if (item.status === 'Returned') return 'Returned'
-  if (item.status === 'Archived') return 'Archived'
-  return 'Draft'
-}
 </script>
 
 <template>
@@ -26,8 +21,8 @@ const statusLabel = (item: EvidenceItem) => {
         <h2 id="gallery-title">项目证据</h2>
       </div>
       <div class="gallery-legend">
-        <span><i class="verified" />Confirmed</span>
-        <span><i class="review" />Draft / Returned</span>
+        <span><i class="verified" />已确认</span>
+        <span><i class="review" />草稿 / 已退回</span>
       </div>
     </header>
 
@@ -53,7 +48,7 @@ const statusLabel = (item: EvidenceItem) => {
         </div>
 
         <div class="evidence-status-row">
-          <span class="evidence-status-chip" :class="item.status.toLowerCase()">{{ statusLabel(item) }}</span>
+          <span class="status-chip evidence-status-chip" :class="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
           <small>{{ item.auditCount }} audit events</small>
         </div>
 
@@ -80,7 +75,7 @@ const statusLabel = (item: EvidenceItem) => {
           <span :class="item.status === 'Confirmed' ? 'confirmed' : 'needs-review'">
             <BadgeCheck v-if="item.status === 'Confirmed'" :size="13" />
             <ShieldCheck v-else :size="13" />
-            {{ item.status === 'Confirmed' ? '已人工确认' : '需要人工维护' }}
+            {{ item.status === 'Confirmed' ? '已人工确认' : item.status === 'Archived' ? '已归档 · 只读' : '需要人工维护' }}
           </span>
           <small>更新 {{ item.updatedAt }}</small>
         </footer>

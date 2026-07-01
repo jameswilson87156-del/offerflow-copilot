@@ -42,6 +42,8 @@ async function verifyEvidenceLibrary(page: Page) {
   await expect(page.getByRole('heading', { name: 'Evidence Coverage Map' })).toBeVisible()
   await expect(page.getByText('Evidence Ready', { exact: true })).toBeVisible()
   await expect(page.locator('button.library-card')).toHaveCount(4)
+  await page.locator('.evidence-audit-list .audit-disclosure-summary').first().click()
+  await expect(page.locator('.evidence-audit-list').getByTestId('audit-event-detail').first()).toBeVisible()
   await expectNoHorizontalOverflow(page)
   expect(consoleErrors).toEqual([])
 }
@@ -60,6 +62,8 @@ async function verifyHumanReview(page: Page) {
   await expect(page.getByRole('banner').getByText('12 个待复核', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'STAR 回答草稿：MCP Tool Gateway 项目深挖' })).toBeVisible()
   await expect(page.locator('.risk-highlight')).toHaveCount(7)
+  await page.locator('.audit-timeline .audit-disclosure-summary').first().click()
+  await expect(page.locator('.audit-timeline').getByTestId('audit-event-detail').first()).toBeVisible()
   await expectNoHorizontalOverflow(page)
   expect(consoleErrors).toEqual([])
 }
@@ -98,6 +102,13 @@ async function verifyMatchReport(page: Page) {
   await expect(page.getByText('82/100')).toBeVisible()
   await expect(page.getByText('Spring Boot', { exact: true })).toBeVisible()
   await expect(page.getByText('不输出任何录用结果预测')).toBeVisible()
+  const copyAudits = page.locator('.match-audit-mini .audit-disclosure.copy')
+  const copyAuditCount = await copyAudits.count()
+  await page.getByRole('button', { name: '检查复制许可' }).click()
+  await expect(copyAudits).toHaveCount(copyAuditCount + 1)
+  const copyAudit = copyAudits.last()
+  await copyAudit.locator('.audit-disclosure-summary').click()
+  await expect(copyAudit.getByText('禁止复制', { exact: true })).toBeVisible()
   await expectNoHorizontalOverflow(page)
   expect(consoleErrors).toEqual([])
 }
@@ -173,6 +184,18 @@ test('captures 1920 human review center', async ({ page }) => {
   await page.screenshot({ path: path.join(docsDir, 'large/offerflow-human-review.png'), fullPage: true })
 })
 
+test('captures 1366 evidence library audit detail', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 })
+  await verifyEvidenceLibrary(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-evidence-library-1366.png'), fullPage: true })
+})
+
+test('captures 1366 human review audit detail', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 })
+  await verifyHumanReview(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-human-review-1366.png'), fullPage: true })
+})
+
 test('captures 1440 provider trace settings', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await verifyProviderTrace(page)
@@ -195,6 +218,12 @@ test('captures 1920 match report', async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 })
   await verifyMatchReport(page)
   await page.screenshot({ path: path.join(docsDir, 'large/offerflow-match-report.png'), fullPage: true })
+})
+
+test('captures 1366 match report copy audit detail', async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 })
+  await verifyMatchReport(page)
+  await page.screenshot({ path: path.join(docsDir, 'offerflow-match-report-1366.png'), fullPage: true })
 })
 
 test('captures 1440 interview prep', async ({ page }) => {

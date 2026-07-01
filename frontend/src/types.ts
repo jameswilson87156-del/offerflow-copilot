@@ -244,6 +244,8 @@ export interface EvidenceAuditEvent {
   beforeSnapshot: EvidenceSnapshot
   afterSnapshot: EvidenceSnapshot
   humanNote: string
+  traceId?: string
+  traceHash?: string
   createdAt: string
 }
 
@@ -343,6 +345,7 @@ export interface HumanReviewAuditEvent {
   nextRiskLevel: string
   actor: string
   actorRole: string
+  changedFields?: string[]
   humanNote: string
   traceId: string
   traceHash: string
@@ -547,6 +550,11 @@ export interface MatchReportAuditEvent {
   changedFields: string[]
   humanNote: string
   traceId: string
+  copyAllowed?: boolean | null
+  copyReason?: string | null
+  versionStatus?: MatchReportVersionStatus | null
+  humanReviewStatus?: string | null
+  boundaryNotice?: string | null
   createdAt: string
 }
 
