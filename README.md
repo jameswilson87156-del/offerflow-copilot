@@ -1,5 +1,7 @@
 # OfferFlow Copilot
 
+[![CI](https://github.com/jameswilson87156-del/offerflow-copilot/actions/workflows/ci.yml/badge.svg)](https://github.com/jameswilson87156-del/offerflow-copilot/actions/workflows/ci.yml)
+
 Java + AI workflow demo for JD intake, resume evidence management, match report versioning, human review, provider traceability, and copy permission governance.
 
 OfferFlow Copilot 是一个面向求职场景的 Java + AI 工作流作品集项目，用于展示 JD 入库、简历证据管理、匹配报告版本化、人工复核、Provider Trace、Schema/Risk 校验与复制门禁治理。
