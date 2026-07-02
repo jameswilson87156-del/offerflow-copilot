@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 public class AiProviderProperties {
 
     private final Provider provider = new Provider();
-    private final ExternalProvider openaiCompatible = new ExternalProvider("gpt-compatible-demo");
-    private final ExternalProvider deepseek = new ExternalProvider("deepseek-chat");
+    private final ExternalProvider openaiCompatible = new ExternalProvider("");
+    private final ExternalProvider deepseek = new ExternalProvider("");
 
     public Provider getProvider() {
         return provider;
@@ -48,7 +48,9 @@ public class AiProviderProperties {
     }
 
     public boolean configured(ExternalProvider externalProvider) {
-        return hasText(externalProvider.baseUrl) && hasText(externalProvider.apiKey);
+        return hasText(externalProvider.baseUrl)
+                && hasText(externalProvider.apiKey)
+                && hasText(externalProvider.model);
     }
 
     public String apiKeyStatus(ExternalProvider externalProvider) {
@@ -69,7 +71,7 @@ public class AiProviderProperties {
             return "local-rule is always available and does not use external network calls.";
         }
         if (!configured(providerMode)) {
-            return providerMode + " is not configured with both base URL and API key.";
+            return providerMode + " is not configured with base URL, API key, and model.";
         }
         if (!realCallEnabled()) {
             return "realCallEnabled=false; external provider requests are disabled.";

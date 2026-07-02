@@ -20,8 +20,9 @@
 - [x] P4C：Provider Prompt Contract、Risk Policy、Response Schema、Response Validator 与 Provider Settings contract sandbox
 - [x] P4D：Human Review Gate、Copy Permission Contract、统一复制门禁审计与页面 Copy Gate
 - [x] P4E：Local Role Permission、Local Actor Context、permission audit 与关键写接口本地权限约束
+- [x] P4F：Real Provider manual dry-run path，默认关闭，PII Guard、Schema Validate、Risk Guard、Human Review、Copy Permission 与 fallback 留痕
 
 ## 下一阶段候选
 
-- [ ] P4F：Provider offline eval fixtures、golden contract cases 与 adapter readiness checklist，继续禁止真实外部调用
+- [ ] P4G：Provider offline eval fixtures、golden contract cases、real dry-run evidence review 与 adapter readiness checklist
 - [ ] 增加 service 层单元测试、前端组件测试和无障碍自动检查

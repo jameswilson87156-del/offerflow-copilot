@@ -34,16 +34,20 @@ const {
   traceIndex,
   traceRun,
   sandboxResult,
+  realDryRunResult,
   validationResult,
   permissionAuditEvents,
   sandboxError,
+  realDryRunError,
   validationError,
   loading,
   running,
+  realDryRunning,
   validating,
   source,
   reload,
   runSandbox,
+  runRealDryRun,
   loadContract,
   validateResponse,
 } = useProviderTrace()
@@ -53,6 +57,11 @@ const providerOptions = [
   { id: 'local-rule', label: 'local-rule' },
   { id: 'openai-compatible', label: 'OpenAI-compatible' },
   { id: 'deepseek', label: 'DeepSeek' },
+]
+
+const realProviderOptions = [
+  { id: 'deepseek', label: 'DeepSeek' },
+  { id: 'openai-compatible', label: 'OpenAI-compatible' },
 ]
 
 const EMPTY_STEP: ProviderPipelineStep = {
@@ -67,6 +76,7 @@ const EMPTY_STEP: ProviderPipelineStep = {
 
 const selectedStepKey = shallowRef('provider-noop')
 const selectedSandboxProvider = shallowRef(props.selectedProvider || 'local-rule')
+const selectedRealProvider = shallowRef('deepseek')
 const selectedContractTaskType = shallowRef('match-report')
 const simulateFailure = shallowRef(false)
 const simulateTimeout = shallowRef(false)
@@ -74,8 +84,13 @@ const simulateMissingField = shallowRef(false)
 const simulateUnsafeClaim = shallowRef(false)
 const simulateSchemaMismatch = shallowRef(false)
 const sandboxInput = shallowRef('Java Spring Boot role with AI tooling evidence. Keep output local and require Human Review.')
+const realDryRunInput = shallowRef('Sanitized JD summary: Java backend role asks for Spring Boot, SQL, API design, and reviewable project evidence.')
+const realAllowExternalCall = shallowRef(false)
+const realConfirmNoPii = shallowRef(false)
 const canRunSandbox = computed(() => can('PROVIDER_SANDBOX_RUN'))
 const sandboxPermissionReason = computed(() => permissionReason('PROVIDER_SANDBOX_RUN'))
+const canRunRealDryRun = computed(() => can('PROVIDER_REAL_DRY_RUN'))
+const realDryRunPermissionReason = computed(() => permissionReason('PROVIDER_REAL_DRY_RUN'))
 
 const filteredProviders = computed(() => {
   const query = props.searchQuery.trim().toLowerCase()
@@ -188,6 +203,36 @@ const sandboxRows = computed(() => sandboxResult.value
       ['Fallback reason', '运行后显示'],
     ])
 
+const realDryRunRows = computed(() => realDryRunResult.value
+  ? [
+      ['Success', String(realDryRunResult.value.success)],
+      ['External attempted', String(realDryRunResult.value.externalCallAttempted)],
+      ['External blocked', String(realDryRunResult.value.externalCallBlocked)],
+      ['Provider mode', realDryRunResult.value.providerMode],
+      ['Final provider', realDryRunResult.value.finalProvider],
+      ['Model', realDryRunResult.value.model || 'not configured'],
+      ['Fallback used', String(realDryRunResult.value.fallbackUsed)],
+      ['Fallback reason', realDryRunResult.value.fallbackReason || 'none'],
+      ['Schema validated', String(realDryRunResult.value.schemaValidated)],
+      ['Risk guard passed', String(realDryRunResult.value.riskGuardPassed)],
+      ['Human review required', String(realDryRunResult.value.humanReviewRequired)],
+      ['Copy allowed', String(realDryRunResult.value.copyAllowed)],
+      ['Raw response saved', String(realDryRunResult.value.rawResponseSaved)],
+      ['Trace ID', realDryRunResult.value.traceId],
+      ['Run ID', realDryRunResult.value.runId],
+      ['Risk flags', realDryRunResult.value.riskFlags.join(' / ')],
+    ]
+  : [
+      ['Success', 'pending'],
+      ['External attempted', 'pending'],
+      ['External blocked', realAllowExternalCall.value ? 'pending' : 'true until allowed'],
+      ['Provider mode', selectedRealProvider.value],
+      ['Final provider', 'pending'],
+      ['Copy allowed', 'false'],
+      ['Raw response saved', 'false'],
+      ['Human review required', 'true'],
+    ])
+
 const validationRows = computed(() => [
   ['Valid', String(validationResult.value.valid)],
   ['Fallback required', String(validationResult.value.fallbackRequired)],
@@ -206,6 +251,7 @@ const providerNotice = computed(() => props.selectedProvider === 'local-rule'
 
 watch(() => props.selectedProvider, (nextProvider) => {
   if (providerOptions.some((option) => option.id === nextProvider)) selectedSandboxProvider.value = nextProvider
+  if (realProviderOptions.some((option) => option.id === nextProvider)) selectedRealProvider.value = nextProvider
 })
 
 watch(() => selectedContract.value.taskType, (taskType) => {
@@ -226,6 +272,18 @@ async function submitSandboxRun() {
     simulateTimeout: simulateTimeout.value,
   }))
   selectedStepKey.value = 'fallback-decision'
+}
+
+async function submitRealDryRun() {
+  if (!canRunRealDryRun.value) return
+  await runRealDryRun(withActor({
+    providerMode: selectedRealProvider.value,
+    taskType: selectedContractTaskType.value,
+    inputText: realDryRunInput.value,
+    allowExternalCall: realAllowExternalCall.value,
+    confirmNoPii: realConfirmNoPii.value,
+  }))
+  selectedStepKey.value = realDryRunResult.value?.externalCallAttempted ? 'provider-response-normalize' : 'external-provider-call'
 }
 
 async function selectContract(contract: ProviderContractSummary) {
@@ -361,6 +419,81 @@ function stepClass(status: ProviderTraceStepStatus) {
         <p v-if="sandboxError" class="sandbox-error"><AlertTriangle :size="12" />{{ sandboxError }}</p>
       </section>
     </div>
+
+    <section class="panel real-dry-run-panel">
+      <header class="panel-header provider-panel-header">
+        <div>
+          <span class="panel-kicker">REAL PROVIDER DRY-RUN</span>
+          <h2>真实 Provider 手动 dry-run</h2>
+        </div>
+        <ShieldCheck :size="17" class="header-icon" />
+      </header>
+      <div class="real-dry-run-layout">
+        <div class="real-dry-run-form">
+          <div class="provider-mode-picker real-provider-picker" aria-label="Real dry-run provider mode">
+            <button
+              v-for="option in realProviderOptions"
+              :key="option.id"
+              type="button"
+              :class="{ selected: selectedRealProvider === option.id }"
+              @click="selectedRealProvider = option.id"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+          <div class="provider-mode-picker real-task-picker" aria-label="Real dry-run task type">
+            <button
+              v-for="contract in contracts"
+              :key="contract.taskType"
+              type="button"
+              :class="{ selected: selectedContractTaskType === contract.taskType }"
+              @click="selectContract(contract)"
+            >
+              {{ contract.displayName }}
+            </button>
+          </div>
+          <textarea v-model="realDryRunInput" aria-label="Sanitized real dry-run input" />
+          <div class="sandbox-toggles real-dry-run-toggles">
+            <label><input v-model="realConfirmNoPii" type="checkbox" />confirmNoPii</label>
+            <label><input v-model="realAllowExternalCall" type="checkbox" />allowExternalCall</label>
+          </div>
+          <button
+            type="button"
+            class="primary-button sandbox-run-button"
+            :disabled="realDryRunning || !canRunRealDryRun"
+            :title="canRunRealDryRun ? '运行手动 real provider dry-run' : realDryRunPermissionReason"
+            @click="submitRealDryRun"
+          >
+            <RefreshCw :size="14" :class="{ spinning: realDryRunning }" />运行 real dry-run
+          </button>
+          <p v-if="!canRunRealDryRun" class="permission-inline-note">{{ realDryRunPermissionReason }}</p>
+          <p class="real-dry-run-boundary">
+            API Key 仅从环境变量读取；raw response 不保存；输出进入 Human Review，Copy Permission 默认 blocked。
+          </p>
+        </div>
+        <dl class="sandbox-result-grid real-dry-run-result-grid">
+          <div v-for="[label, value] in realDryRunRows" :key="label">
+            <dt>{{ label }}</dt>
+            <dd>{{ value }}</dd>
+          </div>
+        </dl>
+      </div>
+      <div v-if="realDryRunResult" class="real-dry-run-status-strip">
+        <span :class="{ blocked: realDryRunResult.externalCallBlocked, safe: !realDryRunResult.externalCallBlocked }">
+          {{ realDryRunResult.externalCallBlocked ? 'External blocked' : 'External path evaluated' }}
+        </span>
+        <span :class="{ safe: realDryRunResult.schemaValidated, blocked: !realDryRunResult.schemaValidated }">
+          Schema {{ realDryRunResult.schemaValidated ? 'validated' : 'not passed' }}
+        </span>
+        <span :class="{ safe: realDryRunResult.riskGuardPassed, blocked: !realDryRunResult.riskGuardPassed }">
+          Risk Guard {{ realDryRunResult.riskGuardPassed ? 'passed' : 'blocked' }}
+        </span>
+        <span class="blocked">Human Review required</span>
+        <span class="blocked">Copy allowed=false</span>
+      </div>
+      <p v-if="realDryRunResult" class="real-dry-run-notice">{{ realDryRunResult.boundaryNotice }}</p>
+      <p v-if="realDryRunError" class="sandbox-error"><AlertTriangle :size="12" />{{ realDryRunError }}</p>
+    </section>
 
     <section class="panel permission-audit-panel">
       <header class="panel-header provider-panel-header">

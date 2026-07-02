@@ -17,14 +17,16 @@
 - 允许使用 Flyway 管理 H2/MySQL 共用 schema，并用 Docker Compose 启动仅供本地开发/演示的 MySQL 8。
 - 允许使用 Provider SPI 和 sandbox run 演示配置校验、no-op adapter、失败/超时模拟、fallback 和 Trace Evidence 写入。
 - 允许使用 Provider contract sandbox 演示 PromptContract、RiskPolicy、ProviderResponseSchema 和本地 Response Validator。
+- 允许在本地手动开启 Real Provider dry-run，且仅限脱敏输入、显式确认无 PII、显式允许外呼、环境变量配置完整、权限通过后，对 DeepSeek / OpenAI-compatible 做一次受控 dry-run。
 - 允许使用 Copy Permission Contract 演示 AI/local-rule 输出正式使用前的最后一道复制门禁。
 - 允许使用 Local Actor Context 和本地 demo role switch 演示 OWNER / REVIEWER / EDITOR / VIEWER / SYSTEM 的写操作边界，并写入 `permission_audit_event`。
 
 ## 明确不做
 
-- 不接真实 LLM，不调用 DeepSeek，不调用中转站。
+- 默认不接真实 LLM；P4F real dry-run 必须手动开启，不能自动触发，也不能描述为生产级稳定模型接入。
 - 不保存 API Key 明文，也不把 Provider 配置伪装为已稳定接入。
-- 不因 `realCallEnabled=true` 配置项就发起真实外部请求；P4C/P4D/P4E adapter 仍然是 no-op。
+- 不因 `realCallEnabled=true` 配置项就自动发起真实外部请求；P4F 还要求 `allowExternalCall=true`、`confirmNoPii=true`、PII Guard 通过、Provider 配置完整和本地权限通过。
+- 不保存 raw model response；`rawResponseSave` 默认 false。
 - 不做生产级认证授权，不新增真实用户注册或登录，不保存真实密码。
 - 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
 - 不采集或保存真实手机号、邮箱、身份证、聊天记录等隐私。
@@ -93,9 +95,11 @@ Local Permission Model 是本地 demo 权限模型，不是生产级认证授权
 
 ## Provider SPI 原则
 
-Provider SPI 只建立抽象和审计基础，不代表已经接入真实模型网关。默认 provider 是 `local-rule`；OpenAI-compatible 和 DeepSeek 当前是 no-op adapter，用于读取配置状态、展示 descriptor、模拟失败/超时并触发 fallback。
+Provider SPI 建立抽象、审计和受控 dry-run 基础，不代表生产模型网关已经完成。默认 provider 是 `local-rule`；OpenAI-compatible 和 DeepSeek 的 sandbox adapter 仍用于读取配置状态、展示 descriptor、模拟失败/超时并触发 fallback。
 
 `GET /api/provider/config-check` 和 `GET /api/provider/settings` 不返回 API Key 明文，只显示 `masked`、`not configured` 或 `disabled`。`POST /api/provider/sandbox-run` 不发起真实外部 Provider 调用，任何未配置、失败或超时都必须 fallback 到 local-rule，并写入 `provider_trace_run` 与 `trace_step`。
+
+`POST /api/provider/real-dry-run` 是手动 dry-run 入口，不接招聘平台，不爬虫，不自动投递，不做实时面试辅助。它必须先通过 Local Permission、PII Guard、Prompt Contract、Risk Policy、Provider Config Check，成功或失败都写 trace。外部调用失败、缺配置、realCall disabled 或响应验证失败时必须 fallback 到 local-rule；PII 命中、未确认无 PII 或未允许外呼时必须在网络前 blocked。
 
 `GET /api/provider/contracts`、`GET /api/provider/contracts/{taskType}` 和 `POST /api/provider/validate-response` 只用于本地 contract/validation 演示。真实 Provider 接入前，任何输出都必须通过 schema validate、risk guard、Human Review 和 Copy Permission Contract；未校验或未确认输出不得进入页面复制流程。
 

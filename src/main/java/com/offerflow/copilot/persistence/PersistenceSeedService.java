@@ -867,7 +867,7 @@ public class PersistenceSeedService implements ApplicationRunner {
             run.setProviderMode("local-rule fallback active");
             run.setFinalProvider("local-rule fallback");
             run.setModel("local-rule-engine v2.1");
-            run.setFallbackReason("OpenAI-compatible 与 DeepSeek 均未配置；P4C/P4D contract sandbox 禁止真实 Provider 调用。");
+            run.setFallbackReason("OpenAI-compatible 与 DeepSeek 均未配置；Provider sandbox 禁止真实 Provider 调用。");
             run.setPromptVersion("match-report-prompt-v1");
             run.setSchemaVersion("match-report-schema-v1");
             run.setRiskFlagsJson(jsonCodec.write(List.of("contract-validated", "human-review-required", "raw-response-not-saved")));

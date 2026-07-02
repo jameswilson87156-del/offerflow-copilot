@@ -21,8 +21,10 @@ import org.springframework.test.web.servlet.MockMvc;
                 "spring.datasource.url=jdbc:h2:mem:offerflow-provider-mask;MODE=MySQL;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false",
                 "offerflow.ai.openai-compatible.base-url=https://unit.invalid/openai",
                 "offerflow.ai.openai-compatible.api-key=test-openai-secret-value",
+                "offerflow.ai.openai-compatible.model=unit-openai-model",
                 "offerflow.ai.deepseek.base-url=https://unit.invalid/deepseek",
-                "offerflow.ai.deepseek.api-key=test-deepseek-secret-value"
+                "offerflow.ai.deepseek.api-key=test-deepseek-secret-value",
+                "offerflow.ai.deepseek.model=unit-deepseek-model"
         })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")

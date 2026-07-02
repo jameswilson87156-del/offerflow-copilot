@@ -61,6 +61,9 @@ Copy and Provider:
 
 - `COPY_CHECK`
 - `PROVIDER_SANDBOX_RUN`
+- `PROVIDER_REAL_DRY_RUN`
+
+`OWNER` and `EDITOR` may run `PROVIDER_REAL_DRY_RUN`. `VIEWER` is denied. `SYSTEM` is not allowed to act as a human real dry-run actor.
 
 ## API
 
@@ -93,6 +96,7 @@ Allowed key writes and blocked attempts both create permission audit events. Exi
 - Match Report still writes `match_report_audit_event`.
 - Copy check still writes `copy_permission_audit_event`.
 - Provider sandbox still writes provider trace data.
+- Provider real dry-run still writes provider trace data and records denied attempts as permission audit events.
 
 ## Frontend
 
@@ -103,8 +107,8 @@ The top bar shows the current local demo actor and role. The UI switch supports:
 - `EDITOR`
 - `VIEWER`
 
-Actions that the current role cannot perform are disabled with an inline reason. Provider Settings also shows recent permission audit events.
+Actions that the current role cannot perform are disabled with an inline reason. Provider Settings also shows recent permission audit events and gates the Real Provider Dry-run run button with `PROVIDER_REAL_DRY_RUN`.
 
 ## Boundary
 
-This model is local-rule/demo only. It does not connect to OpenAI, DeepSeek, relay gateways, recruiting platforms, crawlers, auto-apply workflows, real interview assistance, real privacy collection, real API key storage, or offer/admission probability calculation.
+This model is local-rule/demo only and is not production authorization. P4F real dry-run can manually call DeepSeek or OpenAI-compatible only after local permission, explicit user toggles, PII Guard, and Provider config checks pass. It still does not connect to recruiting platforms, crawlers, auto-apply workflows, real interview assistance, real privacy collection, real API key storage, or offer/admission probability calculation.

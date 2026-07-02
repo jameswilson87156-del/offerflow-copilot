@@ -82,7 +82,7 @@ public class ProviderRouter {
                         OPENAI_COMPATIBLE, properties.apiKeyStatus(properties.getOpenaiCompatible()),
                         DEEPSEEK, properties.apiKeyStatus(properties.getDeepseek())),
                 warnings,
-                "P4C/P4D contract sandbox uses local-rule/no-op providers only; no real external model calls are made.");
+                "Provider sandbox uses local-rule/no-op providers only; P4F real dry-run requires the manual endpoint and explicit opt-in.");
     }
 
     public String normalize(String providerMode) {
@@ -111,10 +111,10 @@ public class ProviderRouter {
     private List<String> configWarnings() {
         List<String> baseWarnings = new java.util.ArrayList<>();
         if (properties.realCallEnabled()) {
-            baseWarnings.add("realCallEnabled is true, but P4C/P4D adapters remain no-op and do not call external networks.");
+            baseWarnings.add("realCallEnabled is true; sandbox adapters remain no-op and real dry-run still requires manual opt-in.");
         }
         if (properties.rawResponseSave()) {
-            baseWarnings.add("rawResponseSave is true, but P4C/P4D ProviderResponse still forces rawResponseSaved=false.");
+            baseWarnings.add("rawResponseSave is true, but ProviderResponse still forces rawResponseSaved=false.");
         }
         if (!properties.openAiCompatibleConfigured()) {
             baseWarnings.add("OpenAI-compatible is not configured; sandbox runs fallback to local-rule.");

@@ -17,6 +17,6 @@ public record ProviderStatus(
                 false,
                 false,
                 "local-rule",
-                "P4B uses local-rule/no-op providers only; no real external model calls are made.");
+                "Default mode uses local-rule/no-op providers; P4F real dry-run requires manual opt-in and remains review-gated.");
     }
 }

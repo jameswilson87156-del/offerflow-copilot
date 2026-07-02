@@ -40,7 +40,7 @@ public class ProviderResponseValidator {
         if (response.rawResponseSaved()) {
             violations.add(violation(
                     "raw_response_saved",
-                    "rawResponseSaved must remain false in P4C/P4D.",
+                    "rawResponseSaved must remain false in P4F.",
                     "rawResponseSaved",
                     "BLOCKER",
                     true));

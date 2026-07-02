@@ -25,6 +25,7 @@ const rolePermissions: Record<LocalActorRole, PermissionAction[]> = {
     'MATCH_REPORT_RESTORE',
     'COPY_CHECK',
     'PROVIDER_SANDBOX_RUN',
+    'PROVIDER_REAL_DRY_RUN',
   ],
   REVIEWER: ['REVIEW_CONFIRM', 'REVIEW_RETURN', 'REVIEW_FLAG_RISK', 'COPY_CHECK'],
   EDITOR: [
@@ -36,6 +37,7 @@ const rolePermissions: Record<LocalActorRole, PermissionAction[]> = {
     'JD_BIND_EVIDENCE',
     'MATCH_REPORT_GENERATE',
     'MATCH_REPORT_SEND_TO_REVIEW',
+    'PROVIDER_REAL_DRY_RUN',
   ],
   VIEWER: [],
   SYSTEM: ['JD_PARSE', 'JD_BIND_EVIDENCE', 'MATCH_REPORT_GENERATE', 'PROVIDER_SANDBOX_RUN'],

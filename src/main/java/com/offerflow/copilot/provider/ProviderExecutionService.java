@@ -320,7 +320,7 @@ public class ProviderExecutionService {
                         new ProviderTraceCenter.ResumeEvidenceRef(
                                 "SANDBOX-002",
                                 "No-op external adapters",
-                                "OpenAI-compatible and DeepSeek adapters exist but do not perform network calls in P4C/P4D.",
+                                "OpenAI-compatible and DeepSeek sandbox adapters are no-op; P4F real dry-run uses a separate manual endpoint.",
                                 List.of("ProviderRouter", "NoOp clients")),
                         new ProviderTraceCenter.ResumeEvidenceRef(
                                 "SANDBOX-003",

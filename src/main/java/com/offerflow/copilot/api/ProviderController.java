@@ -9,6 +9,9 @@ import com.offerflow.copilot.provider.ProviderExecutionService;
 import com.offerflow.copilot.provider.ProviderResponse;
 import com.offerflow.copilot.provider.ProviderRouter;
 import com.offerflow.copilot.provider.ProviderSandboxRunRequest;
+import com.offerflow.copilot.provider.RealProviderDryRunRequest;
+import com.offerflow.copilot.provider.RealProviderDryRunResult;
+import com.offerflow.copilot.provider.RealProviderDryRunService;
 import com.offerflow.copilot.provider.contract.PromptContract;
 import com.offerflow.copilot.provider.contract.PromptContractSummary;
 import com.offerflow.copilot.provider.contract.ProviderContractService;
@@ -35,6 +38,7 @@ public class ProviderController {
     private final ProviderRouter providerRouter;
     private final ProviderExecutionService providerExecutionService;
     private final ProviderContractService providerContractService;
+    private final RealProviderDryRunService realProviderDryRunService;
     private final LocalActorResolver actorResolver;
     private final LocalPermissionAuditService permissionAuditService;
 
@@ -43,12 +47,14 @@ public class ProviderController {
             ProviderRouter providerRouter,
             ProviderExecutionService providerExecutionService,
             ProviderContractService providerContractService,
+            RealProviderDryRunService realProviderDryRunService,
             LocalActorResolver actorResolver,
             LocalPermissionAuditService permissionAuditService) {
         this.providerTraceService = providerTraceService;
         this.providerRouter = providerRouter;
         this.providerExecutionService = providerExecutionService;
         this.providerContractService = providerContractService;
+        this.realProviderDryRunService = realProviderDryRunService;
         this.actorResolver = actorResolver;
         this.permissionAuditService = permissionAuditService;
     }
@@ -102,6 +108,25 @@ public class ProviderController {
         return providerExecutionService.sandboxRun(withActor(safeRequest, actorContext));
     }
 
+    @PostMapping("/real-dry-run")
+    public RealProviderDryRunResult realDryRun(
+            @RequestBody(required = false) RealProviderDryRunRequest request,
+            @RequestHeader(value = "X-Demo-Actor", required = false) String headerActor,
+            @RequestHeader(value = "X-Demo-Role", required = false) String headerRole,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId) {
+        RealProviderDryRunRequest safeRequest = request == null
+                ? new RealProviderDryRunRequest(null, null, null, null, null, false, false)
+                : request;
+        LocalActorContext actorContext = actorResolver.resolve(
+                safeRequest.actor(), safeRequest.actorRole(), headerActor, headerRole, requestId);
+        permissionAuditService.requireAllowed(
+                actorContext,
+                PermissionAction.PROVIDER_REAL_DRY_RUN,
+                "PROVIDER_REAL_DRY_RUN",
+                safeRequest.taskType());
+        return realProviderDryRunService.dryRun(withActor(safeRequest, actorContext));
+    }
+
     @GetMapping("/contracts")
     public List<PromptContractSummary> contracts() {
         return providerContractService.summaries();
@@ -126,5 +151,16 @@ public class ProviderController {
                 request.simulateTimeout(),
                 actorContext.actor(),
                 actorContext.actorRole().name());
+    }
+
+    private RealProviderDryRunRequest withActor(RealProviderDryRunRequest request, LocalActorContext actorContext) {
+        return new RealProviderDryRunRequest(
+                request.providerMode(),
+                request.taskType(),
+                request.inputText(),
+                actorContext.actor(),
+                actorContext.actorRole().name(),
+                request.allowExternalCall(),
+                request.confirmNoPii());
     }
 }

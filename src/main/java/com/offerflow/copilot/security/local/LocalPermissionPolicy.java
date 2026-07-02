@@ -26,7 +26,8 @@ public class LocalPermissionPolicy {
             PermissionAction.JD_PARSE,
             PermissionAction.JD_BIND_EVIDENCE,
             PermissionAction.MATCH_REPORT_GENERATE,
-            PermissionAction.MATCH_REPORT_SEND_TO_REVIEW);
+            PermissionAction.MATCH_REPORT_SEND_TO_REVIEW,
+            PermissionAction.PROVIDER_REAL_DRY_RUN);
 
     private static final Set<PermissionAction> SYSTEM_ALLOWED = EnumSet.of(
             PermissionAction.JD_PARSE,

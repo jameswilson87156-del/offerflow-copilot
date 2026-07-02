@@ -2,16 +2,18 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P4E Local Role Permission & Review Workflow Enforcement
+## 当前阶段：P4F Real Provider Manual Dry-run Integration
 
-当前版本保留 P4A 的 Flyway + H2/MySQL persistence 基础、P4B 的 Provider SPI、P4C 的 Prompt/Schema/Risk contract 和 P4D 的 Copy Permission Contract，并新增本地 demo 角色权限模型。默认 Provider 仍是 `local-rule`；OpenAI-compatible 与 DeepSeek 只有 no-op adapter 结构，不会发起真实外部网络请求，也不会保存真实 API Key。任何未来真实 Provider 输出都必须先通过 schema validate 与 risk guard，再进入 Human Review，最后通过 Copy Permission Contract 才可复制。
+当前版本保留 P4A 的 Flyway + H2/MySQL persistence 基础、P4B 的 Provider SPI、P4C 的 Prompt/Schema/Risk contract、P4D 的 Copy Permission Contract 和 P4E 的本地 demo 角色权限模型，并新增 P4F 手动真实 Provider dry-run 路径。默认 Provider 仍是 `local-rule`，真实调用默认关闭；只有显式设置 `realCallEnabled=true`、用户勾选 `allowExternalCall` 与 `confirmNoPii`、Provider 环境变量配置完整且 PII Guard 通过时，DeepSeek 或 OpenAI-compatible dry-run 才会尝试一次外部调用。API Key 只从环境变量读取，不写入仓库、日志、测试、截图或响应；raw model response 不保存。任何真实 dry-run 输出都必须先通过 schema validate 与 risk guard，再进入 Human Review，最后通过 Copy Permission Contract 才可复制。
 
 匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。P4D 新增 `copy_permission_audit_event` 作为统一复制门禁审计表；P4E 新增 `permission_audit_event` 记录本地角色对关键写操作的 allowed/blocked 决策。`ARCHIVED` 是只读归档状态，不能送审；当前 actor/actorRole 仅用于本地演示和审计，当前仍不是生产级认证授权系统。
 
 关键边界：
 
-- 不接真实 LLM，不调用 DeepSeek，不调用中转站。
+- 默认不接真实 LLM；P4F 只提供手动开启的 DeepSeek / OpenAI-compatible dry-run 路径，不声明生产级稳定接入。
 - 不保存 API Key，Provider 配置只显示 masked / disabled / not configured。
+- 不保存 raw model response，`rawResponseSave` 默认 false。
+- 不输入真实手机号、邮箱、身份证、聊天记录、API Key 或平台私信。
 - 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
 - 不保存真实手机号、邮箱、身份证、聊天记录等隐私。
 - 不自动投递，不做实时面试辅助或作弊功能。
@@ -63,6 +65,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | GET | `/api/provider/settings` | ProviderDescriptor 列表与安全边界 |
 | GET | `/api/provider/config-check` | Provider SPI 配置校验，不泄露 API Key |
 | POST | `/api/provider/sandbox-run` | no-op/local-rule 沙箱运行，写入 provider_trace_run + trace_step |
+| POST | `/api/provider/real-dry-run` | 手动真实 Provider dry-run；默认 blocked/fallback，PII Guard、Schema Validate、Risk Guard、Human Review 与 Copy Permission 全链路留痕 |
 | GET | `/api/provider/contracts` | Provider taskType 合同摘要，不泄露 API Key |
 | GET | `/api/provider/contracts/{taskType}` | PromptContract detail |
 | POST | `/api/provider/validate-response` | 本地模拟 ProviderResponse contract validation，不发外部请求 |
@@ -107,7 +110,7 @@ npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/real-provider-dry-run.md](docs/real-provider-dry-run.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
 
 Schema 统一由 `src/main/resources/db/migration` 下的 Flyway migration 管理，`schema.sql` 仅作为未启用的历史 fallback 参考，不再由默认、test 或 mysql profile 自动执行。启动本地 MySQL：
 
@@ -129,4 +132,4 @@ npm run screenshots
 git diff --check
 ```
 
-更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。
+更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/real-provider-dry-run.md](docs/real-provider-dry-run.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。

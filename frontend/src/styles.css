@@ -1199,6 +1199,64 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
 .sandbox-run-button { grid-column: 1 / -1; justify-self: end; min-height: 30px; }
 .sandbox-result-grid { margin: 0; padding: 9px 12px 11px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; }
 .sandbox-error { margin: 0 12px 11px; display: flex; align-items: center; gap: 5px; color: #9b5a17; font-size: 7.5px; font-weight: 700; }
+.real-dry-run-panel { margin-bottom: 11px; overflow: hidden; }
+.real-dry-run-layout { display: grid; grid-template-columns: minmax(540px, .95fr) minmax(420px, .75fr); gap: 0; border-top: 1px solid #e7edf5; }
+.real-dry-run-form {
+  padding: 10px 12px 11px;
+  display: grid;
+  grid-template-columns: minmax(180px, .52fr) minmax(260px, .86fr) minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+  border-right: 1px solid #e7edf5;
+}
+.real-provider-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.real-task-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.real-dry-run-form textarea {
+  min-height: 82px;
+  resize: vertical;
+  padding: 8px 9px;
+  border: 1px solid #dce4ef;
+  border-radius: 8px;
+  color: #415068;
+  background: #fbfdff;
+  font: 8px/1.45 'Manrope Variable', 'Noto Sans SC', sans-serif;
+}
+.real-dry-run-toggles { min-width: 150px; }
+.real-dry-run-boundary {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 9px;
+  border: 1px solid #cfe0fb;
+  border-radius: 8px;
+  color: #315f9f;
+  background: #f6faff;
+  font-size: 7.5px;
+  line-height: 1.45;
+}
+.real-dry-run-result-grid { align-content: start; }
+.real-dry-run-status-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 10px;
+}
+.real-dry-run-status-strip span {
+  min-height: 23px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 7.2px;
+  font-weight: 800;
+}
+.real-dry-run-status-strip span.safe { color: #147a55; background: #edf9f3; border: 1px solid #bee4d2; }
+.real-dry-run-status-strip span.blocked { color: #9b4a2d; background: #fff7f4; border: 1px solid #f0c9bd; }
+.real-dry-run-notice {
+  margin: 0 12px 11px;
+  color: #66768c;
+  font-size: 7.4px;
+  line-height: 1.45;
+}
 .permission-audit-panel { margin-bottom: 11px; overflow: hidden; }
 .permission-audit-list { padding: 10px 12px 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .permission-audit-list article { min-width: 0; min-height: 86px; display: grid; gap: 4px; align-content: start; padding: 9px; border: 1px solid #dce4ef; border-radius: 9px; background: #fbfdff; }
@@ -1443,7 +1501,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
 }
 
 @media (max-width: 1180px) {
-  .provider-sandbox-grid, .provider-contract-grid, .provider-top-grid, .provider-bottom-grid, .validation-layout, .copy-contract-reminder { grid-template-columns: 1fr; }
+  .provider-sandbox-grid, .provider-contract-grid, .provider-top-grid, .provider-bottom-grid, .validation-layout, .copy-contract-reminder, .real-dry-run-layout { grid-template-columns: 1fr; }
+  .real-dry-run-form { border-right: 0; border-bottom: 1px solid #e7edf5; }
   .permission-audit-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .provider-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .safety-boundary-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1454,7 +1513,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
 
 @media (max-width: 860px) {
   .provider-context-meta { display: none; }
-  .provider-config-grid, .sandbox-form, .sandbox-result-grid, .contract-card-list, .contract-detail-grid, .validation-result-grid, .provider-card-grid, .safety-boundary-list, .trace-detail-layout, .permission-audit-list { grid-template-columns: 1fr; }
+  .provider-config-grid, .sandbox-form, .sandbox-result-grid, .contract-card-list, .contract-detail-grid, .validation-result-grid, .provider-card-grid, .safety-boundary-list, .trace-detail-layout, .permission-audit-list, .real-dry-run-form, .real-task-picker { grid-template-columns: 1fr; }
   .trace-detail-block:nth-child(odd) { border-right: 0; }
   .run-detail-grid { grid-template-columns: 1fr; }
   .sandbox-run-button { justify-self: stretch; }

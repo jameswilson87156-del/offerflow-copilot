@@ -29,6 +29,7 @@ export type PermissionAction =
   | 'MATCH_REPORT_RESTORE'
   | 'COPY_CHECK'
   | 'PROVIDER_SANDBOX_RUN'
+  | 'PROVIDER_REAL_DRY_RUN'
 
 export interface LocalActorContext {
   actor: string
@@ -477,6 +478,36 @@ export interface ProviderSandboxRunPayload {
   simulateTimeout: boolean
   actor: string
   actorRole: string
+}
+
+export interface ProviderRealDryRunPayload {
+  providerMode: string
+  taskType: string
+  inputText: string
+  actor: string
+  actorRole: string
+  allowExternalCall: boolean
+  confirmNoPii: boolean
+}
+
+export interface ProviderRealDryRunResult {
+  success: boolean
+  externalCallAttempted: boolean
+  externalCallBlocked: boolean
+  providerMode: string
+  finalProvider: string
+  model: string
+  fallbackUsed: boolean
+  fallbackReason: string
+  schemaValidated: boolean
+  riskGuardPassed: boolean
+  humanReviewRequired: boolean
+  copyAllowed: boolean
+  rawResponseSaved: boolean
+  traceId: string
+  runId: string
+  riskFlags: string[]
+  boundaryNotice: string
 }
 
 export interface ProviderResponse {

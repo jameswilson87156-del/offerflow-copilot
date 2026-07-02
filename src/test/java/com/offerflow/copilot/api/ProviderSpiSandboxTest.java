@@ -63,7 +63,7 @@ class ProviderSpiSandboxTest {
                 .andExpect(jsonPath("$.mode").value("local-rule"))
                 .andExpect(jsonPath("$.openaiCompatibleReady").value(false))
                 .andExpect(jsonPath("$.deepSeekReady").value(false))
-                .andExpect(jsonPath("$.boundaryNotice").value(containsString("no real external model calls")));
+                .andExpect(jsonPath("$.boundaryNotice").value(containsString("explicit opt-in")));
     }
 
     @Test

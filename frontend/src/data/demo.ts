@@ -7,7 +7,7 @@ export const providerFallback: ProviderStatus = {
   realCallEnabled: false,
   rawResponseSave: false,
   fallback: 'local-rule',
-  boundaryNotice: 'P4B uses local-rule/no-op providers only; no real external model calls are made.',
+  boundaryNotice: 'Default mode uses local-rule/no-op providers; P4F real dry-run requires manual opt-in and remains review-gated.',
 }
 
 export const demoFallback: DemoAnalysis = {

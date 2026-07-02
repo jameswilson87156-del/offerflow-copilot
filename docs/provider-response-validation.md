@@ -2,6 +2,8 @@
 
 `ProviderResponseValidator` is the local P4C guardrail for simulated or future Provider output. It does not call external networks and does not save raw model responses.
 
+P4F real dry-run calls this same validator after provider response normalization. The validator sees only the normalized `ProviderResponse`; raw model response is discarded and not persisted.
+
 ## Responsibilities
 
 - Check required response fields such as `providerMode`, `finalProvider`, and structured JSON fields.
@@ -33,4 +35,6 @@ If validation fails, the system marks `fallbackRequired=true`, keeps `humanRevie
 
 If validation succeeds, the output is still not copyable by itself. P4D requires Human Review Confirmed and Copy Permission Contract approval before a page can expose a confirmed copy action.
 
-P4D remains demo/local-rule/no-op. It is not a production model gateway and does not prove real external model quality or availability.
+For real dry-run, validation failure forces fallback to `local-rule` and writes Schema Validate / Risk Guard / Fallback Decision trace steps. Validation success still returns `humanReviewRequired=true` and `copyAllowed=false`.
+
+P4F remains a manual dry-run path, not a production model gateway, and it does not prove real external model quality or availability.

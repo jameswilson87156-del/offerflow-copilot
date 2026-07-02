@@ -13,6 +13,8 @@ import type {
   ProviderContractSummary,
   ProviderPromptContract,
   PermissionAuditEvent,
+  ProviderRealDryRunPayload,
+  ProviderRealDryRunResult,
   ProviderResponse,
   ProviderSandboxRunPayload,
   ProviderSettingsData,
@@ -30,12 +32,15 @@ export function useProviderTrace() {
   const traceIndex = shallowRef<ProviderTraceIndex>(providerTraceIndexFallback)
   const traceRun = shallowRef<ProviderTraceRun>(providerTraceRunFallback)
   const sandboxResult = shallowRef<ProviderResponse | null>(null)
+  const realDryRunResult = shallowRef<ProviderRealDryRunResult | null>(null)
   const validationResult = shallowRef<ProviderValidatedResult>(providerValidationFallback)
   const permissionAuditEvents = shallowRef<PermissionAuditEvent[]>([])
   const sandboxError = shallowRef('')
+  const realDryRunError = shallowRef('')
   const validationError = shallowRef('')
   const loading = shallowRef(true)
   const running = shallowRef(false)
+  const realDryRunning = shallowRef(false)
   const validating = shallowRef(false)
   const source = shallowRef<'api' | 'fallback'>('fallback')
 
@@ -111,6 +116,27 @@ export function useProviderTrace() {
     }
   }
 
+  async function runRealDryRun(payload: ProviderRealDryRunPayload) {
+    realDryRunning.value = true
+    realDryRunError.value = ''
+    try {
+      const response = await fetch('/api/provider/real-dry-run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!response.ok) throw new Error('Provider real dry-run API unavailable')
+      realDryRunResult.value = await response.json() as ProviderRealDryRunResult
+      await load(realDryRunResult.value.runId, payload.taskType)
+      source.value = 'api'
+    } catch {
+      realDryRunError.value = '本地 Real Provider dry-run API 不可用，或当前角色无权限。'
+      source.value = 'fallback'
+    } finally {
+      realDryRunning.value = false
+    }
+  }
+
   async function loadContract(taskType: string) {
     try {
       const response = await fetch(`/api/provider/contracts/${taskType}`)
@@ -155,16 +181,20 @@ export function useProviderTrace() {
     traceIndex,
     traceRun,
     sandboxResult,
+    realDryRunResult,
     validationResult,
     permissionAuditEvents,
     sandboxError,
+    realDryRunError,
     validationError,
     loading,
     running,
+    realDryRunning,
     validating,
     source,
     reload: load,
     runSandbox,
+    runRealDryRun,
     loadContract,
     validateResponse,
   }

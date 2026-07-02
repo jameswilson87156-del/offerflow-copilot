@@ -1,6 +1,6 @@
 # 架构说明
 
-## P4E 结构
+## P4F 结构
 
 ```text
 Vue 3 Workbench
@@ -16,6 +16,7 @@ Spring Boot 3
   |-- Services（组合 local-rule 语义、数据库读取和状态流转）
   |-- Provider SPI（local-rule/no-op adapters、router、sandbox execution）
   |-- Provider Contracts（taskType prompt/schema/risk policy、response validator）
+  |-- Real Provider Dry-run（manual opt-in、PII guard、schema/risk guard、fallback trace）
   |-- Copy Permission Contract（统一复制门禁、Human Review gate、audit event）
   |-- Local Permission（demo actor context、role policy、permission audit）
   |-- Repositories（MyBatis-Plus BaseMapper 封装）
@@ -43,9 +44,9 @@ H2 demo/test 或本地 MySQL 8 persistence
   |-- trace_step
 ```
 
-## Provider SPI、Contract 与 Sandbox 链路
+## Provider SPI、Contract、Sandbox 与 Real Dry-run 链路
 
-P4B 新增 `com.offerflow.copilot.provider` 包，为后续 OpenAI-compatible、DeepSeek 或中转站接入预留稳定边界；P4C 新增 `com.offerflow.copilot.provider.contract`，把 taskType 到 promptVersion、schemaVersion、riskPolicyVersion 的映射固化下来。当前仍不发起真实外部请求。
+P4B 新增 `com.offerflow.copilot.provider` 包，为后续 OpenAI-compatible、DeepSeek 或中转站接入预留稳定边界；P4C 新增 `com.offerflow.copilot.provider.contract`，把 taskType 到 promptVersion、schemaVersion、riskPolicyVersion 的映射固化下来。P4F 新增手动 real dry-run 路径，但默认仍不发起真实外部请求。
 
 核心结构：
 
@@ -57,12 +58,16 @@ P4B 新增 `com.offerflow.copilot.provider` 包，为后续 OpenAI-compatible、
 6. `ProviderExecutionService`：创建 runId/traceId，加载 PromptContract/RiskPolicy，执行 sandbox run，验证 ProviderResponse，写入 `provider_trace_run` 与 `trace_step`。
 7. `PromptContractRegistry`：为 JD_ANALYSIS、EVIDENCE_BINDING、MATCH_REPORT、INTERVIEW_PREP、OPENING_MESSAGE、HUMAN_REVIEW_REWRITE、PROVIDER_SANDBOX 提供合同。
 8. `ProviderResponseValidator`：校验 required fields、schemaVersion、禁用表述、rawResponseSaved=false 和 realCall disabled 边界。
+9. `RealProviderDryRunService`：手动 dry-run 编排，串联 Local Permission、PII Guard、Prompt/Risk/Schema、Provider Config、外部调用或 blocked、fallback、Human Review 和 Copy Permission trace。
+10. `HttpRealProviderGateway`：仅在 P4F 手动条件全部满足时，使用环境变量中的 base URL/API key/model 发起 OpenAI-compatible chat-completions 请求；不记录 key，不保存 raw model response。
 
 配置默认值为 `offerflow.ai.provider.mode=local-rule`、`real-call-enabled=false`、`raw-response-save=false`。API Key 只通过环境变量占位读取，接口和页面只返回 `masked` / `not configured` / `disabled`，不会返回明文。
 
 `GET /api/provider/contracts` 与 `GET /api/provider/contracts/{taskType}` 只返回合同摘要/detail，不包含 API Key。`POST /api/provider/validate-response` 只验证本地模拟 ProviderResponse，不发网络、不保存 raw model response。
 
 `POST /api/provider/sandbox-run` 每次至少写入 12 个 Trace Evidence 步骤：Provider Config Check、Prompt Contract Load、Risk Policy Load、Prompt Build、Provider Select、Provider No-op/Call、Fallback Decision、Provider Response Validate、Schema Contract Validate、Risk Policy Guard、Contract Violation Check、Human Review Required。外部 provider 未配置、模拟失败或模拟超时时，`ProviderResponse` 会标记 `fallbackUsed=true`、`finalProvider=local-rule` 并记录 fallback reason。所有输出仍是 Draft，需要 Human Review。
+
+`POST /api/provider/real-dry-run` 只支持 `deepseek` 和 `openai-compatible`。它默认 blocked/fallback；只有 `realCallEnabled=true`、`allowExternalCall=true`、`confirmNoPii=true`、Provider 配置完整、PII Guard 通过且 actor 具备 `PROVIDER_REAL_DRY_RUN` 时才尝试外部调用。它写入 14 个 Trace Evidence 步骤：Actor Permission Check、Real Call Flag Check、PII Guard、Prompt Contract Load、Risk Policy Load、Provider Config Check、Provider Select、External Provider Call/Blocked、Provider Response Normalize、Schema Validate、Risk Guard、Fallback Decision、Human Review Required、Copy Permission Blocked。raw response 不保存，输出必须 Human Review，`copyAllowed=false`。
 
 ## Copy Permission Contract 链路
 
@@ -162,4 +167,4 @@ P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 
 
 ## 边界
 
-本架构不接真实 LLM，不调用 DeepSeek，不保存 API Key，不接招聘平台 API，不爬虫，不自动投递，不保存真实隐私，也不输出 Offer/录取概率或保证通过。当前 actor/actorRole 只是 demo local permission context，不是生产登录、注册、鉴权或生产级权限系统。
+本架构默认不接真实 LLM，不保存 API Key，不保存 raw model response，不接招聘平台 API，不爬虫，不自动投递，不保存真实隐私，也不输出 Offer/录取概率或保证通过。P4F 的 real dry-run 是手动、默认关闭、强门禁的验证路径，不是生产级稳定模型接入声明。当前 actor/actorRole 只是 demo local permission context，不是生产登录、注册、鉴权或生产级权限系统。
