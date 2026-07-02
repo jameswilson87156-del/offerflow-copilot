@@ -53,11 +53,14 @@ public class ProviderContractService {
         PromptContract contract = promptContractRegistry.get(taskType);
         RiskPolicy riskPolicy = riskPolicyRegistry.get(taskType);
         ProviderResponseSchema schema = responseSchemaRegistry.get(taskType);
-        ProviderResponse response = validationResponse(request, schema);
+        ProviderResponse response = validationResponse(request, taskType, schema);
         return responseValidator.validate(taskType, response, contract, riskPolicy, schema);
     }
 
-    private ProviderResponse validationResponse(ProviderValidationRequest request, ProviderResponseSchema schema) {
+    private ProviderResponse validationResponse(
+            ProviderValidationRequest request,
+            ProviderTaskType taskType,
+            ProviderResponseSchema schema) {
         String providerMode = valueOr(request == null ? null : request.providerMode(), "local-rule");
         String finalProvider = providerMode;
         String outputText = valueOr(request == null ? null : request.outputText(),
@@ -65,7 +68,7 @@ public class ProviderContractService {
         if (request != null && request.simulateUnsafeClaim()) {
             outputText = outputText + " Offer 概率 95%，保证通过，生产级稳定接入真实模型。";
         }
-        String structuredJson = valueOr(request == null ? null : request.structuredJson(), structuredJson(request, schema));
+        String structuredJson = valueOr(request == null ? null : request.structuredJson(), structuredJson(request, taskType, schema));
         return new ProviderResponse(
                 true,
                 providerMode,
@@ -84,12 +87,20 @@ public class ProviderContractService {
                 true);
     }
 
-    private String structuredJson(ProviderValidationRequest request, ProviderResponseSchema schema) {
+    private String structuredJson(
+            ProviderValidationRequest request,
+            ProviderTaskType taskType,
+            ProviderResponseSchema schema) {
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("provider", "local-rule");
         fields.put("schemaVersion", request != null && request.simulateSchemaMismatch()
                 ? "schema-mismatch-v0"
                 : schema.schemaVersion());
+        if (taskType == ProviderTaskType.PROVIDER_SANDBOX) {
+            fields.put("taskType", taskType.name());
+            fields.put("answer", "Local validation response passes through contract checks.");
+            fields.put("riskFlags", List.of());
+        }
         if (request == null || !request.simulateMissingField()) {
             fields.put("summary", "Local validation response passes through contract checks.");
         }

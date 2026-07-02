@@ -5,13 +5,11 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.offerflow.copilot.domain.ProviderTraceCenter;
 import com.offerflow.copilot.persistence.JsonCodec;
 import com.offerflow.copilot.persistence.entity.ProviderTraceRunEntity;
@@ -46,12 +44,12 @@ public class RealProviderDryRunService {
     private final RiskPolicyRegistry riskPolicyRegistry;
     private final ProviderResponseSchemaRegistry responseSchemaRegistry;
     private final ProviderResponseValidator responseValidator;
+    private final ProviderResponseNormalizer responseNormalizer;
     private final LocalRuleProviderClient localRuleProviderClient;
     private final RealProviderGateway realProviderGateway;
     private final ProviderTraceRunRepository providerTraceRunRepository;
     private final TraceStepRepository traceStepRepository;
     private final JsonCodec jsonCodec;
-    private final ObjectMapper objectMapper;
     private final PiiGuard piiGuard;
 
     public RealProviderDryRunService(
@@ -60,24 +58,24 @@ public class RealProviderDryRunService {
             RiskPolicyRegistry riskPolicyRegistry,
             ProviderResponseSchemaRegistry responseSchemaRegistry,
             ProviderResponseValidator responseValidator,
+            ProviderResponseNormalizer responseNormalizer,
             LocalRuleProviderClient localRuleProviderClient,
             RealProviderGateway realProviderGateway,
             ProviderTraceRunRepository providerTraceRunRepository,
             TraceStepRepository traceStepRepository,
             JsonCodec jsonCodec,
-            ObjectMapper objectMapper,
             PiiGuard piiGuard) {
         this.properties = properties;
         this.promptContractRegistry = promptContractRegistry;
         this.riskPolicyRegistry = riskPolicyRegistry;
         this.responseSchemaRegistry = responseSchemaRegistry;
         this.responseValidator = responseValidator;
+        this.responseNormalizer = responseNormalizer;
         this.localRuleProviderClient = localRuleProviderClient;
         this.realProviderGateway = realProviderGateway;
         this.providerTraceRunRepository = providerTraceRunRepository;
         this.traceStepRepository = traceStepRepository;
         this.jsonCodec = jsonCodec;
-        this.objectMapper = objectMapper;
         this.piiGuard = piiGuard;
     }
 
@@ -278,20 +276,27 @@ public class RealProviderDryRunService {
             String normalizedText,
             int durationMs) {
         String outputText = valueOr(normalizedText, "External provider returned an empty dry-run response.");
+        ProviderResponseNormalizer.NormalizedProviderResponse normalized = responseNormalizer.normalize(
+                providerMode,
+                taskType,
+                schema,
+                outputText);
         return new ProviderResponse(
                 true,
                 providerMode,
                 providerMode,
                 model(providerMode),
-                outputText,
-                structuredJson(providerMode, schema, outputText),
+                normalized.outputText(),
+                normalized.structuredJson(),
                 false,
                 "",
                 "",
                 "",
                 durationMs,
                 runId,
-                List.of("real-dry-run", "raw-response-not-saved", "human-review-required", taskType.apiName()),
+                mergeRiskFlags(
+                        List.of("real-dry-run", "raw-response-not-saved", "human-review-required", taskType.apiName()),
+                        normalized.riskFlags()),
                 false,
                 true);
     }
@@ -307,22 +312,6 @@ public class RealProviderDryRunService {
                 contract,
                 properties.timeoutMs(),
                 runId);
-    }
-
-    private String structuredJson(String providerMode, ProviderResponseSchema schema, String outputText) {
-        try {
-            objectMapper.readTree(outputText);
-            return outputText;
-        } catch (Exception ignored) {
-            Map<String, Object> fields = new LinkedHashMap<>();
-            fields.put("provider", providerMode);
-            fields.put("schemaVersion", schema.schemaVersion());
-            fields.put("summary", summarize(outputText));
-            fields.put("humanReviewRequired", true);
-            fields.put("copyAllowed", false);
-            fields.put("boundaryNotice", "Manual real provider dry-run; raw response is not saved and output remains review-gated.");
-            return jsonCodec.write(fields);
-        }
     }
 
     private void persistTrace(
@@ -526,6 +515,13 @@ public class RealProviderDryRunService {
         if (validatedResult != null) {
             flags.addAll(validatedResult.riskFlags());
         }
+        return List.copyOf(flags);
+    }
+
+    private List<String> mergeRiskFlags(List<String> baseFlags, List<String> additionalFlags) {
+        LinkedHashSet<String> flags = new LinkedHashSet<>();
+        flags.addAll(baseFlags == null ? List.of() : baseFlags);
+        flags.addAll(additionalFlags == null ? List.of() : additionalFlags);
         return List.copyOf(flags);
     }
 

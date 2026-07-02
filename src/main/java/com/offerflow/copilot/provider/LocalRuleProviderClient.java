@@ -69,7 +69,10 @@ public class LocalRuleProviderClient implements AiProviderClient {
     private String structuredJson(ProviderRequest request) {
         return "{\"provider\":\"local-rule\","
                 + "\"schemaVersion\":\"" + escape(request.schemaVersion()) + "\","
+                + "\"taskType\":\"" + escape(request.taskType()) + "\","
+                + "\"answer\":\"Local-rule sandbox output requires Human Review.\","
                 + "\"summary\":\"Local-rule sandbox output requires Human Review.\","
+                + "\"riskFlags\":[\"human-review-required\",\"no-external-model-call\"],"
                 + "\"humanReviewRequired\":true,"
                 + "\"copyAllowed\":false,"
                 + "\"boundaryNotice\":\"No external model call was made.\"}";

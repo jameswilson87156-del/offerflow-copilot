@@ -85,8 +85,8 @@ async function verifyProviderTrace(page: Page) {
   await expect(page.getByRole('heading', { name: 'Run Details' })).toBeVisible()
   await expect(page.getByText('local-rule fallback active', { exact: true }).first()).toBeVisible()
   await expect(page.locator('.provider-card')).toHaveCount(3)
-  await expect(page.locator('.pipeline-step')).toHaveCount(12)
-  await expect(page.getByText('OpenAI-compatible 与 DeepSeek 均未配置')).toBeVisible()
+  await expect(page.locator('.pipeline-step')).toHaveCount(14)
+  await expect(page.locator('.pipeline-step').last()).toContainText('Copy Permission Blocked')
   await expectNoHorizontalOverflow(page)
   expect(consoleErrors).toEqual([])
 }

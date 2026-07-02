@@ -39,9 +39,9 @@ public class PromptContractRegistry {
         register(next, ProviderTaskType.HUMAN_REVIEW_REWRITE, "human-review-rewrite-prompt-v1", "human-review-rewrite-schema-v1",
                 "HumanReviewRewriteResponse", List.of("draftText", "reviewNotes", "riskFlags"),
                 "Rewrite only for clarity after human review and preserve all safety boundaries.");
-        register(next, ProviderTaskType.PROVIDER_SANDBOX, "provider-sandbox-prompt-v1", "provider-sandbox-schema-v1",
+        register(next, ProviderTaskType.PROVIDER_SANDBOX, "provider-sandbox-prompt-v2", "provider-sandbox-v1",
                 "ProviderSandboxResponse", List.of("inputText", "providerMode", "riskPolicy"),
-                "Exercise Provider SPI locally; do not call external model networks.");
+                "Return JSON only with schemaVersion=provider-sandbox-v1, taskType=PROVIDER_SANDBOX, answer, summary, riskFlags, humanReviewRequired=true, copyAllowed=false, and boundaryNotice.");
         contracts = Map.copyOf(next);
     }
 
@@ -94,7 +94,7 @@ public class PromptContractRegistry {
                 promptVersion,
                 schemaVersion,
                 riskPolicyVersion,
-                "You are OfferFlow Copilot running in local-rule/no-op mode. Return only review-gated structured output.",
+                "You are OfferFlow Copilot operating under provider contract validation. Return only review-gated structured output.",
                 taskInstruction + " Required inputs: {{requiredInputs}}. Output schema: " + outputSchemaName + ".",
                 requiredInputs,
                 COMMON_FORBIDDEN_CLAIMS,

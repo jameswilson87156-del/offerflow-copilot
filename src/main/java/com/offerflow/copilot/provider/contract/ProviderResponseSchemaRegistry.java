@@ -14,14 +14,26 @@ public class ProviderResponseSchemaRegistry {
     public ProviderResponseSchemaRegistry(PromptContractRegistry promptContractRegistry) {
         EnumMap<ProviderTaskType, ProviderResponseSchema> next = new EnumMap<>(ProviderTaskType.class);
         for (PromptContract contract : promptContractRegistry.all()) {
-            next.put(contract.taskType(), new ProviderResponseSchema(
-                    contract.schemaVersion(),
-                    contract.outputSchemaName(),
-                    List.of("provider", "schemaVersion", "summary", "humanReviewRequired", "copyAllowed"),
-                    List.of("evidenceRefs", "riskFlags", "fallbackReason", "boundaryNotice"),
-                    2000,
-                    false,
-                    true));
+            if (contract.taskType() == ProviderTaskType.PROVIDER_SANDBOX) {
+                next.put(contract.taskType(), new ProviderResponseSchema(
+                        contract.schemaVersion(),
+                        contract.outputSchemaName(),
+                        List.of("schemaVersion", "taskType", "answer", "summary", "riskFlags",
+                                "humanReviewRequired", "copyAllowed", "boundaryNotice"),
+                        List.of("provider", "normalizedFromText", "evidenceRefs", "fallbackReason"),
+                        2000,
+                        false,
+                        true));
+            } else {
+                next.put(contract.taskType(), new ProviderResponseSchema(
+                        contract.schemaVersion(),
+                        contract.outputSchemaName(),
+                        List.of("provider", "schemaVersion", "summary", "humanReviewRequired", "copyAllowed"),
+                        List.of("evidenceRefs", "riskFlags", "fallbackReason", "boundaryNotice"),
+                        2000,
+                        false,
+                        true));
+            }
         }
         schemas = Map.copyOf(next);
     }

@@ -59,14 +59,19 @@ public class ProviderResponseValidator {
         }
 
         JsonNode json = validateStructuredJson(response.structuredJson(), schema, violations);
-        if (json != null && json.has("schemaVersion")
-                && !schema.schemaVersion().equals(json.get("schemaVersion").asText())) {
-            violations.add(violation(
-                    "schema_version_mismatch",
-                    "Structured JSON schemaVersion does not match " + schema.schemaVersion() + ".",
-                    "structuredJson.schemaVersion",
-                    "ERROR",
-                    true));
+        if (json != null) {
+            String responseSchemaVersion = textField(json, "schemaVersion", "schema_version");
+            if (!responseSchemaVersion.isBlank()
+                    && !matchesVersion(schema.schemaVersion(), responseSchemaVersion)) {
+                violations.add(violation(
+                        "schema_version_mismatch",
+                        "Structured JSON schemaVersion does not match " + schema.schemaVersion() + ".",
+                        "structuredJson.schemaVersion",
+                        "ERROR",
+                        true));
+            }
+            validateReviewGates(json, violations);
+            validateTaskType(taskType, json, violations);
         }
 
         if (response.outputText() != null && response.outputText().length() > schema.maxTextLength()) {
@@ -147,7 +152,7 @@ public class ProviderResponseValidator {
         try {
             JsonNode json = objectMapper.readTree(structuredJson);
             for (String requiredField : schema.requiredFields()) {
-                if (!json.hasNonNull(requiredField)) {
+                if (!hasRequiredField(json, requiredField)) {
                     violations.add(violation(
                             "missing_required_field",
                             "Structured JSON is missing required field: " + requiredField,
@@ -166,6 +171,97 @@ public class ProviderResponseValidator {
                     true));
             return null;
         }
+    }
+
+    private void validateReviewGates(JsonNode json, List<ProviderContractViolation> violations) {
+        JsonNode humanReviewRequired = field(json, "humanReviewRequired", "human_review_required");
+        if (humanReviewRequired != null && !humanReviewRequired.asBoolean(false)) {
+            violations.add(violation(
+                    "human_review_required_false",
+                    "humanReviewRequired must remain true for provider output.",
+                    "structuredJson.humanReviewRequired",
+                    "BLOCKER",
+                    true));
+        }
+
+        JsonNode copyAllowed = field(json, "copyAllowed", "copy_allowed");
+        if (copyAllowed != null && copyAllowed.asBoolean(false)) {
+            violations.add(violation(
+                    "copy_allowed_true",
+                    "copyAllowed must remain false until Human Review and Copy Permission pass.",
+                    "structuredJson.copyAllowed",
+                    "BLOCKER",
+                    true));
+        }
+    }
+
+    private void validateTaskType(
+            ProviderTaskType expectedTaskType,
+            JsonNode json,
+            List<ProviderContractViolation> violations) {
+        if (expectedTaskType != ProviderTaskType.PROVIDER_SANDBOX) {
+            return;
+        }
+        String actualTaskType = textField(json, "taskType", "task_type");
+        if (actualTaskType.isBlank()) {
+            return;
+        }
+        try {
+            if (ProviderTaskType.from(actualTaskType) != expectedTaskType) {
+                violations.add(taskTypeMismatch());
+            }
+        } catch (IllegalArgumentException exception) {
+            violations.add(taskTypeMismatch());
+        }
+    }
+
+    private ProviderContractViolation taskTypeMismatch() {
+        return violation(
+                "task_type_mismatch",
+                "Structured JSON taskType does not match PROVIDER_SANDBOX.",
+                "structuredJson.taskType",
+                "ERROR",
+                true);
+    }
+
+    private boolean hasRequiredField(JsonNode json, String requiredField) {
+        for (String alias : aliases(requiredField)) {
+            if (json.hasNonNull(alias)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private JsonNode field(JsonNode json, String... names) {
+        for (String name : names) {
+            JsonNode node = json.get(name);
+            if (node != null && !node.isNull()) {
+                return node;
+            }
+        }
+        return null;
+    }
+
+    private String textField(JsonNode json, String... names) {
+        JsonNode node = field(json, names);
+        return node == null ? "" : node.asText("").trim();
+    }
+
+    private String[] aliases(String requiredField) {
+        return switch (requiredField) {
+            case "schemaVersion" -> new String[] {"schemaVersion", "schema_version"};
+            case "taskType" -> new String[] {"taskType", "task_type"};
+            case "humanReviewRequired" -> new String[] {"humanReviewRequired", "human_review_required"};
+            case "copyAllowed" -> new String[] {"copyAllowed", "copy_allowed"};
+            case "boundaryNotice" -> new String[] {"boundaryNotice", "boundary_notice"};
+            case "riskFlags" -> new String[] {"riskFlags", "risk_flags"};
+            default -> new String[] {requiredField};
+        };
+    }
+
+    private boolean matchesVersion(String expected, String actual) {
+        return expected != null && actual != null && expected.trim().equalsIgnoreCase(actual.trim());
     }
 
     private void requireText(

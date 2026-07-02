@@ -64,9 +64,7 @@ public class HttpRealProviderGateway implements RealProviderGateway {
 
         Map<String, Object> system = new LinkedHashMap<>();
         system.put("role", "system");
-        system.put("content", request.contract().systemInstruction()
-                + " Return JSON only with provider, schemaVersion, summary, humanReviewRequired, copyAllowed, and boundaryNotice."
-                + " Do not include private data or API keys.");
+        system.put("content", systemPrompt(request));
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("model", request.model());
@@ -74,6 +72,19 @@ public class HttpRealProviderGateway implements RealProviderGateway {
         payload.put("temperature", 0);
         payload.put("stream", false);
         return payload;
+    }
+
+    private String systemPrompt(RealProviderCallRequest request) {
+        String taskInstruction = request.contract().userInstructionTemplate()
+                .replace("{{requiredInputs}}", String.join(", ", request.contract().requiredInputs()));
+        return request.contract().systemInstruction()
+                + " " + taskInstruction
+                + " Return JSON only, with no Markdown fences and no prose outside JSON."
+                + " The schemaVersion must be exactly \"" + request.contract().schemaVersion() + "\"."
+                + " For provider-sandbox, use taskType \"PROVIDER_SANDBOX\"."
+                + " Set humanReviewRequired to true and copyAllowed to false."
+                + " Include boundaryNotice \"Manual provider dry-run output requires Human Review and Copy Permission.\""
+                + " Do not include private data or API keys.";
     }
 
     private URI endpoint(String baseUrl) {

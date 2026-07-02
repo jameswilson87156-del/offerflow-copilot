@@ -19,8 +19,8 @@ public record ProviderRequest(
         runId = textOr(runId, "provider-run-local");
         providerMode = textOr(providerMode, "local-rule");
         taskType = textOr(taskType, "provider-sandbox");
-        promptVersion = textOr(promptVersion, "provider-sandbox-v1");
-        schemaVersion = textOr(schemaVersion, "provider-response-v1");
+        promptVersion = textOr(promptVersion, "provider-sandbox-prompt-v2");
+        schemaVersion = textOr(schemaVersion, "provider-sandbox-v1");
         inputText = textOr(inputText, "");
         evidenceRefs = evidenceRefs == null ? List.of() : List.copyOf(evidenceRefs);
         riskPolicy = textOr(riskPolicy, "human-review-required");

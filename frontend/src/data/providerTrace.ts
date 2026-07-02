@@ -165,8 +165,8 @@ export const providerContractsFallback: ProviderContractSummary[] = [
   {
     taskType: 'provider-sandbox',
     displayName: 'Provider Sandbox',
-    promptVersion: 'provider-sandbox-prompt-v1',
-    schemaVersion: 'provider-sandbox-schema-v1',
+    promptVersion: 'provider-sandbox-prompt-v2',
+    schemaVersion: 'provider-sandbox-v1',
     riskPolicyVersion: 'provider-risk-policy-v1',
     requireHumanReview: true,
     outputSchemaName: 'ProviderSandboxResponse',

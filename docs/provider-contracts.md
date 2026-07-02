@@ -12,7 +12,7 @@ P4C adds a local Provider contract layer before any real model adapter exists. I
 | `interview-prep` | `interview-prep-prompt-v1` | `interview-prep-schema-v1` | `provider-risk-policy-v1` |
 | `opening-message` | `opening-message-prompt-v1` | `opening-message-schema-v1` | `provider-risk-policy-v1` |
 | `human-review-rewrite` | `human-review-rewrite-prompt-v1` | `human-review-rewrite-schema-v1` | `provider-risk-policy-v1` |
-| `provider-sandbox` | `provider-sandbox-prompt-v1` | `provider-sandbox-schema-v1` | `provider-risk-policy-v1` |
+| `provider-sandbox` | `provider-sandbox-prompt-v2` | `provider-sandbox-v1` | `provider-risk-policy-v1` |
 
 ## Registries
 

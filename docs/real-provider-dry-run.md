@@ -117,6 +117,8 @@ Fallback to `local-rule` is required when:
 
 For hard safety blocks such as `confirmNoPii=false` or PII detected, the call is blocked before network. The trace still records why the dry-run did not proceed.
 
+For `provider-sandbox`, JSON provider content is normalized into the `provider-sandbox-v1` contract shape before validation. Plain text provider content is wrapped as a review-gated structured response with `normalizedFromText=true`. An explicit schemaVersion mismatch is still a validation failure and still falls back.
+
 ## Trace Evidence
 
 Each real dry-run writes a `provider_trace_run` and 14 `trace_step` records:
