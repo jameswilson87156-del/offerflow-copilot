@@ -231,6 +231,8 @@ export const providerTraceRunFallback: ProviderTraceRun = {
     { key: 'contract-violation-check', label: 'Contract Violation Check', status: 'success', duration: '18ms', inputSummary: 'contract violations', outputSummary: 'No contract violations', linkedEvidence: 'Contract Guard' },
     { key: 'evidence-binding', label: 'Evidence Binding', status: 'success', duration: '97ms', inputSummary: 'JD + Resume Evidence', outputSummary: '绑定 12 条证据', linkedEvidence: 'RES-001 / RES-012' },
     { key: 'human-review', label: 'Human Review Required', status: 'warning', duration: '401ms', inputSummary: 'Draft 输出', outputSummary: '等待人工确认', linkedEvidence: 'review-star-mcp' },
+    { key: 'copy-permission-check', label: 'Copy Permission Check', status: 'WARNING', duration: '12ms', inputSummary: 'Human Review not confirmed', outputSummary: 'Copy Permission Contract evaluated', linkedEvidence: 'copy-permission' },
+    { key: 'copy-permission-blocked', label: 'Copy Permission Blocked', status: 'BLOCKED', duration: '7ms', inputSummary: 'Draft output only', outputSummary: 'copyAllowed=false until review and permission pass', linkedEvidence: 'copy-permission' },
   ],
   evidenceDetail: {
     jdSnippet: '熟悉 Spring Boot 开发，了解 AI 工具集成与集成方式；有 RAG、MCP 等相关实践优先。',

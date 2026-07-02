@@ -6,6 +6,17 @@ P4F adds a manual real Provider dry-run path for DeepSeek and OpenAI-compatible 
 
 This is not a production-grade model gateway and does not claim stable real-model quality. It is a local, manually enabled integration path that keeps Provider Contract, PII Guard, Schema Validate, Risk Guard, Human Review, Copy Permission, Local Permission, and fallback behavior visible in one trace.
 
+## Manual Verification Summary
+
+P4F/P4G manual dry-run verification was completed with sanitized input only. The records below are status summaries, not raw model responses, and they do not include API keys.
+
+| Provider | Success | External attempted | External blocked | Final provider | Model | Fallback used | Schema validated | Risk guard passed | Human review required | Copy allowed | Raw response saved | Trace ID |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DeepSeek | `true` | `true` | `false` | `deepseek` | `deepseek-v4-pro` | `false` | `true` | `true` | `true` | `false` | `false` | `P4F-96549DC4` |
+| OpenAI-compatible relay | `true` | `true` | `false` | `openai-compatible` | `gpt-5.5` | `false` | `true` | `true` | `true` | `false` | `false` | `P4F-2D3FF22E` |
+
+This verification confirms the optional manual dry-run path can normalize and validate provider output under the P4G schema alignment. It does not establish stable production provider integration or bypass the copy gate.
+
 ## Default Safety
 
 - Real external calls are off by default: `OFFERFLOW_AI_REAL_CALL_ENABLED=false`.

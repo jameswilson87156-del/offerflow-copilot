@@ -1506,7 +1506,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(23, 104, 229
   .permission-audit-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .provider-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .safety-boundary-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .run-pipeline-track { overflow-x: auto; grid-template-columns: repeat(12, minmax(112px, 1fr)); padding-bottom: 13px; }
+  .run-pipeline-track { overflow-x: auto; grid-template-columns: repeat(14, minmax(112px, 1fr)); padding-bottom: 13px; }
   .validation-controls, .validation-result-grid { border-right: 0; border-bottom: 1px solid #e7edf5; }
   .pipeline-step::after { display: none; }
 }

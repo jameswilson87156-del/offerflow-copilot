@@ -104,3 +104,9 @@ Provider SPI 建立抽象、审计和受控 dry-run 基础，不代表生产模�
 `GET /api/provider/contracts`、`GET /api/provider/contracts/{taskType}` 和 `POST /api/provider/validate-response` 只用于本地 contract/validation 演示。真实 Provider 接入前，任何输出都必须通过 schema validate、risk guard、Human Review 和 Copy Permission Contract；未校验或未确认输出不得进入页面复制流程。
 
 所有 Provider 输出仍需 Human Review；模型失败不能伪装成成功，fallback reason 必须保留在响应和 Trace Evidence 中。
+
+## Manual Provider Dry-run Boundary
+
+P4F/P4G includes a manually verified optional real Provider dry-run path for DeepSeek and an OpenAI-compatible relay. The verification record is limited to sanitized status metadata and trace IDs: `P4F-96549DC4` for DeepSeek and `P4F-2D3FF22E` for the OpenAI-compatible relay.
+
+This does not expand the project boundary into stable production provider integration. API keys are not recorded, raw model responses are not recorded, and validated dry-run output still requires Human Review. Until the relevant content is Confirmed and Copy Permission passes, `copyAllowed=false`.

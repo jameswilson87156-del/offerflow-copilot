@@ -1,5 +1,16 @@
 # HANDOFF
 
+## Manual Provider Dry-run Verification
+
+P4F/P4G manual real Provider dry-run has been verified with sanitized input for DeepSeek and an OpenAI-compatible relay. This handoff records only status metadata and trace IDs; it does not record API keys or raw model responses.
+
+| Provider | Result | Final provider | Model | Trace ID | Review/copy boundary |
+| --- | --- | --- | --- | --- | --- |
+| DeepSeek | `success=true`, `externalCallAttempted=true`, `externalCallBlocked=false`, `fallbackUsed=false`, `schemaValidated=true`, `riskGuardPassed=true`, `rawResponseSaved=false` | `deepseek` | `deepseek-v4-pro` | `P4F-96549DC4` | `humanReviewRequired=true`, `copyAllowed=false` |
+| OpenAI-compatible relay | `success=true`, `externalCallAttempted=true`, `externalCallBlocked=false`, `fallbackUsed=false`, `schemaValidated=true`, `riskGuardPassed=true`, `rawResponseSaved=false` | `openai-compatible` | `gpt-5.5` | `P4F-2D3FF22E` | `humanReviewRequired=true`, `copyAllowed=false` |
+
+Boundary: this remains a manual dry-run path, not stable production provider integration. Output still requires Human Review and cannot be copied before the target is Confirmed and Copy Permission passes.
+
 ## 当前交付
 
 P4F 已完成 Real Provider Manual Dry-run Integration。P4A 的 Flyway Migration、H2/MySQL 兼容和 Docker Compose 说明保持有效；P4B 的 Provider SPI、P4C 的 Prompt/Schema/Risk contract、P4D 的 Copy Permission Contract 与 P4E 的 Local Permission 继续保留；本轮新增 `POST /api/provider/real-dry-run`、PII Guard、real provider gateway、手动 dry-run trace、`PROVIDER_REAL_DRY_RUN` 权限，以及 `/provider-settings` 的 Real Provider Dry-run 面板。

@@ -1,5 +1,14 @@
 # OfferFlow Copilot
 
+## Manual Provider Dry-run Verification
+
+The optional real Provider dry-run path has been manually verified with DeepSeek and an OpenAI-compatible relay using sanitized input only. This records only dry-run status metadata and trace IDs; it does not record API keys or raw model responses, and it is not stable production provider integration.
+
+- DeepSeek dry-run: `success=true`, `finalProvider=deepseek`, `model=deepseek-v4-pro`, `schemaValidated=true`, `riskGuardPassed=true`, `humanReviewRequired=true`, `copyAllowed=false`, `rawResponseSaved=false`, `traceId=P4F-96549DC4`.
+- OpenAI-compatible relay dry-run: `success=true`, `finalProvider=openai-compatible`, `model=gpt-5.5`, `schemaValidated=true`, `riskGuardPassed=true`, `humanReviewRequired=true`, `copyAllowed=false`, `rawResponseSaved=false`, `traceId=P4F-2D3FF22E`.
+
+All dry-run output remains review-gated. Passing Schema Validate and Risk Guard does not bypass the copy gate; `copyAllowed=false` remains until Human Review is Confirmed and Copy Permission passes. See [docs/manual-provider-dry-run-verification.md](docs/manual-provider-dry-run-verification.md).
+
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
 ## 当前阶段：P4F Real Provider Manual Dry-run Integration

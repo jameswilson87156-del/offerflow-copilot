@@ -907,8 +907,13 @@ public class PersistenceSeedService implements ApplicationRunner {
                 new ProviderTraceCenter.PipelineStep("contract-violation-check", "Contract Violation Check", "success", "18ms", "contract violations", "No contract violations", "Contract Guard"),
                 new ProviderTraceCenter.PipelineStep("evidence-binding", "Evidence Binding", "success", "97ms", "JD + Resume Evidence", "绑定 12 条证据", "RES-001 / RES-012"),
                 new ProviderTraceCenter.PipelineStep("human-review", "Human Review Required", "warning", "401ms", "Draft 输出", "等待人工确认", "review-star-mcp"));
-        for (int index = 0; index < steps.size(); index++) {
-            ProviderTraceCenter.PipelineStep step = steps.get(index);
+        List<ProviderTraceCenter.PipelineStep> seededSteps = new java.util.ArrayList<>(steps);
+        seededSteps.add(new ProviderTraceCenter.PipelineStep("copy-permission-check", "Copy Permission Check", "WARNING", "12ms",
+                "Human Review not confirmed", "Copy Permission Contract evaluated", "copy-permission"));
+        seededSteps.add(new ProviderTraceCenter.PipelineStep("copy-permission-blocked", "Copy Permission Blocked", "BLOCKED", "7ms",
+                "Draft output only", "copyAllowed=false until review and permission pass", "copy-permission"));
+        for (int index = 0; index < seededSteps.size(); index++) {
+            ProviderTraceCenter.PipelineStep step = seededSteps.get(index);
             TraceStepEntity entity = new TraceStepEntity();
             entity.setId("trace-step-" + (index + 1));
             entity.setRunId(DEMO_RUN_ID);

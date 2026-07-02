@@ -85,8 +85,9 @@ class OfferFlowApiTest {
                 .andExpect(jsonPath("$.finalProvider").value("local-rule fallback"))
                 .andExpect(jsonPath("$.model").value("local-rule-engine v2.1"))
                 .andExpect(jsonPath("$.riskFlags", hasSize(3)))
-                .andExpect(jsonPath("$.pipeline", hasSize(12)))
+                .andExpect(jsonPath("$.pipeline", hasSize(14)))
                 .andExpect(jsonPath("$.pipeline[5].status").value("fallback"))
+                .andExpect(jsonPath("$.pipeline[13].label").value("Copy Permission Blocked"))
                 .andExpect(jsonPath("$.evidenceDetail.resumeEvidence", hasSize(3)))
                 .andExpect(jsonPath("$.technicalTags", hasSize(12)));
     }
