@@ -7,7 +7,7 @@ P4E adds a local role permission check before copy-check is executed. In the dem
 ## Gate Order
 
 1. Schema Validate checks the output structure and expected schema version.
-2. Risk Guard blocks unsafe claims such as Offer probability, admission probability, guaranteed pass, real-time interview assistance, real GPT/DeepSeek claims, production-grade model claims, real customer/user claims, or platform automation claims.
+2. Risk Guard blocks unsafe claims such as Offer probability, admission probability, guaranteed pass, real-time interview assistance, real GPT/DeepSeek claims, unverified model-integration claims, real customer/user claims, or platform automation claims.
 3. Human Review confirms facts, evidence sources, and wording boundaries.
 4. Copy Permission Contract makes the final copy decision and writes an audit event.
 
@@ -79,7 +79,7 @@ The table intentionally does not store requested text, raw model response, real 
 
 ## Current Boundaries
 
-Current actor is a demo user, not a production identity. This is not a production-grade permission system, tenant model, or immutable audit system.
+Current actor is a demo user, not a production identity. This is not a production permission system, tenant model, or immutable audit system.
 
 Local Permission Model is demo/local-rule only. It does not add production auth, login, real user management, tenant isolation, or compliance-grade authorization.
 

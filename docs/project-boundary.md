@@ -1,112 +1,73 @@
-# 项目边界
+# Project Boundary
 
-## 允许范围
+OfferFlow Copilot is a portfolio-grade engineering demo for an evidence-first job-application workflow. It demonstrates Java backend architecture, Vue frontend workflow design, persistence, audit trails, provider traceability, and review/copy governance using sanitized demo data.
 
-- 使用虚构岗位与匿名化项目样例展示证据链工作流。
-- 使用确定性的 `local-rule` 和 H2 seeded demo data 生成演示拆解、匹配报告、面试前准备和投递跟踪。
-- 由用户主动粘贴、确认和修改非敏感内容。
-- JD 只支持用户手动粘贴或脱敏 seed demo；解析和证据绑定使用 deterministic local-rule，并保留版本历史与审计记录。
-- 匹配报告可以基于当前 JD parse version 和 evidence bindings 生成版本化 Draft，并自动进入 Human Review 队列。
-- 生成内容默认进入 `Draft`，必须经过人工复核后才可复制使用。
-- 简历证据可以先作为 `Draft` 维护，人工确认后进入 `Confirmed`，每次编辑和状态流转都保留审计历史。
-- 手动记录投递状态与复盘，不自动对外执行动作。
-- 持久化保存 demo 人工复核状态和审计事件，展示可追踪的状态流转历史。
-- 持久化保存 demo 简历证据状态和审计事件，展示证据维护、确认、归档和恢复历史。
-- Human Review 对 MATCH_REPORT 的 confirm、return、flag-risk 可以同步更新关联匹配报告版本状态，并保留匹配报告审计事件。
-- Match Report、Human Review、Evidence Library 的审计事件允许在本地页面展开查看；copy-check 结果会作为审计历史保留。
-- 允许使用 Flyway 管理 H2/MySQL 共用 schema，并用 Docker Compose 启动仅供本地开发/演示的 MySQL 8。
-- 允许使用 Provider SPI 和 sandbox run 演示配置校验、no-op adapter、失败/超时模拟、fallback 和 Trace Evidence 写入。
-- 允许使用 Provider contract sandbox 演示 PromptContract、RiskPolicy、ProviderResponseSchema 和本地 Response Validator。
-- 允许在本地手动开启 Real Provider dry-run，且仅限脱敏输入、显式确认无 PII、显式允许外呼、环境变量配置完整、权限通过后，对 DeepSeek / OpenAI-compatible 做一次受控 dry-run。
-- 允许使用 Copy Permission Contract 演示 AI/local-rule 输出正式使用前的最后一道复制门禁。
-- 允许使用 Local Actor Context 和本地 demo role switch 演示 OWNER / REVIEWER / EDITOR / VIEWER / SYSTEM 的写操作边界，并写入 `permission_audit_event`。
+## Allowed Scope
 
-## 明确不做
+- Manual JD intake using sanitized user-provided text or seeded demo data.
+- Resume evidence management with Draft, Confirmed, Archived, and restored states.
+- Evidence binding before match report generation.
+- Versioned match reports with audit events and Human Review handoff.
+- Human Review status transitions with audit trails.
+- Copy Permission Contract after Human Review confirmation.
+- Provider SPI, prompt/schema contracts, response validation, risk guard, fallback, and trace evidence.
+- Optional manual real Provider dry-run with sanitized input, explicit local opt-in, and environment-based credentials.
+- H2 demo mode and local MySQL profile for development validation.
+- Playwright screenshot validation of the running app.
 
-- 默认不接真实 LLM；P4F real dry-run 必须手动开启，不能自动触发，也不能描述为生产级稳定模型接入。
-- 不保存 API Key 明文，也不把 Provider 配置伪装为已稳定接入。
-- 不因 `realCallEnabled=true` 配置项就自动发起真实外部请求；P4F 还要求 `allowExternalCall=true`、`confirmNoPii=true`、PII Guard 通过、Provider 配置完整和本地权限通过。
-- 不保存 raw model response；`rawResponseSave` 默认 false。
-- 不做生产级认证授权，不新增真实用户注册或登录，不保存真实密码。
-- 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
-- 不采集或保存真实手机号、邮箱、身份证、聊天记录等隐私。
-- 不自动投递，不自动私信 HR，不抓取平台聊天。
-- 不做实时面试辅助、隐蔽提示或作弊功能。
-- 不计算 Offer/录取概率，不保证通过。
-- 不宣称生产级招聘系统、真实客户、真实流量或商业数据。
-- 不将规则 fallback 包装成真实 LLM 能力。
-- 不允许未经过 Copy Permission Contract 的 AI/local-rule 输出被复制为正式建议。
-- 不将本地 MySQL profile 或 Docker Compose 描述为生产部署；不在仓库保存 `.env`、真实数据库凭据、API Key 或数据库数据目录。
+## Explicitly Out Of Scope
 
-## 人工复核原则
+- Production recruiting platform behavior.
+- Recruiting platform API integration.
+- Crawlers or page scraping.
+- Auto-apply or automated messaging to recruiters.
+- Real user data, real resumes, phone numbers, email addresses, ID cards, chat logs, or credentials.
+- Offer probability, admission probability, ranking guarantees, or guaranteed pass claims.
+- Real-time interview assistance or cheating workflows.
+- Production authentication, authorization, compliance, or security claims.
+- Stable production provider integration claims.
+- Raw provider response storage.
 
-AI 或规则生成的内容默认是 `Draft`。用户必须确认事实、措辞和证据来源后，才能将内容标记为 `Confirmed` 并复制使用。`Returned` 表示需要修改，`Risk Flagged` 表示命中了高风险表述或边界问题。
+## Provider Boundary
 
-P3B 已将 Human Review 状态和 audit trail 保存在 H2 demo persistence 中。每次 `confirm`、`return`、`flag-risk` 都会记录操作者、角色、动作、前后状态、前后风险等级、人工备注、Trace ID、Trace Hash 和时间。
+Default provider behavior is deterministic `local-rule`. OpenAI-compatible and DeepSeek adapters are represented through Provider SPI descriptors, no-op sandbox behavior, and a manually enabled dry-run path.
 
-当前 actor/actorRole 是 demo local permission context，用于演示审计链路，不是生产鉴权、生产权限系统或合规审计系统。P4E 会额外写入 `permission_audit_event`，记录关键写操作的 allowed / blocked 决策。
+The optional real Provider dry-run path:
 
-Confirmed 是唯一允许复制正式建议的状态。Schema Validate 通过不代表可以直接使用；Risk Guard 通过不代表可以直接复制；Human Review Confirmed 后仍由 Copy Permission Contract 做最后检查。Archived 是只读归档状态；前端禁用不合法动作并展示原因，但这不等同于生产级服务端授权模型。
+- is disabled by default;
+- requires explicit local opt-in;
+- requires sanitized input and `confirmNoPii=true`;
+- reads API keys only from local environment variables;
+- does not save raw provider responses;
+- writes trace metadata and review/copy gate status;
+- falls back when provider config, external calls, schema validation, or risk guard fail;
+- keeps `humanReviewRequired=true` and `copyAllowed=false` until review/copy gates pass.
 
-## 简历证据原则
+The manual verification records for DeepSeek and the OpenAI-compatible relay contain only sanitized status metadata and trace IDs. They do not include API keys or raw model responses, and they do not expand the project into production provider integration.
 
-简历证据不是随便写入的宣传素材。证据默认可以是 `Draft`，经过人工确认后才进入 `Confirmed`；当证据需要补充、风险边界不清或不应继续使用时，可以退回 Draft、归档或恢复。每次创建、编辑、确认、退回、归档和恢复都会写入 `resume_evidence_audit_event`。
+## Human Review And Copy Permission
 
-当前证据库仍使用脱敏 seed demo data，不保存真实手机号、邮箱、身份证、聊天记录等隐私，不虚构真实客户、真实用户、真实流量或生产级数据。
-
-## JD Intake 原则
-
-JD 分析台只接受用户手动粘贴的岗位描述或脱敏 seed demo，不接招聘平台 API，不爬取网页，不抓取 HR 聊天记录。每次 JD 创建、更新、local-rule 解析和证据绑定都会写入 `jd_audit_event`，每次解析都会生成新的 `jd_parse_version`，每次绑定都会生成或刷新 `jd_evidence_binding`。
-
-当前 JD 解析是 local-rule parsing，不是真实 LLM Provider 推理；证据绑定是关键词匹配和脱敏 demo 证据组合，不代表生产级招聘系统能力。
-
-## Match Report 原则
-
-匹配报告是可版本化 AI 输出资产，不是一次性 mock 分数。每个 `match_report_version` 必须绑定一个 JD parse version 和一组 resume evidence bindings，并记录 provider mode、prompt/schema version、Trace ID、状态和审计事件。
-
-当前匹配报告 scoring 是 local-rule，不是真实 LLM 推理，不是 Offer 概率、录取概率或保证通过。报告默认 `DRAFT`，生成后进入 Human Review；只有 `CONFIRMED` 版本才可以复制确认版摘要。`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 版本不可作为正式建议使用。
-
-`ARCHIVED` 版本是只读版本，不能再次 send-to-review；如需继续处理，必须先 restore 到 `DRAFT` 并重新进入复核链路。当前 restore、copy-check 和审计 actor 都是 demo local actor，不是生产级权限系统。
-
-每次 Match Report copy-check 都复用 `CopyPermissionService`，写入统一 `copy_permission_audit_event`，同时继续写旧 `COPY_ENABLED` 或 `COPY_BLOCKED`，并保存许可结果、原因、版本状态、Human Review 状态和 Boundary Notice，供 Audit Trail 展开查看。
-
-## Copy Permission 原则
-
-Copy Permission Contract 是 AI/local-rule 输出正式使用前的最后一道门禁。它要求：
+Generated or local-rule output starts as Draft. Schema Validate and Risk Guard are necessary but not sufficient for copying. Copy Permission requires:
 
 - `schemaValidated=true`
 - `riskGuardPassed=true`
-- target status = `CONFIRMED`
-- Human Review status = `Confirmed`
+- target status `CONFIRMED`
+- Human Review status `Confirmed`
 
-`DRAFT`、`IN_REVIEW`、`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 一律不能复制为正式建议。当前支持 Match Report 和 Interview Prep 的页面展示；Opening Message、Human Review Rewrite 等 target type 已在 policy 类型中预留，但仍是 demo/mock 支持，不强行扩大业务表。
+Archived, Draft, Returned, Risk Flagged, or In Review content cannot be copied as formal output.
 
-## Local Permission 原则
+## Data Boundary
 
-Local Permission Model 是本地 demo 权限模型，不是生产级认证授权。角色边界为：
+The repository uses sanitized seed data. Do not commit:
 
-- `OWNER`：允许全部本地 demo 写操作。
-- `REVIEWER`：允许 Human Review confirm / return / flag-risk 和 copy-check。
-- `EDITOR`：允许 JD、Evidence draft、Match Report generate/send-to-review 等编辑流。
-- `VIEWER`：只读，不能执行写操作。
-- `SYSTEM`：用于 seed、local-rule、provider sandbox、risk guard、trace 等系统动作，不能作为人工确认 actor。
+- `.env` files;
+- real API keys;
+- raw provider responses;
+- real resumes;
+- real personal data;
+- database dumps containing private data;
+- screenshots containing private data.
 
-关键写接口 denied 时返回清晰 reason，并写入 `permission_audit_event`；allowed 的关键写操作也会写入 permission audit。原业务审计表仍继续写入。
+## Screenshot Boundary
 
-## Provider SPI 原则
-
-Provider SPI 建立抽象、审计和受控 dry-run 基础，不代表生产模型网关已经完成。默认 provider 是 `local-rule`；OpenAI-compatible 和 DeepSeek 的 sandbox adapter 仍用于读取配置状态、展示 descriptor、模拟失败/超时并触发 fallback。
-
-`GET /api/provider/config-check` 和 `GET /api/provider/settings` 不返回 API Key 明文，只显示 `masked`、`not configured` 或 `disabled`。`POST /api/provider/sandbox-run` 不发起真实外部 Provider 调用，任何未配置、失败或超时都必须 fallback 到 local-rule，并写入 `provider_trace_run` 与 `trace_step`。
-
-`POST /api/provider/real-dry-run` 是手动 dry-run 入口，不接招聘平台，不爬虫，不自动投递，不做实时面试辅助。它必须先通过 Local Permission、PII Guard、Prompt Contract、Risk Policy、Provider Config Check，成功或失败都写 trace。外部调用失败、缺配置、realCall disabled 或响应验证失败时必须 fallback 到 local-rule；PII 命中、未确认无 PII 或未允许外呼时必须在网络前 blocked。
-
-`GET /api/provider/contracts`、`GET /api/provider/contracts/{taskType}` 和 `POST /api/provider/validate-response` 只用于本地 contract/validation 演示。真实 Provider 接入前，任何输出都必须通过 schema validate、risk guard、Human Review 和 Copy Permission Contract；未校验或未确认输出不得进入页面复制流程。
-
-所有 Provider 输出仍需 Human Review；模型失败不能伪装成成功，fallback reason 必须保留在响应和 Trace Evidence 中。
-
-## Manual Provider Dry-run Boundary
-
-P4F/P4G includes a manually verified optional real Provider dry-run path for DeepSeek and an OpenAI-compatible relay. The verification record is limited to sanitized status metadata and trace IDs: `P4F-96549DC4` for DeepSeek and `P4F-2D3FF22E` for the OpenAI-compatible relay.
-
-This does not expand the project boundary into stable production provider integration. API keys are not recorded, raw model responses are not recorded, and validated dry-run output still requires Human Review. Until the relevant content is Confirmed and Copy Permission passes, `copyAllowed=false`.
+Runtime screenshots used for README evidence must come from `docs/images/` and `docs/images/large/`. Files under `docs/design/references/` are design references only and must not be presented as real running-app screenshots.

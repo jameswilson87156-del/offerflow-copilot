@@ -1,127 +1,132 @@
 # OfferFlow Copilot
 
-## Manual Provider Dry-run Verification
+Java + AI workflow demo for JD intake, resume evidence management, match report versioning, human review, provider traceability, and copy permission governance.
 
-The optional real Provider dry-run path has been manually verified with DeepSeek and an OpenAI-compatible relay using sanitized input only. This records only dry-run status metadata and trace IDs; it does not record API keys or raw model responses, and it is not stable production provider integration.
+OfferFlow Copilot 是一个面向求职场景的 Java + AI 工作流作品集项目，用于展示 JD 入库、简历证据管理、匹配报告版本化、人工复核、Provider Trace、Schema/Risk 校验与复制门禁治理。
 
-- DeepSeek dry-run: `success=true`, `finalProvider=deepseek`, `model=deepseek-v4-pro`, `schemaValidated=true`, `riskGuardPassed=true`, `humanReviewRequired=true`, `copyAllowed=false`, `rawResponseSaved=false`, `traceId=P4F-96549DC4`.
-- OpenAI-compatible relay dry-run: `success=true`, `finalProvider=openai-compatible`, `model=gpt-5.5`, `schemaValidated=true`, `riskGuardPassed=true`, `humanReviewRequired=true`, `copyAllowed=false`, `rawResponseSaved=false`, `traceId=P4F-2D3FF22E`.
+## Why This Exists
 
-All dry-run output remains review-gated. Passing Schema Validate and Risk Guard does not bypass the copy gate; `copyAllowed=false` remains until Human Review is Confirmed and Copy Permission passes. See [docs/manual-provider-dry-run-verification.md](docs/manual-provider-dry-run-verification.md).
+OfferFlow Copilot is not a generic JD analyzer. It is an evidence-first AI workflow demo:
 
-OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
+- It does not directly trust generated provider output.
+- Resume evidence is collected, reviewed, and bound before report generation.
+- Match reports are versioned and auditable.
+- Draft output goes through Human Review before it can become confirmed content.
+- Copy Permission is a separate final gate after review.
+- Provider output is traceable through prompt, schema, risk, fallback, review, and copy states.
 
-## 当前阶段：P4F Real Provider Manual Dry-run Integration
+## Core Workflow
 
-当前版本保留 P4A 的 Flyway + H2/MySQL persistence 基础、P4B 的 Provider SPI、P4C 的 Prompt/Schema/Risk contract、P4D 的 Copy Permission Contract 和 P4E 的本地 demo 角色权限模型，并新增 P4F 手动真实 Provider dry-run 路径。默认 Provider 仍是 `local-rule`，真实调用默认关闭；只有显式设置 `realCallEnabled=true`、用户勾选 `allowExternalCall` 与 `confirmNoPii`、Provider 环境变量配置完整且 PII Guard 通过时，DeepSeek 或 OpenAI-compatible dry-run 才会尝试一次外部调用。API Key 只从环境变量读取，不写入仓库、日志、测试、截图或响应；raw model response 不保存。任何真实 dry-run 输出都必须先通过 schema validate 与 risk guard，再进入 Human Review，最后通过 Copy Permission Contract 才可复制。
+```mermaid
+flowchart LR
+  A["JD Intake"] --> B["Resume Evidence"]
+  B --> C["Evidence Binding"]
+  C --> D["Match Report Versioning"]
+  D --> E["Provider Trace"]
+  E --> F["Schema Validate"]
+  F --> G["Risk Guard"]
+  G --> H["Human Review"]
+  H --> I["Copy Permission Contract"]
+```
 
-匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。P4D 新增 `copy_permission_audit_event` 作为统一复制门禁审计表；P4E 新增 `permission_audit_event` 记录本地角色对关键写操作的 allowed/blocked 决策。`ARCHIVED` 是只读归档状态，不能送审；当前 actor/actorRole 仅用于本地演示和审计，当前仍不是生产级认证授权系统。
+## Architecture Overview
 
-关键边界：
+```mermaid
+flowchart TB
+  UI["Vue 3 + TypeScript Frontend"] --> API["Spring Boot 3 API"]
+  API --> Service["Service Layer"]
+  Service --> Mapper["MyBatis-Plus"]
+  Mapper --> DB["H2 Demo Mode / MySQL Profile"]
+  DB --> Flyway["Flyway Migration"]
 
-- 默认不接真实 LLM；P4F 只提供手动开启的 DeepSeek / OpenAI-compatible dry-run 路径，不声明生产级稳定接入。
-- 不保存 API Key，Provider 配置只显示 masked / disabled / not configured。
-- 不保存 raw model response，`rawResponseSave` 默认 false。
-- 不输入真实手机号、邮箱、身份证、聊天记录、API Key 或平台私信。
-- 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
-- 不保存真实手机号、邮箱、身份证、聊天记录等隐私。
-- 不自动投递，不做实时面试辅助或作弊功能。
-- 不输出 Offer 概率、录取概率，不承诺保证通过。
-- 不虚构真实用户、客户、流量或生产级能力。
-- Schema Validate / Risk Guard 通过不代表可复制，只有 Human Review Confirmed 后才可复制。
-- 当前 actor / actorRole 是 demo local permission context，不是生产登录、注册、鉴权或生产级权限系统。
+  Service --> Provider["Provider SPI"]
+  Provider --> Local["local-rule demo mode"]
+  Provider --> DryRun["optional real Provider dry-run"]
+  Service --> Audit["Audit trail persistence"]
+  UI --> Shots["Playwright screenshot validation"]
+```
 
-## 技术栈
+The default mode is deterministic `local-rule` with H2 seeded demo data. MySQL is available for local development through a profile and Docker Compose. The optional real Provider dry-run path is disabled by default and remains review-gated.
 
-- 后端：Java 17、Spring Boot 3、MyBatis-Plus、Flyway、H2/MySQL、Maven
-- 数据库：默认 H2 in-memory demo；`mysql` profile + Docker Compose 仅用于本地开发/演示，不是生产部署方案
-- 前端：Vue 3、Vite、TypeScript、原生 CSS
-- 截图：Playwright
+## Screenshot Evidence
 
-## 当前接口
+These screenshots are generated from the running app by Playwright. Runtime screenshots come from `docs/images/` and `docs/images/large/`; design reference images under `docs/design/references/` are not used as runtime evidence.
 
-| 方法 | 路径 | 数据来源 |
-| --- | --- | --- |
-| GET | `/api/health` | local-rule 状态 |
-| GET | `/api/provider/status` | Provider SPI 配置状态 |
-| GET | `/api/dashboard/summary` | 组合 service，演示统计 |
-| GET | `/api/jobs/demo-analysis` | H2 job_post + parse version + evidence binding 组合读取 |
-| GET | `/api/jobs` | H2 seeded/manual JD list |
-| GET | `/api/jobs/{id}` | H2 JD detail + parse versions + evidence bindings + audit trail |
-| POST | `/api/jobs` | H2 创建手动粘贴 JD + audit event |
-| PUT | `/api/jobs/{id}` | H2 更新 JD + audit event |
-| POST | `/api/jobs/{id}/parse` | H2 创建 local-rule parse version + audit event |
-| POST | `/api/jobs/{id}/bind-evidence` | H2 创建 JD evidence bindings + audit event |
-| GET | `/api/jobs/{id}/parse-versions` | H2 JD parse version history |
-| GET | `/api/jobs/{id}/audit-events` | H2 JD audit events |
-| GET | `/api/jobs/{id}/evidence-bindings` | H2 JD evidence bindings |
-| GET | `/api/evidence/library` | H2 seeded demo data |
-| GET | `/api/evidence/coverage` | H2 seeded demo data + deterministic local-rule |
-| GET | `/api/evidence/{id}` | H2 seeded demo data + evidence audit trail |
-| GET | `/api/evidence/{id}/audit-events` | H2 evidence audit events |
-| POST | `/api/evidence` | H2 创建 Draft evidence + audit event |
-| PUT | `/api/evidence/{id}` | H2 更新 evidence + changed fields audit event |
-| POST | `/api/evidence/{id}/confirm` | H2 evidence 状态更新 + audit event |
-| POST | `/api/evidence/{id}/return-to-draft` | H2 evidence 状态更新 + audit event |
-| POST | `/api/evidence/{id}/archive` | H2 evidence 状态更新 + audit event |
-| POST | `/api/evidence/{id}/restore` | H2 evidence 状态更新 + audit event |
-| GET | `/api/reviews` | H2 seeded demo data |
-| GET | `/api/reviews/{id}` | H2 seeded demo data + audit trail |
-| GET | `/api/reviews/{id}/audit-events` | H2 audit events |
-| POST | `/api/reviews/{id}/confirm` | H2 状态更新 + audit event |
-| POST | `/api/reviews/{id}/return` | H2 状态更新 + audit event |
-| POST | `/api/reviews/{id}/flag-risk` | H2 状态/风险更新 + audit event |
-| GET | `/api/provider/settings` | ProviderDescriptor 列表与安全边界 |
-| GET | `/api/provider/config-check` | Provider SPI 配置校验，不泄露 API Key |
-| POST | `/api/provider/sandbox-run` | no-op/local-rule 沙箱运行，写入 provider_trace_run + trace_step |
-| POST | `/api/provider/real-dry-run` | 手动真实 Provider dry-run；默认 blocked/fallback，PII Guard、Schema Validate、Risk Guard、Human Review 与 Copy Permission 全链路留痕 |
-| GET | `/api/provider/contracts` | Provider taskType 合同摘要，不泄露 API Key |
-| GET | `/api/provider/contracts/{taskType}` | PromptContract detail |
-| POST | `/api/provider/validate-response` | 本地模拟 ProviderResponse contract validation，不发外部请求 |
-| GET | `/api/provider/traces` | H2 seeded demo data |
-| GET | `/api/provider/traces/{runId}` | H2 seeded demo data |
-| POST | `/api/copy-permissions/check` | H2 统一复制门禁检查，写 copy_permission_audit_event |
-| GET | `/api/copy-permissions/audit-events` | H2 按 targetType/targetId 查询复制门禁审计历史 |
-| GET | `/api/permissions/current-actor` | 本地 demo actor、role、permissions 与 boundary notice |
-| POST | `/api/permissions/check` | 本地权限判断并写 permission_audit_event |
-| GET | `/api/permissions/audit-events` | H2 permission audit history，支持 actor/action/target/allowed 查询 |
-| GET | `/api/match-report/demo` | H2 latest match_report_version，兼容旧报告字段 |
-| POST | `/api/jobs/{id}/match-reports/generate` | H2 基于最新 JD parse/evidence bindings 生成报告版本 + Human Review handoff |
-| GET | `/api/jobs/{id}/match-reports` | H2 匹配报告版本历史 |
-| GET | `/api/match-reports/{versionId}` | H2 单个匹配报告版本详情 |
-| GET | `/api/match-reports/{versionId}/audit-events` | H2 匹配报告版本审计历史 |
-| POST | `/api/match-reports/{versionId}/send-to-review` | H2 版本状态更新 + audit event |
-| POST | `/api/match-reports/{versionId}/archive` | H2 版本归档 + audit event |
-| POST | `/api/match-reports/{versionId}/restore` | H2 从 Returned/Risk Flagged/Archived 恢复为 Draft + audit event |
-| POST | `/api/match-reports/{versionId}/copy-check` | 兼容旧响应，内部复用 CopyPermissionService，并继续写 COPY_ENABLED/COPY_BLOCKED |
-| GET | `/api/interview-prep/demo` | H2 seeded demo data |
-| GET | `/api/applications` | H2 seeded demo data |
+| Area | What it proves | 1440 Screenshot | 1920 Screenshot | 1366 / Overflow Check |
+| --- | --- | --- | --- | --- |
+| JD Analyzer / Structured JD Intake | JD intake, parsing version context, evidence binding, and workbench navigation | [docs/images/offerflow-dashboard.png](docs/images/offerflow-dashboard.png) | [docs/images/large/offerflow-dashboard.png](docs/images/large/offerflow-dashboard.png) | Covered by Playwright route overflow validation |
+| Resume Evidence Library | Evidence cards, evidence detail, coverage map, edit/review audit context | [docs/images/offerflow-evidence-library.png](docs/images/offerflow-evidence-library.png) | [docs/images/large/offerflow-evidence-library.png](docs/images/large/offerflow-evidence-library.png) | [docs/images/offerflow-evidence-library-1366.png](docs/images/offerflow-evidence-library-1366.png) |
+| Match Report | Versioned report, evidence source binding, score explanation, and copy gate | [docs/images/offerflow-match-report.png](docs/images/offerflow-match-report.png) | [docs/images/large/offerflow-match-report.png](docs/images/large/offerflow-match-report.png) | [docs/images/offerflow-match-report-1366.png](docs/images/offerflow-match-report-1366.png) |
+| Interview Prep | Review-gated interview prep and copy permission status | [docs/images/offerflow-interview-prep.png](docs/images/offerflow-interview-prep.png) | [docs/images/large/offerflow-interview-prep.png](docs/images/large/offerflow-interview-prep.png) | Covered by Playwright route overflow validation |
+| Application Tracker | Manual application status tracking without auto-apply behavior | [docs/images/offerflow-application-tracker.png](docs/images/offerflow-application-tracker.png) | [docs/images/large/offerflow-application-tracker.png](docs/images/large/offerflow-application-tracker.png) | Covered by Playwright route overflow validation |
+| Human Review | Review queue, audit trail, risk state, and confirmed/copy boundary | [docs/images/offerflow-human-review.png](docs/images/offerflow-human-review.png) | [docs/images/large/offerflow-human-review.png](docs/images/large/offerflow-human-review.png) | [docs/images/offerflow-human-review-1366.png](docs/images/offerflow-human-review-1366.png) |
+| Provider Settings / Trace | Provider descriptors, config check, prompt/schema contract, trace timeline, and dry-run boundary | [docs/images/offerflow-provider-trace.png](docs/images/offerflow-provider-trace.png) | [docs/images/large/offerflow-provider-trace.png](docs/images/large/offerflow-provider-trace.png) | Covered by Playwright route overflow validation |
 
-## 页面路径
+## Engineering Highlights
 
-- `/jd-analyzer`：结构化 JD Intake、解析版本、证据绑定与 JD Audit Trail
-- `/evidence-library`：简历证据库、Evidence Coverage Map、编辑工作流与 Audit Trail
-- `/match-report`：匹配报告、版本历史、Copy Permission Contract、Human Review 同步状态与报告审计
-- `/interview-prep`：面试前准备与 Copy Gate
-- `/application-tracker`：投递跟踪
-- `/human-review`：人工复核中心，包含 Review History / Audit Trail
-- `/provider-settings`：Provider 设置与证据链，含最近 permission audit events
+- Spring Boot 3 + Java 17
+- Vue 3 + TypeScript + Vite
+- MyBatis-Plus persistence layer
+- H2 demo mode
+- MySQL profile and Docker Compose MySQL for local development
+- Flyway-managed schema migration
+- Provider SPI with `local-rule`, no-op adapters, and manual dry-run boundary
+- Prompt / Schema Contract registry
+- Provider Response Validator
+- Risk Policy Guard
+- Trace Evidence persistence
+- Human Review Audit Trail
+- Resume Evidence Audit
+- JD Intake Audit
+- Match Report Versioning
+- Copy Permission Contract
+- Local Permission Workflow
+- Playwright screenshot validation
+- Maven test coverage
 
-## 本地运行
+## Real Provider Dry-run
+
+The project includes an optional real Provider dry-run path that has been manually verified with DeepSeek and an OpenAI-compatible relay using sanitized input only.
+
+Accurate wording:
+
+- Optional real Provider dry-run path.
+- Disabled by default.
+- API keys are read from environment variables only.
+- `rawResponseSaved=false`.
+- DeepSeek manual dry-run verified.
+- OpenAI-compatible relay manual dry-run verified.
+- Outputs still require Schema Validate, Risk Guard, Human Review, and Copy Permission.
+- `copyAllowed=false` before confirmation.
+
+This is a manual-only dry-run path, not production provider integration or a vendor-backed model-service claim. Raw provider responses and API keys are not recorded in docs, tests, screenshots, logs, database rows, or commits.
+
+See [docs/real-provider-dry-run.md](docs/real-provider-dry-run.md) and [docs/manual-provider-dry-run-verification.md](docs/manual-provider-dry-run-verification.md).
+
+## Quick Start
+
+Backend:
 
 ```bash
-# 后端，默认 http://localhost:8080
 mvn spring-boot:run
+```
 
-# 前端，默认 http://localhost:5173
+Frontend:
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/real-provider-dry-run.md](docs/real-provider-dry-run.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
+Default behavior:
 
-Schema 统一由 `src/main/resources/db/migration` 下的 Flyway migration 管理，`schema.sql` 仅作为未启用的历史 fallback 参考，不再由默认、test 或 mysql profile 自动执行。启动本地 MySQL：
+- Runs with H2 demo mode.
+- Does not require real API keys.
+- Does not require MySQL to run the demo.
+- Seeds sanitized demo data through the application startup path.
+
+Optional local MySQL:
 
 ```bash
 docker compose up -d mysql
@@ -129,16 +134,43 @@ mvn spring-boot:run -Dspring-boot.run.profiles=mysql
 docker compose stop mysql
 ```
 
-默认本地凭据仅供 demo 使用，可通过 `OFFERFLOW_DB_URL`、`OFFERFLOW_DB_USERNAME`、`OFFERFLOW_DB_PASSWORD` 覆盖。完整说明见 [docs/database-migration.md](docs/database-migration.md) 和 [docs/local-mysql.md](docs/local-mysql.md)。不要提交 `.env`、真实凭据、API Key 或真实招聘隐私数据。
+The MySQL profile is for local development/demo validation only. It is not a production deployment statement.
 
-## 验收
+## Verification
 
-```bash
-mvn test
-cd frontend
-npm run build
-npm run screenshots
-git diff --check
-```
+Current local acceptance:
 
-更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/real-provider-dry-run.md](docs/real-provider-dry-run.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。
+- `mvn test`: 126 tests passed
+- `npm run build`: passed
+- `npm run screenshots`: 18 passed
+- `git diff --check`: passed
+
+If the test count changes, trust the latest command output over this README.
+
+## Project Boundaries
+
+- Portfolio-grade engineering demo.
+- Not a production recruiting platform.
+- No recruiting platform API integration.
+- No crawler.
+- No auto-apply.
+- No real user data.
+- No Offer prediction, admission probability, or guaranteed pass claim.
+- No real-time interview assistance or cheating feature.
+- Local permission model is demo-level, not production authentication/authorization.
+- Real Provider dry-run is manual and disabled by default.
+- Raw provider response is not saved.
+- Copy permission requires a Human Review confirmed state and Copy Permission Contract pass.
+
+More detail: [docs/project-boundary.md](docs/project-boundary.md) and [docs/portfolio-claims.md](docs/portfolio-claims.md).
+
+## Interview Talking Points
+
+- Why generated AI output should not be directly copyable.
+- Why Human Review is a safety gate rather than a UI decoration.
+- Why Copy Permission only allows confirmed content.
+- Why raw provider responses and API keys are not saved.
+- Why provider failures must fall back with explicit trace evidence.
+- How `local-rule`, no-op providers, and manual real dry-run differ.
+- Why Flyway + H2 + MySQL compatibility matters for a Java portfolio project.
+- How Trace Evidence proves where a generated output came from and which gates it passed.

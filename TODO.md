@@ -1,28 +1,28 @@
 # TODO
 
-## 已完成
+## Completed
 
-- [x] P1A：Spring Boot 工程骨架与 mock/local-rule 接口
-- [x] P1B：Vue 高保真 JD 证据匹配工作台
-- [x] P2A：匿名化简历证据库与 Coverage Map
-- [x] P2B：人工复核中心
-- [x] P2C：Provider 设置与证据链页面
-- [x] P2D：匹配报告、面试准备、投递跟踪页面闭环
-- [x] P3A：H2/MyBatis-Plus 持久化基础、schema、seed、repository 和核心接口读库
-- [x] P3B：Human Review 审计日志与状态流转历史
-- [x] P3C：证据库人工编辑草稿、确认、回滚与审计
-- [x] P3D：结构化 JD Intake、JD 解析版本历史与证据绑定审计
-- [x] P3E：基于 JD parse version 与 evidence binding 生成可版本化 Match Report，并进入 Human Review
-- [x] P3F：Match Report 与 Human Review 双向状态同步、复制许可检查、恢复与归档闭环
-- [x] P3G：三处 Audit Trail 卡内展开、copy-check 结构化历史、状态标签与 Archived 只读视觉态统一
-- [x] P4A：Flyway V1 migration、H2/MySQL schema 兼容验证、本地 MySQL 8 Docker Compose 与启动文档
-- [x] P4B：Provider SPI、配置校验、沙箱运行、no-op adapter、fallback Trace Evidence 与 Provider Settings 页面升级
-- [x] P4C：Provider Prompt Contract、Risk Policy、Response Schema、Response Validator 与 Provider Settings contract sandbox
-- [x] P4D：Human Review Gate、Copy Permission Contract、统一复制门禁审计与页面 Copy Gate
-- [x] P4E：Local Role Permission、Local Actor Context、permission audit 与关键写接口本地权限约束
-- [x] P4F：Real Provider manual dry-run path，默认关闭，PII Guard、Schema Validate、Risk Guard、Human Review、Copy Permission 与 fallback 留痕
+- [x] P1A: Spring Boot skeleton and mock/local-rule APIs.
+- [x] P1B-P2D: Vue product pages for JD workbench, evidence library, human review, provider trace, match report, interview prep, and application tracker.
+- [x] P3A: H2/MyBatis-Plus persistence foundation, schema, seed data, repositories, and core read APIs.
+- [x] P3B: Human Review audit trail and state transitions.
+- [x] P3C: Resume evidence draft/edit/confirm/archive/restore workflow and audit trail.
+- [x] P3D: Structured JD intake, parse version history, evidence binding, and JD audit.
+- [x] P3E: Match report generation from JD parse version and evidence bindings with Human Review handoff.
+- [x] P3F: Match Report and Human Review status sync, copy checks, restore, and archived flow.
+- [x] P3G: Audit disclosure UI, copy-check history, status labels, and archived read-only treatment.
+- [x] P4A: Flyway migration, H2/MySQL compatibility, local MySQL Docker Compose, and database docs.
+- [x] P4B: Provider SPI, config check, sandbox run, no-op adapters, fallback trace evidence, and Provider Settings upgrade.
+- [x] P4C: Provider prompt/schema/risk contract hardening and provider validation sandbox.
+- [x] P4D: Human Review Gate, Copy Permission Contract, unified copy audit, and page-level copy gate.
+- [x] P4E: Local role permission workflow, local actor context, permission audit, and write-boundary checks.
+- [x] P4F: Manual real Provider dry-run path with PII Guard, Schema Validate, Risk Guard, Human Review, Copy Permission, and fallback trace.
+- [x] P4G: Real Provider response schema alignment for DeepSeek/OpenAI-compatible JSON and plain-text normalization.
+- [x] P5A: GitHub README polish, screenshot evidence table, portfolio claims doc, and showcase checklist.
 
-## 下一阶段候选
+## Next Candidates
 
-- [ ] P4G：Provider offline eval fixtures、golden contract cases、real dry-run evidence review 与 adapter readiness checklist
-- [ ] 增加 service 层单元测试、前端组件测试和无障碍自动检查
+- [ ] P5B: Release packaging pass with GitHub repo hygiene, tags, and optional demo walkthrough script.
+- [ ] Add focused service-layer unit tests where controller tests currently cover most behavior.
+- [ ] Add frontend component tests for high-risk copy gate and review-state UI.
+- [ ] Add optional accessibility audit automation for the main workflow pages.

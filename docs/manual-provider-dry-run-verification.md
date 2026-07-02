@@ -2,7 +2,7 @@
 
 This document records P4F/P4G manual real Provider dry-run verification using sanitized input only. It intentionally records only status metadata and trace IDs.
 
-It does not record API keys. It does not record raw model responses. It does not claim stable production provider integration. It does not bypass the copy gate.
+It does not record API keys. It does not record raw model responses. It does not claim production provider integration. It does not bypass the copy gate.
 
 ## Verification Summary
 
@@ -19,6 +19,17 @@ It does not record API keys. It does not record raw model responses. It does not
 - Raw provider output is not persisted or copied into this repository.
 - Passing Schema Validate and Risk Guard does not bypass Human Review.
 - `copyAllowed=false` remains the expected state until the relevant output is Human Review Confirmed and Copy Permission passes.
+
+## Portfolio Wording
+
+Use this wording in portfolio or README material:
+
+- "Optional real Provider dry-run path manually verified with DeepSeek and an OpenAI-compatible relay."
+- "Disabled by default; API keys are read from environment variables only."
+- "Raw provider responses are not saved."
+- "Output still requires Schema Validate, Risk Guard, Human Review, and Copy Permission."
+
+Avoid wording that implies production provider integration, vendor-backed model support, bypassed review gates, or always-on model-service behavior.
 
 ## Follow-up Guidance
 

@@ -28,4 +28,4 @@ P4F `POST /api/provider/real-dry-run` loads `PromptContract`, `RiskPolicy`, and 
 
 ## Required Boundary
 
-Contracts do not mean production GPT, DeepSeek, or relay integration is available. API Key values are not stored, displayed, logged, or returned. Unvalidated output must not bypass Human Review or Copy Permission Contract.
+Contracts do not mean external model-service integration is available. API Key values are not stored, displayed, logged, or returned. Unvalidated output must not bypass Human Review or Copy Permission Contract.

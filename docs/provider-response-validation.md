@@ -9,7 +9,7 @@ P4F real dry-run calls this same validator after provider response normalization
 - Check required response fields such as `providerMode`, `finalProvider`, and structured JSON fields.
 - Parse `structuredJson` and require `provider`, `schemaVersion`, `summary`, `humanReviewRequired`, and `copyAllowed`.
 - Reject schema version mismatch.
-- Reject forbidden claims such as Offer probability, admission probability, guaranteed pass, real-time interview assistance, production-grade real model integration, real customer/user claims, and platform automation claims.
+- Reject forbidden claims such as Offer probability, admission probability, guaranteed pass, real-time interview assistance, unverified real model integration, real customer/user claims, and platform automation claims.
 - Enforce `rawResponseSaved=false`.
 - When `realCallEnabled=false`, reject any response that marks an external provider as real success.
 

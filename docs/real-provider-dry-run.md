@@ -4,7 +4,7 @@ P4F adds a manual real Provider dry-run path for DeepSeek and OpenAI-compatible 
 
 `POST /api/provider/real-dry-run`
 
-This is not a production-grade model gateway and does not claim stable real-model quality. It is a local, manually enabled integration path that keeps Provider Contract, PII Guard, Schema Validate, Risk Guard, Human Review, Copy Permission, Local Permission, and fallback behavior visible in one trace.
+This is a local, manually enabled verification path, not production provider integration and not an always-on model-service claim. It keeps Provider Contract, PII Guard, Schema Validate, Risk Guard, Human Review, Copy Permission, Local Permission, and fallback behavior visible in one trace.
 
 ## Manual Verification Summary
 
@@ -15,7 +15,7 @@ P4F/P4G manual dry-run verification was completed with sanitized input only. The
 | DeepSeek | `true` | `true` | `false` | `deepseek` | `deepseek-v4-pro` | `false` | `true` | `true` | `true` | `false` | `false` | `P4F-96549DC4` |
 | OpenAI-compatible relay | `true` | `true` | `false` | `openai-compatible` | `gpt-5.5` | `false` | `true` | `true` | `true` | `false` | `false` | `P4F-2D3FF22E` |
 
-This verification confirms the optional manual dry-run path can normalize and validate provider output under the P4G schema alignment. It does not establish stable production provider integration or bypass the copy gate.
+This verification confirms the optional manual dry-run path can normalize and validate provider output under the P4G schema alignment. It does not establish production provider integration or bypass the copy gate.
 
 ## Default Safety
 
@@ -30,20 +30,20 @@ This verification confirms the optional manual dry-run path can normalize and va
 
 ## Environment Variables
 
-```properties
-OFFERFLOW_AI_PROVIDER_MODE=local-rule
-OFFERFLOW_AI_REAL_CALL_ENABLED=false
-OFFERFLOW_AI_RAW_RESPONSE_SAVE=false
-OFFERFLOW_AI_TIMEOUT_MS=8000
+The dry-run path reads provider configuration from local environment variables. This document lists names only and does not provide values.
 
-OFFERFLOW_DEEPSEEK_BASE_URL=https://api.deepseek.com
-OFFERFLOW_DEEPSEEK_API_KEY=<read from local environment>
-OFFERFLOW_DEEPSEEK_MODEL=<model name>
-
-OFFERFLOW_OPENAI_COMPATIBLE_BASE_URL=<read from local environment>
-OFFERFLOW_OPENAI_COMPATIBLE_API_KEY=<read from local environment>
-OFFERFLOW_OPENAI_COMPATIBLE_MODEL=<read from local environment>
-```
+| Purpose | Variable name |
+| --- | --- |
+| Provider mode | `OFFERFLOW_AI_PROVIDER_MODE` |
+| Real-call flag | `OFFERFLOW_AI_REAL_CALL_ENABLED` |
+| Raw response save flag | `OFFERFLOW_AI_RAW_RESPONSE_SAVE` |
+| Timeout | `OFFERFLOW_AI_TIMEOUT_MS` |
+| DeepSeek base URL | `OFFERFLOW_DEEPSEEK_BASE_URL` |
+| DeepSeek secret | `OFFERFLOW_DEEPSEEK_API_KEY` |
+| DeepSeek model | `OFFERFLOW_DEEPSEEK_MODEL` |
+| OpenAI-compatible base URL | `OFFERFLOW_OPENAI_COMPATIBLE_BASE_URL` |
+| OpenAI-compatible secret | `OFFERFLOW_OPENAI_COMPATIBLE_API_KEY` |
+| OpenAI-compatible model | `OFFERFLOW_OPENAI_COMPATIBLE_MODEL` |
 
 The config-check APIs only report configured/masked state. They must not print key values.
 

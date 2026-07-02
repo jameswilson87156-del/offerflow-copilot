@@ -7,7 +7,7 @@ P4F/P4G manual real Provider dry-run was verified with sanitized input for DeepS
 - DeepSeek: `finalProvider=deepseek`, `model=deepseek-v4-pro`, `traceId=P4F-96549DC4`.
 - OpenAI-compatible relay: `finalProvider=openai-compatible`, `model=gpt-5.5`, `traceId=P4F-2D3FF22E`.
 
-This does not change the Provider SPI boundary: the path is optional, manual, review-gated, and not stable production provider integration. API keys and raw model responses are not recorded.
+This does not change the Provider SPI boundary: the path is optional, manual, review-gated, and not production provider integration. API keys and raw model responses are not recorded.
 
 P4B 为后续模型接入建立 Provider SPI，P4C 在 SPI 上增加 Prompt Contract、Risk Policy、Response Schema 和 Response Validator，P4F 增加手动 real dry-run 路径。默认仍是 `local-rule` / no-op；真实调用必须手动开启并通过多重门禁。
 
