@@ -19,10 +19,14 @@
 - [x] P4F: Manual real Provider dry-run path with PII Guard, Schema Validate, Risk Guard, Human Review, Copy Permission, and fallback trace.
 - [x] P4G: Real Provider response schema alignment for DeepSeek/OpenAI-compatible JSON and plain-text normalization.
 - [x] P5A: GitHub README polish, screenshot evidence table, portfolio claims doc, and showcase checklist.
+- [x] P5B: GitHub Actions CI for backend tests, frontend build, and screenshot validation.
+- [x] P5C: Release packaging, repo hygiene, release notes, demo walkthrough, screenshot manifest, and GitHub templates.
 
 ## Next Candidates
 
-- [ ] P5B: Release packaging pass with GitHub repo hygiene, tags, and optional demo walkthrough script.
+- [ ] P5D: Portfolio Hub case study integration.
+- [ ] P5E: Resume bullet extraction.
+- [ ] P5F: GitHub remote / metadata / pinned repo / tag `v0.1.0-portfolio`.
 - [ ] Add focused service-layer unit tests where controller tests currently cover most behavior.
 - [ ] Add frontend component tests for high-risk copy gate and review-state UI.
 - [ ] Add optional accessibility audit automation for the main workflow pages.

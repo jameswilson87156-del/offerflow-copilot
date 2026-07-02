@@ -21,6 +21,12 @@ Use this before sharing the repository publicly.
 - [x] No production claim checked.
 - [x] No recruiting platform claim checked.
 - [x] No crawler / auto-apply claim checked.
+- [x] Release notes linked and checked.
+- [x] Demo walkthrough linked and checked.
+- [x] Screenshot manifest linked and checked.
+- [x] PR template exists.
+- [x] Issue template exists.
+- [x] `.gitignore` excludes local build, test, secret, DB, editor, OS, and Playwright artifacts.
 
 Runtime screenshots must come from:
 

@@ -20,6 +20,8 @@ npm-debug.log*
 .vscode/
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 *.swp
 
 # Local data and temporary files
@@ -35,5 +37,7 @@ mysql-data/
 .docker-data/
 
 # Playwright browser artifacts (keep curated docs/images screenshots)
+test-results/
+playwright-report/
 frontend/test-results/
 frontend/playwright-report/

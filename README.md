@@ -62,6 +62,13 @@ These screenshots are generated from the running app by Playwright. Runtime scre
 | Human Review | Review queue, audit trail, risk state, and confirmed/copy boundary | [docs/images/offerflow-human-review.png](docs/images/offerflow-human-review.png) | [docs/images/large/offerflow-human-review.png](docs/images/large/offerflow-human-review.png) | [docs/images/offerflow-human-review-1366.png](docs/images/offerflow-human-review-1366.png) |
 | Provider Settings / Trace | Provider descriptors, config check, prompt/schema contract, trace timeline, and dry-run boundary | [docs/images/offerflow-provider-trace.png](docs/images/offerflow-provider-trace.png) | [docs/images/large/offerflow-provider-trace.png](docs/images/large/offerflow-provider-trace.png) | Covered by Playwright route overflow validation |
 
+## Release Package
+
+- [Release notes: v0.1.0-portfolio](docs/release-notes-v0.1.0-portfolio.md)
+- [Demo walkthrough for HR / interview review](docs/demo-walkthrough.md)
+- [Screenshot manifest](docs/screenshot-manifest.md)
+- [CI verification notes](docs/ci.md)
+
 ## Engineering Highlights
 
 - Spring Boot 3 + Java 17

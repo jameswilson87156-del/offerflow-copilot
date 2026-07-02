@@ -2,9 +2,11 @@
 
 ## Current State
 
-Latest commit before P5A: `dcca920 docs: record manual provider dry-run verification`.
+Latest commit before P5C: `19bf1d9 ci: add github actions verification workflow`.
 
-P5A polishes the GitHub-facing README and supporting docs for portfolio review. It does not add large runtime features, does not call real providers, and does not change the core product workflow.
+Current phase: P5C Release Packaging + Repo Hygiene.
+
+P5C packages the repository as a portfolio-ready local release candidate. It does not add runtime business features, does not call real providers, and does not change the core product workflow. The intended commit message for this pass is `docs: add release packaging checklist`.
 
 Completed engineering scope:
 
@@ -13,15 +15,22 @@ Completed engineering scope:
 - P4A: Flyway, H2/MySQL compatibility, and local Docker Compose MySQL.
 - P4B-P4E: Provider SPI, prompt/schema/risk contract hardening, Copy Permission Contract, and local role permission workflow.
 - P4F-P4G: manual real Provider dry-run path and provider response schema alignment.
+- P5A: GitHub README polish and screenshot evidence table.
+- P5B: GitHub Actions CI for Maven tests, frontend build, and screenshot validation.
+- P5C: release notes, demo walkthrough, screenshot manifest, GitHub templates, README links, and repo hygiene pass.
 - Manual DeepSeek and OpenAI-compatible relay dry-run results recorded as sanitized metadata only.
 
-## P5A Documentation Scope
+The project is now a portfolio-ready local release candidate. Recommended next step: P5D Portfolio Hub case study integration.
 
-- README now follows a GitHub portfolio showcase structure.
-- Runtime screenshot evidence table uses only actual files under `docs/images/` and `docs/images/large/`.
-- Mermaid workflow and architecture diagrams were added to README.
-- Provider dry-run wording is constrained to optional/manual/disabled-by-default language.
-- Boundary docs clarify no API keys, no raw provider responses, no recruiting platform API, no crawler, no auto-apply, no real user data, and no production recruiting claim.
+## P5C Documentation Scope
+
+- Release notes document `v0.1.0-portfolio` as a suggested tag only.
+- Demo walkthrough gives a 5-8 minute HR/interviewer script.
+- Screenshot manifest lists runtime Playwright screenshots and separates them from AI-generated design references.
+- GitHub PR and issue templates preserve verification and boundary checks.
+- README links release notes, demo walkthrough, screenshot manifest, and CI notes.
+- Provider dry-run wording stays constrained to optional/manual/disabled-by-default language.
+- Boundary docs continue to clarify no API keys, no raw provider responses, no recruiting platform API, no crawler, no auto-apply, no real user data, and no production recruiting claim.
 
 ## Manual Provider Dry-run Summary
 
