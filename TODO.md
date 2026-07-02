@@ -23,10 +23,12 @@
 - [x] P5C: Release packaging, repo hygiene, release notes, demo walkthrough, screenshot manifest, and GitHub templates.
 - [x] P5D: Portfolio Hub case study integration.
 - [x] P5E: Resume bullets and interview talk track.
+- [x] P5F-B: GitHub remote/main branch/tag/CI badge preparation.
+- [x] README 中文化优化：中文主导 README，保留必要英文技术词、截图证据、Provider dry-run 边界和项目边界。
 
 ## Next Candidates
 
-- [ ] P5F: GitHub remote / metadata / pinned repo / tag `v0.1.0-portfolio`.
+- [ ] Update GitHub repo description / topics / pinned repo / Portfolio Hub link.
 - [ ] Add focused service-layer unit tests where controller tests currently cover most behavior.
 - [ ] Add frontend component tests for high-risk copy gate and review-state UI.
 - [ ] Add optional accessibility audit automation for the main workflow pages.

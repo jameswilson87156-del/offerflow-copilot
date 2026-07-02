@@ -2,11 +2,11 @@
 
 ## Current State
 
-Latest commit before P5E: `0b1f258 docs: add release packaging checklist`.
+Latest commit before README localization: `7c354f8 docs: add ci badge`.
 
-Current phase: P5E Resume Bullets + Interview Talk Track.
+Current phase: README 中文化优化。
 
-P5E packages OfferFlow Copilot for resume, Boss/HR, GitHub Profile, Portfolio Case Study, and interview explanation. It does not add runtime business features, does not call real providers, and does not change the core product workflow. The intended commit message for this pass is `docs: add resume bullets and talk track`.
+This pass localizes `README.md` into a Chinese-first GitHub showcase README for domestic HR, Boss/校招, and interview review. It does not add runtime business features, does not call real providers, and does not change the core product workflow. The intended commit message for this pass is `docs: localize readme for chinese showcase`.
 
 Completed engineering scope:
 
@@ -20,9 +20,11 @@ Completed engineering scope:
 - P5C: release notes, demo walkthrough, screenshot manifest, GitHub templates, README links, and repo hygiene pass.
 - P5D: Portfolio Hub case study integration in `D:\workhome\ai-agent-portfolio-hub`.
 - P5E: resume bullets, Boss/HR short bullets, 30-second and 1-minute interview talk track, deep-dive Q&A, safe/unsafe wording lists.
+- P5F-B: GitHub remote/main branch/tag/CI badge preparation.
+- README 中文化优化: Chinese-first README with preserved technical terms, runtime screenshot links, provider dry-run boundaries, and project boundaries.
 - Manual DeepSeek and OpenAI-compatible relay dry-run results recorded as sanitized metadata only.
 
-The project is now a portfolio-ready local release candidate with resume/interview wording prepared. Recommended next step: P5F GitHub remote / repo metadata / tag / pinned repo.
+The project is now a portfolio-ready GitHub showcase candidate with Chinese README wording prepared. Recommended next step: update GitHub repo description / topics / pinned repo order / Portfolio Hub link.
 
 ## P5E Documentation Scope
 
@@ -32,6 +34,7 @@ The project is now a portfolio-ready local release candidate with resume/intervi
 - Screenshot manifest lists runtime Playwright screenshots and separates them from AI-generated design references.
 - GitHub PR and issue templates preserve verification and boundary checks.
 - README links release notes, demo walkthrough, screenshot manifest, and CI notes.
+- README is Chinese-first and keeps core technical terms such as Spring Boot 3, Vue 3, Provider SPI, Human Review, Copy Permission Contract, GitHub Actions, and Playwright.
 - Provider dry-run wording stays constrained to optional/manual/disabled-by-default language.
 - Boundary docs continue to clarify no API keys, no raw provider responses, no recruiting platform API, no crawler, no auto-apply, no real user data, and no production recruiting claim.
 
