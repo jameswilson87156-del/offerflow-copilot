@@ -2,11 +2,11 @@
 
 ## Current State
 
-Latest commit before P5C: `19bf1d9 ci: add github actions verification workflow`.
+Latest commit before P5E: `0b1f258 docs: add release packaging checklist`.
 
-Current phase: P5C Release Packaging + Repo Hygiene.
+Current phase: P5E Resume Bullets + Interview Talk Track.
 
-P5C packages the repository as a portfolio-ready local release candidate. It does not add runtime business features, does not call real providers, and does not change the core product workflow. The intended commit message for this pass is `docs: add release packaging checklist`.
+P5E packages OfferFlow Copilot for resume, Boss/HR, GitHub Profile, Portfolio Case Study, and interview explanation. It does not add runtime business features, does not call real providers, and does not change the core product workflow. The intended commit message for this pass is `docs: add resume bullets and talk track`.
 
 Completed engineering scope:
 
@@ -18,12 +18,15 @@ Completed engineering scope:
 - P5A: GitHub README polish and screenshot evidence table.
 - P5B: GitHub Actions CI for Maven tests, frontend build, and screenshot validation.
 - P5C: release notes, demo walkthrough, screenshot manifest, GitHub templates, README links, and repo hygiene pass.
+- P5D: Portfolio Hub case study integration in `D:\workhome\ai-agent-portfolio-hub`.
+- P5E: resume bullets, Boss/HR short bullets, 30-second and 1-minute interview talk track, deep-dive Q&A, safe/unsafe wording lists.
 - Manual DeepSeek and OpenAI-compatible relay dry-run results recorded as sanitized metadata only.
 
-The project is now a portfolio-ready local release candidate. Recommended next step: P5D Portfolio Hub case study integration.
+The project is now a portfolio-ready local release candidate with resume/interview wording prepared. Recommended next step: P5F GitHub remote / repo metadata / tag / pinned repo.
 
-## P5C Documentation Scope
+## P5E Documentation Scope
 
+- `docs/resume-bullets.md` contains Java backend / AI application bullets, AI tool development bullets, Boss/HR bullets, interview introductions, deep-dive Q&A, and wording boundaries.
 - Release notes document `v0.1.0-portfolio` as a suggested tag only.
 - Demo walkthrough gives a 5-8 minute HR/interviewer script.
 - Screenshot manifest lists runtime Playwright screenshots and separates them from AI-generated design references.
