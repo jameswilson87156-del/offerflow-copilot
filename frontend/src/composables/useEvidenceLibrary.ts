@@ -1,13 +1,10 @@
 import { onMounted, shallowRef } from 'vue'
 import { evidenceCoverageFallback, evidenceLibraryFallback } from '../data/evidence'
+import { useLocalActor } from './useLocalActor'
 import type { EvidenceAuditEvent, EvidenceCoverageData, EvidenceItem, EvidenceItemDetail, EvidenceLibraryData, EvidenceMutationPayload } from '../types'
 
-const demoActor = {
-  actor: 'demo-evidence-editor',
-  actorRole: 'Evidence reviewer',
-}
-
 export function useEvidenceLibrary() {
+  const { withActor } = useLocalActor()
   const library = shallowRef<EvidenceLibraryData>(evidenceLibraryFallback)
   const coverage = shallowRef<EvidenceCoverageData>(evidenceCoverageFallback)
   const detail = shallowRef<EvidenceItemDetail | null>(null)
@@ -78,12 +75,11 @@ export function useEvidenceLibrary() {
 
   async function mutate(url: string, method: 'POST' | 'PUT', payload: EvidenceMutationPayload) {
     actionLoading.value = true
-    const body = { ...demoActor, ...payload }
     try {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(withActor(payload)),
       })
       if (!response.ok) throw new Error('Evidence mutation API unavailable')
       detail.value = await response.json() as EvidenceItemDetail

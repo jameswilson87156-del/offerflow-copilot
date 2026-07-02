@@ -18,12 +18,14 @@
 - 允许使用 Provider SPI 和 sandbox run 演示配置校验、no-op adapter、失败/超时模拟、fallback 和 Trace Evidence 写入。
 - 允许使用 Provider contract sandbox 演示 PromptContract、RiskPolicy、ProviderResponseSchema 和本地 Response Validator。
 - 允许使用 Copy Permission Contract 演示 AI/local-rule 输出正式使用前的最后一道复制门禁。
+- 允许使用 Local Actor Context 和本地 demo role switch 演示 OWNER / REVIEWER / EDITOR / VIEWER / SYSTEM 的写操作边界，并写入 `permission_audit_event`。
 
 ## 明确不做
 
 - 不接真实 LLM，不调用 DeepSeek，不调用中转站。
 - 不保存 API Key 明文，也不把 Provider 配置伪装为已稳定接入。
-- 不因 `realCallEnabled=true` 配置项就发起真实外部请求；P4C/P4D adapter 仍然是 no-op。
+- 不因 `realCallEnabled=true` 配置项就发起真实外部请求；P4C/P4D/P4E adapter 仍然是 no-op。
+- 不做生产级认证授权，不新增真实用户注册或登录，不保存真实密码。
 - 不接 Boss、牛客、实习僧等招聘平台 API，不爬取网页。
 - 不采集或保存真实手机号、邮箱、身份证、聊天记录等隐私。
 - 不自动投递，不自动私信 HR，不抓取平台聊天。
@@ -40,7 +42,7 @@ AI 或规则生成的内容默认是 `Draft`。用户必须确认事实、措辞
 
 P3B 已将 Human Review 状态和 audit trail 保存在 H2 demo persistence 中。每次 `confirm`、`return`、`flag-risk` 都会记录操作者、角色、动作、前后状态、前后风险等级、人工备注、Trace ID、Trace Hash 和时间。
 
-当前 actor 是 demo user，用于演示审计链路，不是生产鉴权、生产权限系统或合规审计系统。
+当前 actor/actorRole 是 demo local permission context，用于演示审计链路，不是生产鉴权、生产权限系统或合规审计系统。P4E 会额外写入 `permission_audit_event`，记录关键写操作的 allowed / blocked 决策。
 
 Confirmed 是唯一允许复制正式建议的状态。Schema Validate 通过不代表可以直接使用；Risk Guard 通过不代表可以直接复制；Human Review Confirmed 后仍由 Copy Permission Contract 做最后检查。Archived 是只读归档状态；前端禁用不合法动作并展示原因，但这不等同于生产级服务端授权模型。
 
@@ -62,7 +64,7 @@ JD 分析台只接受用户手动粘贴的岗位描述或脱敏 seed demo，不�
 
 当前匹配报告 scoring 是 local-rule，不是真实 LLM 推理，不是 Offer 概率、录取概率或保证通过。报告默认 `DRAFT`，生成后进入 Human Review；只有 `CONFIRMED` 版本才可以复制确认版摘要。`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 版本不可作为正式建议使用。
 
-`ARCHIVED` 版本是只读版本，不能再次 send-to-review；如需继续处理，必须先 restore 到 `DRAFT` 并重新进入复核链路。当前 restore、copy-check 和审计 actor 都是 demo user，不是生产级权限系统。
+`ARCHIVED` 版本是只读版本，不能再次 send-to-review；如需继续处理，必须先 restore 到 `DRAFT` 并重新进入复核链路。当前 restore、copy-check 和审计 actor 都是 demo local actor，不是生产级权限系统。
 
 每次 Match Report copy-check 都复用 `CopyPermissionService`，写入统一 `copy_permission_audit_event`，同时继续写旧 `COPY_ENABLED` 或 `COPY_BLOCKED`，并保存许可结果、原因、版本状态、Human Review 状态和 Boundary Notice，供 Audit Trail 展开查看。
 
@@ -76,6 +78,18 @@ Copy Permission Contract 是 AI/local-rule 输出正式使用前的最后一道�
 - Human Review status = `Confirmed`
 
 `DRAFT`、`IN_REVIEW`、`RETURNED`、`RISK_FLAGGED` 和 `ARCHIVED` 一律不能复制为正式建议。当前支持 Match Report 和 Interview Prep 的页面展示；Opening Message、Human Review Rewrite 等 target type 已在 policy 类型中预留，但仍是 demo/mock 支持，不强行扩大业务表。
+
+## Local Permission 原则
+
+Local Permission Model 是本地 demo 权限模型，不是生产级认证授权。角色边界为：
+
+- `OWNER`：允许全部本地 demo 写操作。
+- `REVIEWER`：允许 Human Review confirm / return / flag-risk 和 copy-check。
+- `EDITOR`：允许 JD、Evidence draft、Match Report generate/send-to-review 等编辑流。
+- `VIEWER`：只读，不能执行写操作。
+- `SYSTEM`：用于 seed、local-rule、provider sandbox、risk guard、trace 等系统动作，不能作为人工确认 actor。
+
+关键写接口 denied 时返回清晰 reason，并写入 `permission_audit_event`；allowed 的关键写操作也会写入 permission audit。原业务审计表仍继续写入。
 
 ## Provider SPI 原则
 

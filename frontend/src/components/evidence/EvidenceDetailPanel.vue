@@ -23,6 +23,16 @@ const props = defineProps<{
   auditTrail: EvidenceAuditEvent[]
   boundaryNotice: string
   busy: boolean
+  canEdit: boolean
+  canConfirm: boolean
+  canReturnToDraft: boolean
+  canArchive: boolean
+  canRestore: boolean
+  editReason: string
+  confirmReason: string
+  returnReason: string
+  archiveReason: string
+  restoreReason: string
 }>()
 
 const emit = defineEmits<{
@@ -69,28 +79,32 @@ const fieldLabels: Record<string, string> = {
     </div>
 
     <section class="evidence-actions">
-      <button type="button" class="evidence-action-button primary" :disabled="props.busy || props.item.status === 'Confirmed' || props.item.status === 'Archived'" @click="emit('confirm')">
+      <button type="button" class="evidence-action-button primary" :disabled="props.busy || props.item.status === 'Confirmed' || props.item.status === 'Archived' || !props.canConfirm" :title="props.canConfirm ? '' : props.confirmReason" @click="emit('confirm')">
         <BadgeCheck :size="14" />确认证据
       </button>
-      <button type="button" class="evidence-action-button" :disabled="props.busy || props.item.status === 'Archived'" @click="emit('edit')">
+      <button type="button" class="evidence-action-button" :disabled="props.busy || props.item.status === 'Archived' || !props.canEdit" :title="props.canEdit ? '' : props.editReason" @click="emit('edit')">
         <Pencil :size="14" />编辑
       </button>
-      <button type="button" class="evidence-action-button" :disabled="props.busy || props.item.status === 'Draft' || props.item.status === 'Archived'" @click="emit('returnToDraft')">
+      <button type="button" class="evidence-action-button" :disabled="props.busy || props.item.status === 'Draft' || props.item.status === 'Archived' || !props.canReturnToDraft" :title="props.canReturnToDraft ? '' : props.returnReason" @click="emit('returnToDraft')">
         <Undo2 :size="14" />退回草稿
       </button>
       <button
         v-if="props.item.status !== 'Archived'"
         type="button"
         class="evidence-action-button danger"
-        :disabled="props.busy"
+        :disabled="props.busy || !props.canArchive"
+        :title="props.canArchive ? '' : props.archiveReason"
         @click="emit('archive')"
       >
         <Archive :size="14" />归档
       </button>
-      <button v-else type="button" class="evidence-action-button primary" :disabled="props.busy" @click="emit('restore')">
+      <button v-else type="button" class="evidence-action-button primary" :disabled="props.busy || !props.canRestore" :title="props.canRestore ? '' : props.restoreReason" @click="emit('restore')">
         <RotateCcw :size="14" />恢复
       </button>
     </section>
+    <p v-if="!props.canEdit || !props.canConfirm || !props.canArchive" class="permission-inline-note">
+      {{ !props.canEdit ? props.editReason : !props.canConfirm ? props.confirmReason : props.archiveReason }}
+    </p>
 
     <section class="detail-block skill-block">
       <h3><CircleDot :size="14" />关联技能</h3>

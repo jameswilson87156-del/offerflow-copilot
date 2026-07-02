@@ -131,7 +131,7 @@ class OfferFlowApiTest {
     void generateMatchReportWritesAuditEvents() throws Exception {
         mockMvc.perform(post("/api/jobs/job-java-ai-intern/match-reports/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"generate audit\"}"))
+                        .content("{\"actor\":\"demo-editor\",\"actorRole\":\"EDITOR\",\"humanNote\":\"generate audit\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/match-reports/match-java-ai-demo-v2/audit-events"))
@@ -147,7 +147,7 @@ class OfferFlowApiTest {
     void generateMatchReportCreatesHumanReviewItem() throws Exception {
         mockMvc.perform(post("/api/jobs/job-java-ai-intern/match-reports/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"handoff report\"}"))
+                        .content("{\"actor\":\"demo-editor\",\"actorRole\":\"EDITOR\",\"humanNote\":\"handoff report\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.humanReviewId").value("review-match-java-ai-demo-v2"))
                 .andExpect(jsonPath("$.humanReviewStatus").value("Draft"));
@@ -166,7 +166,7 @@ class OfferFlowApiTest {
     void jobMatchReportsEndpointReturnsVersionList() throws Exception {
         mockMvc.perform(post("/api/jobs/job-java-ai-intern/match-reports/generate")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"list reports\"}"))
+                        .content("{\"actor\":\"demo-editor\",\"actorRole\":\"EDITOR\",\"humanNote\":\"list reports\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/jobs/job-java-ai-intern/match-reports"))
@@ -211,7 +211,7 @@ class OfferFlowApiTest {
     void sendMatchReportToReviewUpdatesStatusAndAuditEvent() throws Exception {
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/send-to-review")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"send to review\"}"))
+                        .content("{\"actor\":\"demo-editor\",\"actorRole\":\"EDITOR\",\"humanNote\":\"send to review\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("IN_REVIEW"))
                 .andExpect(jsonPath("$.humanReviewStatus").value("In Review"));
@@ -228,7 +228,7 @@ class OfferFlowApiTest {
     void archiveMatchReportUpdatesStatusAndAuditEvent() throws Exception {
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"archive version\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"archive version\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ARCHIVED"))
                 .andExpect(jsonPath("$.humanReviewStatus").value("Archived"));
@@ -339,7 +339,7 @@ class OfferFlowApiTest {
 
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/send-to-review")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"send before copy check\"}"))
+                        .content("{\"actor\":\"demo-editor\",\"actorRole\":\"EDITOR\",\"humanNote\":\"send before copy check\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
@@ -375,7 +375,7 @@ class OfferFlowApiTest {
 
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"archive before copy check\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"archive before copy check\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/copy-check")
@@ -398,12 +398,12 @@ class OfferFlowApiTest {
     void archivedMatchReportCannotBeSentToReview() throws Exception {
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"archive before send\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"archive before send\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/send-to-review")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"should be blocked\"}"))
+                        .content("{\"actor\":\"demo-editor\",\"actorRole\":\"EDITOR\",\"humanNote\":\"should be blocked\"}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -412,12 +412,12 @@ class OfferFlowApiTest {
     void restoreMatchReportUpdatesStatusAndAuditEvent() throws Exception {
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/archive")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"archive before restore\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"archive before restore\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/match-reports/match-java-ai-demo-v1/restore")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actor\":\"demo-reviewer\",\"actorRole\":\"Human reviewer\",\"humanNote\":\"restore match report\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"restore match report\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.humanReviewStatus").value("Draft"));
@@ -654,7 +654,7 @@ class OfferFlowApiTest {
     void confirmEvidenceUpdatesStatusAndWritesAuditEvent() throws Exception {
         mockMvc.perform(post("/api/evidence/evidence-rag/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"confirm evidence note\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"confirm evidence note\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.item.status").value("Confirmed"))
                 .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'confirm evidence note')]", hasSize(1)))
@@ -666,7 +666,7 @@ class OfferFlowApiTest {
     void archiveEvidenceUpdatesStatusAndWritesAuditEvent() throws Exception {
         mockMvc.perform(post("/api/evidence/evidence-mcp/archive")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"archive evidence note\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"archive evidence note\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.item.status").value("Archived"))
                 .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'archive evidence note')]", hasSize(1)))
@@ -678,17 +678,17 @@ class OfferFlowApiTest {
     void archivedEvidenceIsReadonlyUntilRestored() throws Exception {
         mockMvc.perform(post("/api/evidence/evidence-mcp/archive")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"archive before readonly check\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"archive before readonly check\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(put("/api/evidence/evidence-mcp")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"summary\":\"should not update archived evidence\"}"))
+                        .content("{\"actor\":\"demo-editor\",\"actorRole\":\"EDITOR\",\"summary\":\"should not update archived evidence\"}"))
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(post("/api/evidence/evidence-mcp/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"humanNote\":\"should not confirm archived evidence\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"should not confirm archived evidence\"}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -697,12 +697,12 @@ class OfferFlowApiTest {
     void restoreEvidenceUpdatesStatusAndWritesAuditEvent() throws Exception {
         mockMvc.perform(post("/api/evidence/evidence-mcp/archive")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"archive before restore\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"archive before restore\"}"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/evidence/evidence-mcp/restore")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actor\":\"demo-evidence-editor\",\"actorRole\":\"Evidence reviewer\",\"humanNote\":\"restore evidence note\",\"targetStatus\":\"Draft\"}"))
+                        .content("{\"actor\":\"demo-owner\",\"actorRole\":\"OWNER\",\"humanNote\":\"restore evidence note\",\"targetStatus\":\"Draft\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.item.status").value("Draft"))
                 .andExpect(jsonPath("$.auditTrail[?(@.humanNote == 'restore evidence note')]", hasSize(1)))

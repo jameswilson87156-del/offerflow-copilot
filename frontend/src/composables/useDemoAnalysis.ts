@@ -1,5 +1,6 @@
 import { computed, onMounted, shallowRef } from 'vue'
 import { demoFallback, jobDetailFallback, providerFallback } from '../data/demo'
+import { useLocalActor } from './useLocalActor'
 import type {
   DemoAnalysis,
   EvidenceMatch,
@@ -10,12 +11,8 @@ import type {
   RequirementGroup,
 } from '../types'
 
-const demoActor = {
-  actor: 'demo-jd-editor',
-  actorRole: 'JD reviewer',
-}
-
 export function useDemoAnalysis() {
+  const { withActor } = useLocalActor()
   const analysis = shallowRef<DemoAnalysis>(demoFallback)
   const jobDetail = shallowRef<JobDetailData>(jobDetailFallback)
   const provider = shallowRef<ProviderStatus>(providerFallback)
@@ -111,7 +108,7 @@ export function useDemoAnalysis() {
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...demoActor, sourceType: 'MANUAL_PASTE', ...payload }),
+        body: JSON.stringify(withActor({ sourceType: 'MANUAL_PASTE', ...payload })),
       })
       if (!response.ok) throw new Error('Save failed')
       jobDetail.value = await response.json() as JobDetailData
@@ -124,7 +121,7 @@ export function useDemoAnalysis() {
       const response = await fetch(`/api/jobs/${jobDetail.value.job.id}/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...demoActor, humanNote }),
+        body: JSON.stringify(withActor({ humanNote })),
       })
       if (!response.ok) throw new Error('Parse failed')
       jobDetail.value = await response.json() as JobDetailData
@@ -137,7 +134,7 @@ export function useDemoAnalysis() {
       const response = await fetch(`/api/jobs/${jobDetail.value.job.id}/bind-evidence`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...demoActor, humanNote }),
+        body: JSON.stringify(withActor({ humanNote })),
       })
       if (!response.ok) throw new Error('Bind failed')
       jobDetail.value = await response.json() as JobDetailData

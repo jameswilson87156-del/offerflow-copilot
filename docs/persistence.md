@@ -25,6 +25,8 @@ P4A 使用 Flyway 统一管理 H2 与 MySQL schema。默认 demo 和 test profil
 - `human_review_audit_event`：人工复核动作审计事件，记录状态流转、风险等级变化、备注、Trace ID 和 Trace Hash。
 - `provider_trace_run`：分析运行的 Provider 模式、fallback、schema、risk flags 和 trace hash。
 - `trace_step`：Run Pipeline 每一步的输入摘要、输出摘要、耗时和证据引用。
+- `copy_permission_audit_event`：统一复制门禁审计事件，记录 target、allowed、reason、target status、Human Review status、schema/risk gate、actor 和 boundary notice。
+- `permission_audit_event`：P4E 本地权限决策审计事件，记录 actor、role、action、target、allowed、reason、request id 和 boundary notice。
 
 ## 已读库或写库接口
 
@@ -62,6 +64,9 @@ P4A 使用 Flyway 统一管理 H2 与 MySQL schema。默认 demo 和 test profil
 - `POST /api/provider/sandbox-run`
 - `POST /api/copy-permissions/check`
 - `GET /api/copy-permissions/audit-events`
+- `GET /api/permissions/current-actor`
+- `POST /api/permissions/check`
+- `GET /api/permissions/audit-events`
 - `GET /api/match-report/demo`
 - `POST /api/jobs/{id}/match-reports/generate`
 - `GET /api/jobs/{id}/match-reports`
@@ -188,6 +193,8 @@ P3F 新增或扩展的 `match_report_audit_event.action` 包括：
 `changed_fields_json` 当前以字段名列表记录，例如 `["status","humanReviewStatus"]` 或 `["copyPermission"]`。当前不是不可篡改审计系统，生产化前还需要真实鉴权、权限模型、租户隔离和日志防篡改策略。
 
 P4D 新增 `copy_permission_audit_event` 作为统一复制门禁审计表。它保存 target type/id、COPY_ALLOWED 或 COPY_BLOCKED、allowed、reason、target status、Human Review status、schemaValidated、riskGuardPassed、actor、traceId、providerRunId、boundaryNotice 和 createdAt；不保存 requested text、raw model response、真实隐私或 API Key。
+
+P4E 新增 `permission_audit_event` 作为本地角色权限审计表。它保存 actor、actor role、permission action、target type/id、allowed、reason、boundaryNotice、requestId 和 createdAt；不保存真实登录凭据、密码、API Key、真实隐私或业务输出正文。
 
 ## 简历证据审计事件字段
 

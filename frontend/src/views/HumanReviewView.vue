@@ -19,9 +19,10 @@ import {
   UserCheck,
 } from 'lucide-vue-next'
 import { useHumanReviews } from '../composables/useHumanReviews'
+import { useLocalActor } from '../composables/useLocalActor'
 import AuditEventDisclosure from '../components/AuditEventDisclosure.vue'
 import { isClosedReviewStatus, statusClass, statusLabel } from '../utils/status'
-import type { HumanReviewDetail, HumanReviewSummary } from '../types'
+import type { HumanReviewDetail, HumanReviewSummary, PermissionAction } from '../types'
 
 const props = defineProps<{
   searchQuery: string
@@ -29,6 +30,7 @@ const props = defineProps<{
 }>()
 
 const { center, details, loading, source, reload, loadDetail, reviewAction } = useHumanReviews()
+const { can, permissionReason } = useLocalActor()
 const selectedId = shallowRef('review-star-mcp')
 const manualNote = shallowRef('需要把“生产级”改成“作品集级”，不要声称真实用户。')
 const actionBusy = shallowRef(false)
@@ -80,6 +82,14 @@ const auditFieldLabels: Record<string, string> = {
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? 'local-rule 审核流 · 无外部调用'
   : `${props.selectedProvider} 未配置，本页仍使用 local-rule 审核`)
+
+const reviewActionMap: Record<'confirm' | 'return' | 'flag-risk', PermissionAction> = {
+  confirm: 'REVIEW_CONFIRM',
+  return: 'REVIEW_RETURN',
+  'flag-risk': 'REVIEW_FLAG_RISK',
+}
+
+const reviewPermissionNote = computed(() => permissionReason('REVIEW_CONFIRM'))
 
 watch(filteredItems, (items) => {
   if (items.length && !items.some((item) => item.id === selectedId.value)) selectedId.value = items[0].id
@@ -143,17 +153,36 @@ function auditClass(action: string) {
 }
 
 async function applyAction(action: 'confirm' | 'return' | 'flag-risk') {
+  const permission = reviewActionMap[action]
+  if (!can(permission)) {
+    actionMessage.value = permissionReason(permission)
+    return
+  }
   actionBusy.value = true
   try {
     const detail = await reviewAction(selectedDetail.value.id, action, manualNote.value)
     actionMessage.value = detail.lastAction
+  } catch (error) {
+    actionMessage.value = error instanceof Error ? error.message : permissionReason(permission)
   } finally {
     actionBusy.value = false
   }
 }
 
 function rememberNote() {
+  if (!can('REVIEW_RETURN')) {
+    actionMessage.value = reviewPermissionNote.value
+    return
+  }
   actionMessage.value = '人工备注已保留在当前复核草稿中，等待确认、退回或标记风险。'
+}
+
+function actionDisabled(action: 'confirm' | 'return' | 'flag-risk') {
+  return actionBusy.value || isReviewReadonly.value || !can(reviewActionMap[action])
+}
+
+function actionTitle(action: 'confirm' | 'return' | 'flag-risk') {
+  return can(reviewActionMap[action]) ? '' : permissionReason(reviewActionMap[action])
 }
 </script>
 
@@ -282,19 +311,20 @@ function rememberNote() {
         </header>
 
         <div class="action-button-grid">
-          <button type="button" class="review-action confirm" :disabled="actionBusy || isReviewReadonly" @click="applyAction('confirm')">
+          <button type="button" class="review-action confirm" :disabled="actionDisabled('confirm')" :title="actionTitle('confirm')" @click="applyAction('confirm')">
             <CheckCircle2 :size="16" />确认可用
           </button>
-          <button type="button" class="review-action return" :disabled="actionBusy || isReviewReadonly" @click="applyAction('return')">
+          <button type="button" class="review-action return" :disabled="actionDisabled('return')" :title="actionTitle('return')" @click="applyAction('return')">
             <RotateCcw :size="16" />退回修改
           </button>
-          <button type="button" class="review-action flag" :disabled="actionBusy || isReviewReadonly" @click="applyAction('flag-risk')">
+          <button type="button" class="review-action flag" :disabled="actionDisabled('flag-risk')" :title="actionTitle('flag-risk')" @click="applyAction('flag-risk')">
             <Flag :size="16" />标记风险
           </button>
-          <button type="button" class="review-action note" :disabled="actionBusy || isReviewReadonly" @click="rememberNote">
+          <button type="button" class="review-action note" :disabled="actionBusy || isReviewReadonly || !can('REVIEW_RETURN')" :title="can('REVIEW_RETURN') ? '' : reviewPermissionNote" @click="rememberNote">
             <MessageSquarePlus :size="16" />添加人工备注
           </button>
         </div>
+        <p v-if="!isReviewReadonly && !can('REVIEW_CONFIRM')" class="permission-inline-note">{{ reviewPermissionNote }}</p>
 
         <label class="manual-note">
           <span>人工备注</span>

@@ -1,5 +1,6 @@
 import { onMounted, shallowRef } from 'vue'
 import { interviewPrepFallback } from '../data/workflow'
+import { useLocalActor } from './useLocalActor'
 import type { CopyPermissionAuditEvent, CopyPermissionResult, InterviewPrepData } from '../types'
 
 const COPY_BOUNDARY_NOTICE = 'Schema Validate 与 Risk Guard 通过后仍需 Human Review Confirmed；Draft/In Review/Returned/Risk Flagged/Archived 不可复制。当前为 demo/local-rule/no-op，不承诺 Offer 结果，也不是实时面试辅助工具。'
@@ -55,6 +56,7 @@ function prepCopyText(prep: InterviewPrepData) {
 }
 
 export function useInterviewPrep() {
+  const { withActor } = useLocalActor()
   const prep = shallowRef<InterviewPrepData>(interviewPrepFallback)
   const copyPermission = shallowRef<CopyPermissionResult>(deriveCopyPermission(interviewPrepFallback))
   const copyAuditEvents = shallowRef<CopyPermissionAuditEvent[]>([])
@@ -98,15 +100,13 @@ export function useInterviewPrep() {
       const response = await fetch('/api/copy-permissions/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: JSON.stringify(withActor({
           targetType: 'INTERVIEW_PREP',
           targetId: prep.value.id,
-          actor: 'demo-reviewer',
-          actorRole: 'Human reviewer',
           requestedText: prepCopyText(prep.value),
           schemaVersion: 'interview-prep-copy-schema-v1',
           promptVersion: 'interview-prep-prompt-v1',
-        }),
+        })),
       })
       if (!response.ok) throw new Error('Copy permission API unavailable')
       copyPermission.value = await response.json() as CopyPermissionResult

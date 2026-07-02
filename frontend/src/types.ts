@@ -8,6 +8,58 @@ export interface ProviderStatus {
   boundaryNotice: string
 }
 
+export type LocalActorRole = 'OWNER' | 'REVIEWER' | 'EDITOR' | 'VIEWER' | 'SYSTEM'
+
+export type PermissionAction =
+  | 'REVIEW_CONFIRM'
+  | 'REVIEW_RETURN'
+  | 'REVIEW_FLAG_RISK'
+  | 'EVIDENCE_CREATE'
+  | 'EVIDENCE_UPDATE'
+  | 'EVIDENCE_CONFIRM'
+  | 'EVIDENCE_ARCHIVE'
+  | 'EVIDENCE_RESTORE'
+  | 'JD_CREATE'
+  | 'JD_UPDATE'
+  | 'JD_PARSE'
+  | 'JD_BIND_EVIDENCE'
+  | 'MATCH_REPORT_GENERATE'
+  | 'MATCH_REPORT_SEND_TO_REVIEW'
+  | 'MATCH_REPORT_ARCHIVE'
+  | 'MATCH_REPORT_RESTORE'
+  | 'COPY_CHECK'
+  | 'PROVIDER_SANDBOX_RUN'
+
+export interface LocalActorContext {
+  actor: string
+  actorRole: LocalActorRole
+}
+
+export interface PermissionDecision {
+  allowed: boolean
+  reason: string
+  actor: string
+  actorRole: LocalActorRole
+  action: PermissionAction
+  targetType: string
+  targetId: string
+  boundaryNotice: string
+}
+
+export interface PermissionAuditEvent {
+  id: string
+  actor: string
+  actorRole: LocalActorRole
+  action: PermissionAction
+  targetType: string
+  targetId: string
+  allowed: boolean
+  reason: string
+  boundaryNotice: string
+  requestId: string
+  createdAt: string
+}
+
 export interface Requirement {
   id: string
   title: string

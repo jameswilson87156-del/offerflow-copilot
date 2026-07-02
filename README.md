@@ -2,11 +2,11 @@
 
 OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程。它面向实习/早期求职场景，用可审计的工作台串联“JD 要求 -> 简历证据 -> 匹配报告 -> 面试前准备 -> 投递跟踪 -> 人工复核 -> Provider Trace”。
 
-## 当前阶段：P4D Human Review Gate + Copy Permission Contract
+## 当前阶段：P4E Local Role Permission & Review Workflow Enforcement
 
-当前版本保留 P4A 的 Flyway + H2/MySQL persistence 基础、P4B 的 Provider SPI 和 P4C 的 Prompt/Schema/Risk contract，并新增统一 Copy Permission Contract。默认 Provider 仍是 `local-rule`；OpenAI-compatible 与 DeepSeek 只有 no-op adapter 结构，不会发起真实外部网络请求，也不会保存真实 API Key。任何未来真实 Provider 输出都必须先通过 schema validate 与 risk guard，再进入 Human Review，最后通过 Copy Permission Contract 才可复制。
+当前版本保留 P4A 的 Flyway + H2/MySQL persistence 基础、P4B 的 Provider SPI、P4C 的 Prompt/Schema/Risk contract 和 P4D 的 Copy Permission Contract，并新增本地 demo 角色权限模型。默认 Provider 仍是 `local-rule`；OpenAI-compatible 与 DeepSeek 只有 no-op adapter 结构，不会发起真实外部网络请求，也不会保存真实 API Key。任何未来真实 Provider 输出都必须先通过 schema validate 与 risk guard，再进入 Human Review，最后通过 Copy Permission Contract 才可复制。
 
-匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。P4D 新增 `copy_permission_audit_event` 作为统一复制门禁审计表；旧 `POST /api/match-reports/{versionId}/copy-check` 继续兼容，并内部复用 `CopyPermissionService`。`ARCHIVED` 是只读归档状态，不能送审；当前 actor 仍是 demo user，当前仍不是生产级权限系统。
+匹配报告现在是可版本化、可解释、可复核、可审计的输出资产；只有 `CONFIRMED` 后才允许复制确认版摘要。P4D 新增 `copy_permission_audit_event` 作为统一复制门禁审计表；P4E 新增 `permission_audit_event` 记录本地角色对关键写操作的 allowed/blocked 决策。`ARCHIVED` 是只读归档状态，不能送审；当前 actor/actorRole 仅用于本地演示和审计，当前仍不是生产级认证授权系统。
 
 关键边界：
 
@@ -18,7 +18,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 - 不输出 Offer 概率、录取概率，不承诺保证通过。
 - 不虚构真实用户、客户、流量或生产级能力。
 - Schema Validate / Risk Guard 通过不代表可复制，只有 Human Review Confirmed 后才可复制。
-- 当前 actor 是 demo user，不是生产鉴权或生产级权限系统。
+- 当前 actor / actorRole 是 demo local permission context，不是生产登录、注册、鉴权或生产级权限系统。
 
 ## 技术栈
 
@@ -70,6 +70,9 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 | GET | `/api/provider/traces/{runId}` | H2 seeded demo data |
 | POST | `/api/copy-permissions/check` | H2 统一复制门禁检查，写 copy_permission_audit_event |
 | GET | `/api/copy-permissions/audit-events` | H2 按 targetType/targetId 查询复制门禁审计历史 |
+| GET | `/api/permissions/current-actor` | 本地 demo actor、role、permissions 与 boundary notice |
+| POST | `/api/permissions/check` | 本地权限判断并写 permission_audit_event |
+| GET | `/api/permissions/audit-events` | H2 permission audit history，支持 actor/action/target/allowed 查询 |
 | GET | `/api/match-report/demo` | H2 latest match_report_version，兼容旧报告字段 |
 | POST | `/api/jobs/{id}/match-reports/generate` | H2 基于最新 JD parse/evidence bindings 生成报告版本 + Human Review handoff |
 | GET | `/api/jobs/{id}/match-reports` | H2 匹配报告版本历史 |
@@ -90,7 +93,7 @@ OfferFlow Copilot 是一个可运行的 Java + Vue 求职辅助作品集工程�
 - `/interview-prep`：面试前准备与 Copy Gate
 - `/application-tracker`：投递跟踪
 - `/human-review`：人工复核中心，包含 Review History / Audit Trail
-- `/provider-settings`：Provider 设置与证据链
+- `/provider-settings`：Provider 设置与证据链，含最近 permission audit events
 
 ## 本地运行
 
@@ -104,7 +107,7 @@ npm install
 npm run dev
 ```
 
-默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
+默认使用 H2 in-memory 数据库，启动时由 `PersistenceSeedService` 在空表中插入脱敏 demo 数据。H2 控制台路径为 `/h2-console`。更多说明见 [docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/human-review-audit.md](docs/human-review-audit.md)、[docs/evidence-audit.md](docs/evidence-audit.md)、[docs/jd-intake.md](docs/jd-intake.md)、[docs/match-report-versioning.md](docs/match-report-versioning.md) 和 [docs/match-report-review-sync.md](docs/match-report-review-sync.md)。
 
 Schema 统一由 `src/main/resources/db/migration` 下的 Flyway migration 管理，`schema.sql` 仅作为未启用的历史 fallback 参考，不再由默认、test 或 mysql profile 自动执行。启动本地 MySQL：
 
@@ -126,4 +129,4 @@ npm run screenshots
 git diff --check
 ```
 
-更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。
+更多边界与实现说明见 [docs/project-boundary.md](docs/project-boundary.md)、[docs/architecture.md](docs/architecture.md)、[docs/persistence.md](docs/persistence.md)、[docs/provider-spi.md](docs/provider-spi.md)、[docs/provider-sandbox.md](docs/provider-sandbox.md)、[docs/provider-contracts.md](docs/provider-contracts.md)、[docs/provider-response-validation.md](docs/provider-response-validation.md)、[docs/copy-permission-contract.md](docs/copy-permission-contract.md)、[docs/local-permission-model.md](docs/local-permission-model.md)、[docs/database-migration.md](docs/database-migration.md)、[docs/local-mysql.md](docs/local-mysql.md) 和 [docs/design/README.md](docs/design/README.md)。

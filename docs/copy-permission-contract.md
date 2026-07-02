@@ -2,6 +2,8 @@
 
 P4D adds Copy Permission Contract as the final gate before any AI or local-rule output can be copied for formal use. It sits after Provider schema validation, risk guard, and Human Review.
 
+P4E adds a local role permission check before copy-check is executed. In the demo model, `REVIEWER` and `OWNER` can run `COPY_CHECK`; `EDITOR` and `VIEWER` cannot.
+
 ## Gate Order
 
 1. Schema Validate checks the output structure and expected schema version.
@@ -44,6 +46,12 @@ API:
 
 `POST /api/match-reports/{versionId}/copy-check` remains compatible and internally reuses `CopyPermissionService`. It still writes `match_report_audit_event` with `COPY_ENABLED` / `COPY_BLOCKED`, and it now also writes `copy_permission_audit_event`.
 
+P4E also exposes local permission endpoints:
+
+- `GET /api/permissions/current-actor`
+- `POST /api/permissions/check`
+- `GET /api/permissions/audit-events`
+
 ## Audit Table
 
 `copy_permission_audit_event` records:
@@ -60,14 +68,19 @@ API:
 
 The table intentionally does not store requested text, raw model response, real privacy data, API keys, or platform chat records.
 
+`permission_audit_event` is separate from `copy_permission_audit_event`. It records whether the local actor was allowed to attempt `COPY_CHECK`; the copy permission table records whether the target output itself can be copied.
+
 ## Frontend
 
 - `/match-report` shows Copy Permission Contract results and unified copy audit history. The confirmed summary copy action is only visible when the gate allows it.
 - `/interview-prep` shows a Copy Gate block for the current preparation material. The current demo status is Draft, so copy is blocked until review is confirmed.
 - `/provider-settings` states that Provider validation passing does not grant copy permission. Copy Permission Contract is the final gate after Human Review.
+- The top bar shows the local demo role and lets the user switch `OWNER` / `REVIEWER` / `EDITOR` / `VIEWER`; unavailable copy actions are disabled with a reason.
 
 ## Current Boundaries
 
 Current actor is a demo user, not a production identity. This is not a production-grade permission system, tenant model, or immutable audit system.
+
+Local Permission Model is demo/local-rule only. It does not add production auth, login, real user management, tenant isolation, or compliance-grade authorization.
 
 Current data is anonymized demo/local-rule/no-op data. The system does not save real phone numbers, emails, ID cards, HR chat records, API keys, raw model responses, or requested copy text. It does not connect to recruiting platforms, crawl websites, auto-apply, call OpenAI, call DeepSeek, call relay gateways, output Offer/admission probability, guarantee passing, or provide real-time interview assistance.

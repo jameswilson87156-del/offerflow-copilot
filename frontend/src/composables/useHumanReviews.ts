@@ -1,8 +1,10 @@
 import { onMounted, shallowRef } from 'vue'
 import { humanReviewDetailsFallback, humanReviewFallback } from '../data/reviews'
+import { useLocalActor } from './useLocalActor'
 import type { HumanReviewAuditEvent, HumanReviewCenterData, HumanReviewDetail } from '../types'
 
 export function useHumanReviews() {
+  const { actorContext, withActor } = useLocalActor()
   const center = shallowRef<HumanReviewCenterData>(humanReviewFallback)
   const details = shallowRef<Record<string, HumanReviewDetail>>({ ...humanReviewDetailsFallback })
   const loading = shallowRef(true)
@@ -44,18 +46,15 @@ export function useHumanReviews() {
       const response = await fetch(`/api/reviews/${id}/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actor: 'demo-reviewer',
-          actorRole: 'Human reviewer',
-          humanNote: note,
-        }),
+        body: JSON.stringify(withActor({ humanNote: note })),
       })
-      if (!response.ok) throw new Error('Review action unavailable')
+      if (!response.ok) throw new ActionRequestError(await errorMessage(response, 'Review action unavailable'))
       const detail = await response.json() as HumanReviewDetail
       details.value = { ...details.value, [id]: detail }
       await load()
       return detail
-    } catch {
+    } catch (error) {
+      if (error instanceof ActionRequestError) throw error
       const current = details.value[id] ?? humanReviewDetailsFallback[id]
       const nextStatus = action === 'confirm' ? 'Confirmed' : action === 'return' ? 'Returned' : 'Risk Flagged'
       const nextRiskLevel = action === 'flag-risk' ? '高风险' : current.riskLevel
@@ -68,8 +67,8 @@ export function useHumanReviews() {
         nextStatus,
         previousRiskLevel: current.riskLevel,
         nextRiskLevel,
-        actor: 'demo-reviewer',
-        actorRole: 'Human reviewer',
+        actor: actorContext.value.actor,
+        actorRole: actorContext.value.actorRole,
         humanNote: note || current.humanNote,
         traceId: current.traceId,
         traceHash: `audit-${current.traceId.slice(-4).toLowerCase()}-${id.slice(-4)}`,
@@ -97,3 +96,14 @@ export function useHumanReviews() {
 
   return { center, details, loading, source, reload: load, loadDetail, reviewAction }
 }
+
+async function errorMessage(response: Response, fallback: string) {
+  try {
+    const body = await response.json() as { reason?: string }
+    return body.reason ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+class ActionRequestError extends Error {}

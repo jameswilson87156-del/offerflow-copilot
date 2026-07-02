@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Bell, CheckCircle2, ChevronDown, ClipboardCheck, Search } from 'lucide-vue-next'
+import { Bell, CheckCircle2, ChevronDown, ClipboardCheck, Search, ShieldCheck } from 'lucide-vue-next'
+import type { LocalActorRole } from '../types'
 
 const props = defineProps<{
   searchQuery: string
@@ -9,11 +10,15 @@ const props = defineProps<{
   statusTone: 'draft' | 'ready'
   searchPlaceholder?: string
   reviewStatusLabel?: string
+  actor: string
+  actorRole: LocalActorRole
+  actorRoles: LocalActorRole[]
 }>()
 
 const emit = defineEmits<{
   'update:searchQuery': [value: string]
   'update:providerMode': [value: string]
+  'update:actorRole': [value: LocalActorRole]
 }>()
 
 const providers = ['local-rule', 'OpenAI-compatible', 'DeepSeek']
@@ -45,6 +50,27 @@ const providers = ['local-rule', 'OpenAI-compatible', 'DeepSeek']
       >
         {{ item }}
       </button>
+    </div>
+
+    <div class="local-role-indicator" aria-label="Demo local permission role">
+      <div class="local-actor-chip">
+        <ShieldCheck :size="14" />
+        <span>{{ props.actor }}</span>
+        <small>Demo local permission mode</small>
+      </div>
+      <div class="local-role-switch">
+        <button
+          v-for="role in props.actorRoles"
+          :key="role"
+          type="button"
+          :class="{ active: props.actorRole === role }"
+          :aria-pressed="props.actorRole === role"
+          :title="`Switch demo role to ${role}`"
+          @click="emit('update:actorRole', role)"
+        >
+          {{ role }}
+        </button>
+      </div>
     </div>
 
     <div class="topbar-actions">

@@ -18,6 +18,7 @@ import {
   Timer,
 } from 'lucide-vue-next'
 import { useProviderTrace } from '../composables/useProviderTrace'
+import { useLocalActor } from '../composables/useLocalActor'
 import type { ProviderCard, ProviderContractSummary, ProviderPipelineStep, ProviderTraceStepStatus } from '../types'
 
 const props = defineProps<{
@@ -34,6 +35,7 @@ const {
   traceRun,
   sandboxResult,
   validationResult,
+  permissionAuditEvents,
   sandboxError,
   validationError,
   loading,
@@ -45,6 +47,7 @@ const {
   loadContract,
   validateResponse,
 } = useProviderTrace()
+const { can, permissionReason, withActor } = useLocalActor()
 
 const providerOptions = [
   { id: 'local-rule', label: 'local-rule' },
@@ -71,6 +74,8 @@ const simulateMissingField = shallowRef(false)
 const simulateUnsafeClaim = shallowRef(false)
 const simulateSchemaMismatch = shallowRef(false)
 const sandboxInput = shallowRef('Java Spring Boot role with AI tooling evidence. Keep output local and require Human Review.')
+const canRunSandbox = computed(() => can('PROVIDER_SANDBOX_RUN'))
+const sandboxPermissionReason = computed(() => permissionReason('PROVIDER_SANDBOX_RUN'))
 
 const filteredProviders = computed(() => {
   const query = props.searchQuery.trim().toLowerCase()
@@ -193,6 +198,8 @@ const validationRows = computed(() => [
   ['Risk flags', validationResult.value.riskFlags.join(' / ')],
 ])
 
+const recentPermissionAudits = computed(() => permissionAuditEvents.value.slice(0, 6))
+
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? 'local-rule active · no external calls'
   : `${props.selectedProvider} stays no-op and falls back when sandboxed`)
@@ -210,15 +217,14 @@ watch(filteredSteps, (steps) => {
 })
 
 async function submitSandboxRun() {
-  await runSandbox({
+  if (!canRunSandbox.value) return
+  await runSandbox(withActor({
     taskType: selectedContractTaskType.value,
     inputText: sandboxInput.value,
     providerMode: selectedSandboxProvider.value,
     simulateFailure: simulateFailure.value,
     simulateTimeout: simulateTimeout.value,
-    actor: 'provider-settings-user',
-    actorRole: 'Human reviewer',
-  })
+  }))
   selectedStepKey.value = 'fallback-decision'
 }
 
@@ -335,9 +341,16 @@ function stepClass(status: ProviderTraceStepStatus) {
             <label><input v-model="simulateFailure" type="checkbox" />simulate failure</label>
             <label><input v-model="simulateTimeout" type="checkbox" />simulate timeout</label>
           </div>
-          <button type="button" class="primary-button sandbox-run-button" :disabled="running" @click="submitSandboxRun">
+          <button
+            type="button"
+            class="primary-button sandbox-run-button"
+            :disabled="running || !canRunSandbox"
+            :title="canRunSandbox ? '运行本地 provider sandbox' : sandboxPermissionReason"
+            @click="submitSandboxRun"
+          >
             <RefreshCw :size="14" :class="{ spinning: running }" />运行沙箱测试
           </button>
+          <p v-if="!canRunSandbox" class="permission-inline-note">{{ sandboxPermissionReason }}</p>
         </div>
         <dl class="sandbox-result-grid">
           <div v-for="[label, value] in sandboxRows" :key="label">
@@ -348,6 +361,32 @@ function stepClass(status: ProviderTraceStepStatus) {
         <p v-if="sandboxError" class="sandbox-error"><AlertTriangle :size="12" />{{ sandboxError }}</p>
       </section>
     </div>
+
+    <section class="panel permission-audit-panel">
+      <header class="panel-header provider-panel-header">
+        <div>
+          <span class="panel-kicker">PERMISSION AUDIT</span>
+          <h2>本地权限审计</h2>
+        </div>
+        <span class="count-chip">{{ permissionAuditEvents.length }} 条</span>
+      </header>
+      <div class="permission-audit-list">
+        <article
+          v-for="event in recentPermissionAudits"
+          :key="event.id"
+          :class="event.allowed ? 'allowed' : 'blocked'"
+        >
+          <div>
+            <strong>{{ event.action }}</strong>
+            <span>{{ event.actor }} · {{ event.actorRole }}</span>
+          </div>
+          <small>{{ event.targetType }} / {{ event.targetId || 'new' }}</small>
+          <p>{{ event.allowed ? 'allowed' : 'blocked' }} · {{ event.reason }}</p>
+          <em>{{ event.createdAt }}</em>
+        </article>
+        <p v-if="recentPermissionAudits.length === 0" class="permission-audit-empty">暂无 permission audit events，执行受控写操作后会写入本地审计。</p>
+      </div>
+    </section>
 
     <div class="provider-contract-grid">
       <section class="panel provider-contract-panel">

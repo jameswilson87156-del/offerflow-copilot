@@ -1,5 +1,6 @@
 import { onMounted, shallowRef } from 'vue'
 import { matchReportFallback } from '../data/workflow'
+import { useLocalActor } from './useLocalActor'
 import type {
   CopyPermissionAuditEvent,
   CopyPermissionResult,
@@ -119,6 +120,7 @@ function confirmedSummaryText(detail: MatchReportData) {
 }
 
 export function useMatchReport() {
+  const { withActor } = useLocalActor()
   const report = shallowRef<MatchReportData>(matchReportFallback)
   const versions = shallowRef<MatchReportVersionSummary[]>(fallbackVersions)
   const auditEvents = shallowRef<MatchReportAuditEvent[]>(fallbackAuditEvents)
@@ -204,11 +206,7 @@ export function useMatchReport() {
       const response = await fetch(`/api/jobs/${report.value.jobId}/match-reports/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actor: 'demo-report-generator',
-          actorRole: 'System',
-          humanNote: '从 Match Report 页面生成新版本。',
-        }),
+        body: JSON.stringify(withActor({ humanNote: '从 Match Report 页面生成新版本。' })),
       })
       if (!response.ok) throw new Error('Generate match report version unavailable')
       const detail = await response.json() as MatchReportData
@@ -262,11 +260,7 @@ export function useMatchReport() {
       const response = await fetch(`/api/match-reports/${report.value.versionId}/copy-check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actor: 'demo-reviewer',
-          actorRole: 'Human reviewer',
-          humanNote: '从 Match Report 页面检查复制许可。',
-        }),
+        body: JSON.stringify(withActor({ humanNote: '从 Match Report 页面检查复制许可。' })),
       })
       if (!response.ok) throw new Error('Copy check unavailable')
       const result = await response.json() as MatchReportCopyCheck
@@ -305,11 +299,7 @@ export function useMatchReport() {
       const response = await fetch(`/api/match-reports/${report.value.versionId}/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actor: 'demo-reviewer',
-          actorRole: 'Human reviewer',
-          humanNote: successMessage,
-        }),
+        body: JSON.stringify(withActor({ humanNote: successMessage })),
       })
       if (!response.ok) throw new Error('Match report action unavailable')
       const detail = await response.json() as MatchReportData

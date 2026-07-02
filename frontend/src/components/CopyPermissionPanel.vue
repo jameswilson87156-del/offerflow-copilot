@@ -11,6 +11,9 @@ const props = defineProps<{
   auditEvents: CopyPermissionAuditEvent[]
   busy?: boolean
   copyLabel?: string
+  checkDisabled?: boolean
+  copyDisabled?: boolean
+  disabledReason?: string
 }>()
 
 const emit = defineEmits<{
@@ -59,13 +62,14 @@ const recentEvents = computed(() =>
     </div>
 
     <div class="copy-contract-actions">
-      <button type="button" class="copy-action-button check" :disabled="busy" @click="emit('check')">
+      <button type="button" class="copy-action-button check" :disabled="busy || checkDisabled" :title="checkDisabled ? disabledReason : ''" @click="emit('check')">
         <ClipboardCheck :size="15" />检查复制许可
       </button>
-      <button v-if="result.allowed" type="button" class="copy-action-button copy" :disabled="busy" @click="emit('copy')">
+      <button v-if="result.allowed" type="button" class="copy-action-button copy" :disabled="busy || copyDisabled" :title="copyDisabled ? disabledReason : ''" @click="emit('copy')">
         <Copy :size="15" />{{ copyLabel ?? '复制确认内容' }}
       </button>
     </div>
+    <p v-if="checkDisabled || copyDisabled" class="permission-inline-note">{{ disabledReason }}</p>
 
     <p class="copy-contract-notice">{{ result.boundaryNotice }}</p>
 

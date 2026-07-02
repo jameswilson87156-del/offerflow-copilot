@@ -23,6 +23,7 @@ import {
   Target,
 } from 'lucide-vue-next'
 import { useMatchReport } from '../composables/useMatchReport'
+import { useLocalActor } from '../composables/useLocalActor'
 import AuditEventDisclosure from '../components/AuditEventDisclosure.vue'
 import CopyPermissionPanel from '../components/CopyPermissionPanel.vue'
 import { isReadonlyStatus, statusClass, statusLabel } from '../utils/status'
@@ -52,6 +53,7 @@ const {
   checkCopyPermission,
   copyConfirmedSummary,
 } = useMatchReport()
+const { can, permissionReason } = useLocalActor()
 
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? 'local-rule 匹配报告 · 无外部调用'
@@ -80,6 +82,12 @@ const copyAllowedLabel = computed(() => copyCheck.value.allowed ? '允许复制'
 
 const canRestoreVersion = computed(() => ['RETURNED', 'RISK_FLAGGED', 'ARCHIVED'].includes(report.value.status))
 const isReadonlyVersion = computed(() => isReadonlyStatus(report.value.status))
+const canGenerateReport = computed(() => can('MATCH_REPORT_GENERATE'))
+const canSendReview = computed(() => can('MATCH_REPORT_SEND_TO_REVIEW'))
+const canArchiveReport = computed(() => can('MATCH_REPORT_ARCHIVE'))
+const canRestoreReport = computed(() => can('MATCH_REPORT_RESTORE'))
+const canCheckCopy = computed(() => can('COPY_CHECK'))
+const copyPermissionReason = computed(() => permissionReason('COPY_CHECK'))
 
 const currentStatusHint = computed(() => ({
   DRAFT: '草稿：需要送入 Human Review，确认前不可复制为正式建议。',
@@ -124,7 +132,7 @@ function auditTone(action: string) {
           <span><Check v-if="props.selectedProvider === 'local-rule'" :size="13" /><SlidersHorizontal v-else :size="13" /></span>
           {{ providerNotice }}
         </div>
-        <button type="button" class="secondary-button match-generate-button" :disabled="actionBusy || loading" @click="generateVersion">
+        <button type="button" class="secondary-button match-generate-button" :disabled="actionBusy || loading || !canGenerateReport" :title="canGenerateReport ? '' : permissionReason('MATCH_REPORT_GENERATE')" @click="generateVersion">
           <PlusCircle :size="15" />生成新匹配报告
         </button>
         <button type="button" class="secondary-button" :disabled="loading" @click="reload">
@@ -186,16 +194,19 @@ function auditTone(action: string) {
         </article>
       </div>
       <div class="copy-action-row">
-        <button type="button" class="copy-action-button restore" :disabled="actionBusy || loading || !canRestoreVersion" @click="restoreVersion">
+        <button type="button" class="copy-action-button restore" :disabled="actionBusy || loading || !canRestoreVersion || !canRestoreReport" :title="canRestoreReport ? '' : permissionReason('MATCH_REPORT_RESTORE')" @click="restoreVersion">
           <RotateCcw :size="15" />恢复版本
         </button>
-        <button type="button" class="copy-action-button review" :disabled="actionBusy || loading || report.status !== 'DRAFT'" title="只有草稿可以送入人工复核；归档版本需先恢复" @click="sendToReview">
+        <button type="button" class="copy-action-button review" :disabled="actionBusy || loading || report.status !== 'DRAFT' || !canSendReview" :title="canSendReview ? '只有草稿可以送入人工复核；归档版本需先恢复' : permissionReason('MATCH_REPORT_SEND_TO_REVIEW')" @click="sendToReview">
           <Send :size="15" />送入人工复核
         </button>
-        <button type="button" class="copy-action-button archive" :disabled="actionBusy || loading || report.status === 'ARCHIVED'" @click="archiveVersion">
+        <button type="button" class="copy-action-button archive" :disabled="actionBusy || loading || report.status === 'ARCHIVED' || !canArchiveReport" :title="canArchiveReport ? '' : permissionReason('MATCH_REPORT_ARCHIVE')" @click="archiveVersion">
           <Archive :size="15" />归档版本
         </button>
       </div>
+      <p v-if="!canSendReview || !canArchiveReport || !canCheckCopy" class="permission-inline-note">
+        {{ !canCheckCopy ? copyPermissionReason : !canSendReview ? permissionReason('MATCH_REPORT_SEND_TO_REVIEW') : permissionReason('MATCH_REPORT_ARCHIVE') }}
+      </p>
       <CopyPermissionPanel
         title="Copy Permission Contract"
         kicker="COPY GATE"
@@ -203,6 +214,9 @@ function auditTone(action: string) {
         :result="copyPermission"
         :audit-events="copyAuditEvents"
         :busy="actionBusy || loading"
+        :check-disabled="!canCheckCopy"
+        :copy-disabled="!canCheckCopy"
+        :disabled-reason="copyPermissionReason"
         copy-label="复制确认版摘要"
         @check="checkCopyPermission"
         @copy="copyConfirmedSummary"

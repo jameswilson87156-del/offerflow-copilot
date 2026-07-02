@@ -15,12 +15,14 @@ Request body:
   "providerMode": "openai-compatible",
   "simulateFailure": false,
   "simulateTimeout": false,
-  "actor": "provider-settings-user",
-  "actorRole": "Human reviewer"
+  "actor": "demo.owner",
+  "actorRole": "OWNER"
 }
 ```
 
 Response 是 `ProviderResponse`，包含 selected provider、final provider、fallback used、fallback reason、duration、traceId、risk flags、rawResponseSaved=false 和 humanReviewRequired=true。
+
+P4E 后，sandbox run 会先经过 Local Permission Model。`OWNER` 和 `SYSTEM` 可以执行 `PROVIDER_SANDBOX_RUN`；`REVIEWER`、`EDITOR` 和 `VIEWER` 会被拒绝并写入 `permission_audit_event`。
 
 ## 行为
 
@@ -60,9 +62,12 @@ Response 是 `ProviderResponse`，包含 selected provider、final provider、fa
 - Provider Contract：展示 taskType、promptVersion、schemaVersion、riskPolicyVersion、required inputs、forbidden claims 和 output schema。
 - Response Validation Sandbox：模拟 missing field、unsafe claim、schema mismatch，并展示 violations、fallbackRequired、humanReviewRequired、riskFlags 和 sanitizedOutput。
 - Trace Timeline：sandbox run 后自动刷新最新 trace。
+- Permission Audit：展示最近本地权限决策，包括 actor、role、action、target、allowed 和 reason。
 
 页面文案必须保持清晰：当前是 Provider contract sandbox，未发起真实外部模型调用，真实 Provider 接入前必须通过 schema validate 和 risk guard，所有输出仍需 Human Review。P4D 后，validation 通过也不代表可复制；Copy Permission Contract 是 Human Review Confirmed 后的最后一道门禁。
 
 ## 安全边界
 
 Sandbox 只用于本地演示。不要在请求、日志、文档或页面中写入真实 API Key、真实手机号、邮箱、身份证、聊天记录或招聘平台私信。不要把 sandbox 结果描述为真实模型质量、生产稳定性或录取概率。
+
+Provider Sandbox 的 Local Permission Model 不是生产鉴权。P4E 只提供本地 role switch、disabled action 和 permission audit，用于演示写操作边界。

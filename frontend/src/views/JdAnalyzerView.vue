@@ -19,6 +19,7 @@ import RequirementPanel from '../components/RequirementPanel.vue'
 import ReviewPanel from '../components/ReviewPanel.vue'
 import TimelinePanel from '../components/TimelinePanel.vue'
 import { useDemoAnalysis } from '../composables/useDemoAnalysis'
+import { useLocalActor } from '../composables/useLocalActor'
 import type { JobIntakeStatus } from '../types'
 
 const props = defineProps<{
@@ -41,6 +42,7 @@ const {
   parseJob,
   bindEvidence,
 } = useDemoAnalysis()
+const { can, permissionReason } = useLocalActor()
 
 const form = reactive({
   title: '',
@@ -79,6 +81,7 @@ function statusClass(status: JobIntakeStatus | string) {
 }
 
 async function handleSave() {
+  if (!can('JD_UPDATE')) return
   await saveJob({
     title: form.title,
     company: form.company,
@@ -162,16 +165,17 @@ async function handleSave() {
           </label>
         </div>
         <div class="jd-action-row">
-          <button type="button" class="primary-action" :disabled="!!actionLoading" @click="handleSave">
+          <button type="button" class="primary-action" :disabled="!!actionLoading || !can('JD_UPDATE')" :title="can('JD_UPDATE') ? '' : permissionReason('JD_UPDATE')" @click="handleSave">
             <Save :size="14" />保存 JD
           </button>
-          <button type="button" class="secondary-button" :disabled="!!actionLoading" @click="parseJob()">
+          <button type="button" class="secondary-button" :disabled="!!actionLoading || !can('JD_PARSE')" :title="can('JD_PARSE') ? '' : permissionReason('JD_PARSE')" @click="parseJob()">
             <PlayCircle :size="14" />重新解析
           </button>
-          <button type="button" class="secondary-button" :disabled="!!actionLoading" @click="bindEvidence()">
+          <button type="button" class="secondary-button" :disabled="!!actionLoading || !can('JD_BIND_EVIDENCE')" :title="can('JD_BIND_EVIDENCE') ? '' : permissionReason('JD_BIND_EVIDENCE')" @click="bindEvidence()">
             <Link2 :size="14" />生成证据绑定
           </button>
         </div>
+        <p v-if="!can('JD_UPDATE')" class="permission-inline-note">{{ permissionReason('JD_UPDATE') }}</p>
         <p v-if="error" class="jd-error">{{ error }}</p>
         <p class="jd-boundary">{{ jobDetail.boundaryNotice }}</p>
       </article>

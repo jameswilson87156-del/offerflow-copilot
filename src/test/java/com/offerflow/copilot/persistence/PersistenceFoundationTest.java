@@ -112,10 +112,11 @@ class PersistenceFoundationTest {
                 "human_review_item",
                 "match_report_audit_event",
                 "copy_permission_audit_event",
+                "permission_audit_event",
                 "flyway_schema_history");
         assertThat(flyway.info().current()).isNotNull();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
-        assertThat(flyway.info().applied()).hasSize(2);
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(flyway.info().applied()).hasSize(3);
     }
 
     @Test

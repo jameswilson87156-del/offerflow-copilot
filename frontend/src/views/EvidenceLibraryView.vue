@@ -6,7 +6,8 @@ import EvidenceCategories from '../components/evidence/EvidenceCategories.vue'
 import EvidenceCoverageMap from '../components/evidence/EvidenceCoverageMap.vue'
 import EvidenceDetailPanel from '../components/evidence/EvidenceDetailPanel.vue'
 import { useEvidenceLibrary } from '../composables/useEvidenceLibrary'
-import type { EvidenceItem, EvidenceMutationPayload } from '../types'
+import { useLocalActor } from '../composables/useLocalActor'
+import type { EvidenceItem, EvidenceMutationPayload, PermissionAction } from '../types'
 
 const props = defineProps<{
   searchQuery: string
@@ -30,6 +31,7 @@ const {
   archiveEvidence,
   restoreEvidence,
 } = useEvidenceLibrary()
+const { can, permissionReason } = useLocalActor()
 
 const activeCategory = shallowRef('all')
 const selectedId = shallowRef('evidence-mcp')
@@ -102,6 +104,18 @@ const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? '证据索引使用 local-rule · 无外部调用'
   : `${props.selectedProvider} 未配置，当前仍使用 local-rule`)
 
+const evidencePermissions: Record<'confirm' | 'return' | 'archive' | 'restore' | 'create' | 'edit', PermissionAction> = {
+  confirm: 'EVIDENCE_CONFIRM',
+  return: 'EVIDENCE_UPDATE',
+  archive: 'EVIDENCE_ARCHIVE',
+  restore: 'EVIDENCE_RESTORE',
+  create: 'EVIDENCE_CREATE',
+  edit: 'EVIDENCE_UPDATE',
+}
+
+const createReason = computed(() => permissionReason('EVIDENCE_CREATE'))
+const saveReason = computed(() => permissionReason(editForm.id ? 'EVIDENCE_UPDATE' : 'EVIDENCE_CREATE'))
+
 watch(filteredItems, (items) => {
   if (items.length && !items.some((item) => item.id === selectedId.value)) selectedId.value = items[0].id
 })
@@ -116,6 +130,7 @@ watch(() => library.value.items.map((item) => `${item.id}:${item.updatedAt}:${it
 })
 
 function openCreate() {
+  if (!can('EVIDENCE_CREATE')) return
   editForm.id = ''
   editForm.projectName = 'New Portfolio Evidence'
   editForm.summary = '待补充的作品集级项目证据草稿。'
@@ -134,7 +149,7 @@ function openCreate() {
 
 function openEdit() {
   const item = selectedItem.value
-  if (item.status === 'Archived') return
+  if (item.status === 'Archived' || !can('EVIDENCE_UPDATE')) return
   editForm.id = item.id
   editForm.projectName = item.projectName
   editForm.summary = item.summary
@@ -152,6 +167,8 @@ function openEdit() {
 }
 
 async function saveDraft() {
+  const permission = editForm.id ? 'EVIDENCE_UPDATE' : 'EVIDENCE_CREATE'
+  if (!can(permission)) return
   const payload = formPayload()
   const result = editForm.id
     ? await updateEvidence(editForm.id, payload)
@@ -162,6 +179,8 @@ async function saveDraft() {
 }
 
 async function runAction(action: 'confirm' | 'return' | 'archive' | 'restore') {
+  const permission = evidencePermissions[action]
+  if (!can(permission)) return
   const payload: EvidenceMutationPayload = {
     humanNote: editForm.humanNote,
     targetStatus: action === 'restore' ? 'Draft' : undefined,
@@ -220,7 +239,7 @@ function semi(value: string) {
         <button type="button" class="secondary-button" :disabled="loading || detailLoading" @click="reloadAll">
           <RefreshCw :size="15" :class="{ spinning: loading || detailLoading }" />刷新证据
         </button>
-        <button type="button" class="primary-evidence-button" :disabled="actionLoading" @click="openCreate"><Plus :size="15" />新建草稿</button>
+        <button type="button" class="primary-evidence-button" :disabled="actionLoading || !can('EVIDENCE_CREATE')" :title="can('EVIDENCE_CREATE') ? '' : createReason" @click="openCreate"><Plus :size="15" />新建草稿</button>
       </div>
     </section>
 
@@ -254,6 +273,16 @@ function semi(value: string) {
           :audit-trail="auditTrail"
           :boundary-notice="boundaryNotice"
           :busy="actionLoading || detailLoading"
+          :can-edit="can('EVIDENCE_UPDATE')"
+          :can-confirm="can('EVIDENCE_CONFIRM')"
+          :can-return-to-draft="can('EVIDENCE_UPDATE')"
+          :can-archive="can('EVIDENCE_ARCHIVE')"
+          :can-restore="can('EVIDENCE_RESTORE')"
+          :edit-reason="permissionReason('EVIDENCE_UPDATE')"
+          :confirm-reason="permissionReason('EVIDENCE_CONFIRM')"
+          :return-reason="permissionReason('EVIDENCE_UPDATE')"
+          :archive-reason="permissionReason('EVIDENCE_ARCHIVE')"
+          :restore-reason="permissionReason('EVIDENCE_RESTORE')"
           @edit="openEdit"
           @confirm="runAction('confirm')"
           @return-to-draft="runAction('return')"
@@ -290,7 +319,7 @@ function semi(value: string) {
           </div>
           <footer class="evidence-edit-actions">
             <button type="button" class="secondary-button" @click="editOpen = false">取消</button>
-            <button type="button" class="primary-evidence-button" :disabled="actionLoading" @click="saveDraft"><Save :size="15" />保存草稿</button>
+            <button type="button" class="primary-evidence-button" :disabled="actionLoading || !can(editForm.id ? 'EVIDENCE_UPDATE' : 'EVIDENCE_CREATE')" :title="can(editForm.id ? 'EVIDENCE_UPDATE' : 'EVIDENCE_CREATE') ? '' : saveReason" @click="saveDraft"><Save :size="15" />保存草稿</button>
           </footer>
         </aside>
       </div>

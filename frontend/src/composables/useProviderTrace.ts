@@ -12,6 +12,7 @@ import type {
   ProviderConfigCheck,
   ProviderContractSummary,
   ProviderPromptContract,
+  PermissionAuditEvent,
   ProviderResponse,
   ProviderSandboxRunPayload,
   ProviderSettingsData,
@@ -30,6 +31,7 @@ export function useProviderTrace() {
   const traceRun = shallowRef<ProviderTraceRun>(providerTraceRunFallback)
   const sandboxResult = shallowRef<ProviderResponse | null>(null)
   const validationResult = shallowRef<ProviderValidatedResult>(providerValidationFallback)
+  const permissionAuditEvents = shallowRef<PermissionAuditEvent[]>([])
   const sandboxError = shallowRef('')
   const validationError = shallowRef('')
   const loading = shallowRef(true)
@@ -40,11 +42,12 @@ export function useProviderTrace() {
   async function load(preferredRunId?: string, preferredTaskType?: string) {
     loading.value = true
     try {
-      const [settingsResponse, configCheckResponse, tracesResponse, contractsResponse] = await Promise.all([
+      const [settingsResponse, configCheckResponse, tracesResponse, contractsResponse, permissionAuditResponse] = await Promise.all([
         fetch('/api/provider/settings'),
         fetch('/api/provider/config-check'),
         fetch('/api/provider/traces'),
         fetch('/api/provider/contracts'),
+        fetch('/api/permissions/audit-events'),
       ])
       if (!settingsResponse.ok || !configCheckResponse.ok || !tracesResponse.ok || !contractsResponse.ok) {
         throw new Error('Local provider trace API unavailable')
@@ -54,6 +57,9 @@ export function useProviderTrace() {
       const nextConfigCheck = await configCheckResponse.json() as ProviderConfigCheck
       const nextTraceIndex = await tracesResponse.json() as ProviderTraceIndex
       const nextContracts = await contractsResponse.json() as ProviderContractSummary[]
+      const nextPermissionAudit = permissionAuditResponse.ok
+        ? await permissionAuditResponse.json() as PermissionAuditEvent[]
+        : []
       const runId = preferredRunId ?? nextTraceIndex.items[0]?.runId ?? providerTraceRunFallback.runId
       const taskType = preferredTaskType ?? providerContractDetailFallback.taskType ?? nextContracts[0]?.taskType
       const [traceResponse, contractResponse] = await Promise.all([
@@ -65,6 +71,7 @@ export function useProviderTrace() {
       settings.value = nextSettings
       configCheck.value = nextConfigCheck
       contracts.value = nextContracts
+      permissionAuditEvents.value = nextPermissionAudit
       traceIndex.value = nextTraceIndex
       traceRun.value = await traceResponse.json() as ProviderTraceRun
       selectedContract.value = await contractResponse.json() as ProviderPromptContract
@@ -76,6 +83,7 @@ export function useProviderTrace() {
       selectedContract.value = providerContractDetailFallback
       traceIndex.value = providerTraceIndexFallback
       traceRun.value = providerTraceRunFallback
+      permissionAuditEvents.value = []
       source.value = 'fallback'
     } finally {
       loading.value = false
@@ -148,6 +156,7 @@ export function useProviderTrace() {
     traceRun,
     sandboxResult,
     validationResult,
+    permissionAuditEvents,
     sandboxError,
     validationError,
     loading,

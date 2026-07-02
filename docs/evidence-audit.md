@@ -26,6 +26,8 @@
 
 P3G 中单条 Evidence Audit Trail 可在卡片内展开。Archived 证据统一弱化显示并进入只读态：不能编辑、确认或退回，只允许 restore 回到 Draft 后继续维护。
 
+P4E 后，Evidence 写接口会先经过 Local Permission Model。`EDITOR` 可创建、编辑和 return-to-draft；`OWNER` 可执行全部 evidence 写动作，包括 confirm、archive 和 restore；`VIEWER` 只读。被拒绝的动作返回 permission reason，并写入 `permission_audit_event`。
+
 ## API
 
 - `GET /api/evidence/library`
@@ -38,10 +40,21 @@ P3G 中单条 Evidence Audit Trail 可在卡片内展开。Archived 证据统一
 - `POST /api/evidence/{id}/archive`
 - `POST /api/evidence/{id}/restore`
 
-写接口支持 `actor`、`actorRole`、`humanNote` 和证据 payload。当前 actor 是 demo user，用于演示审计链路，不是生产鉴权或生产级权限系统。
+写接口支持 `actor`、`actorRole`、`humanNote` 和证据 payload。当前 actor 是 demo local actor，用于演示审计链路和本地角色权限，不是生产鉴权或生产级权限系统。
+
+P4E 权限动作映射：
+
+- `POST /api/evidence` -> `EVIDENCE_CREATE`
+- `PUT /api/evidence/{id}` -> `EVIDENCE_UPDATE`
+- `POST /api/evidence/{id}/return-to-draft` -> `EVIDENCE_UPDATE`
+- `POST /api/evidence/{id}/confirm` -> `EVIDENCE_CONFIRM`
+- `POST /api/evidence/{id}/archive` -> `EVIDENCE_ARCHIVE`
+- `POST /api/evidence/{id}/restore` -> `EVIDENCE_RESTORE`
 
 ## 当前边界
 
 当前仍然使用 H2 demo persistence 和脱敏 seed demo data，不接真实 LLM，不调用 DeepSeek，不调用中转站，不接招聘平台 API，不爬虫，不保存 API Key，不保存真实隐私。
 
 证据内容不虚构真实客户、真实用户、真实流量或生产级数据，也不输出 Offer 概率、录取概率或保证通过。
+
+Local Permission Model 只是 P4E 本地演示规则，不是生产 RBAC、登录系统或合规审计系统。`resume_evidence_audit_event` 继续记录业务状态变化；`permission_audit_event` 只记录本地权限决策。

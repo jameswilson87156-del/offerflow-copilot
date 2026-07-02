@@ -7,9 +7,10 @@ P4A 起，Flyway 是 OfferFlow schema 的唯一自动初始化入口。默认 H2
 ```text
 src/main/resources/db/migration/V1__init_offerflow_schema.sql
 src/main/resources/db/migration/V2__copy_permission_audit_event.sql
+src/main/resources/db/migration/V3__permission_audit_event.sql
 ```
 
-V1 包含原有 15 张业务表；P4D 的 V2 新增 `copy_permission_audit_event`，因此当前共有 16 张业务表。复杂 JSON 继续保存为 `TEXT`，时间字段使用 H2/MySQL 都支持的 `TIMESTAMP`。
+V1 包含原有 15 张业务表；P4D 的 V2 新增 `copy_permission_audit_event`；P4E 的 V3 新增 `permission_audit_event`，因此当前共有 17 张业务表。复杂 JSON 继续保存为 `TEXT`，时间字段使用 H2/MySQL 都支持的 `TIMESTAMP`。
 
 ## 启动顺序
 
@@ -23,18 +24,18 @@ V1 包含原有 15 张业务表；P4D 的 V2 新增 `copy_permission_audit_event
 ## 新增 migration 规则
 
 - 已提交并在任意环境执行过的 migration 不应原地修改。
-- 后续变更新增递增文件，例如 `V2__add_example_column.sql`。
+- 后续变更新增递增文件，例如 `V4__add_example_column.sql`。
 - SQL 应同时考虑 H2 和 MySQL；本项目 JSON 暂用 `TEXT`，不使用数据库专属 JSON 类型。
 - migration 只管理结构或明确的静态 reference data；demo seed 继续由 `PersistenceSeedService` 管理。
 - 禁止把真实招聘信息、手机号、邮箱、身份证、聊天记录、API Key 或生产凭据写入 migration。
 
 ## 验证
 
-`PersistenceFoundationTest` 以 test profile 启动 H2，断言 Flyway 当前版本为 V2，并检查 `job_post`、`resume_evidence`、`match_report_version`、`human_review_item`、`match_report_audit_event`、`copy_permission_audit_event` 和 `flyway_schema_history` 存在。
+`PersistenceFoundationTest` 以 test profile 启动 H2，断言 Flyway 当前版本为 V3，并检查 `job_post`、`resume_evidence`、`match_report_version`、`human_review_item`、`match_report_audit_event`、`copy_permission_audit_event`、`permission_audit_event` 和 `flyway_schema_history` 存在。
 
-本地 MySQL smoke 可按 [local-mysql.md](local-mysql.md) 执行。P4A 已验证 V1 在 MySQL 8 上创建原有 15 张业务表；P4D 新增 V2 复制门禁审计表。连续两次启动时 migration 不重复、seed 计数不增加。
+本地 MySQL smoke 可按 [local-mysql.md](local-mysql.md) 执行。P4A 已验证 V1 在 MySQL 8 上创建原有 15 张业务表；P4D 新增 V2 复制门禁审计表；P4E 新增 V3 本地权限审计表。连续两次启动时 migration 不重复、seed 计数不增加。
 
-P4B/P4C 的 Provider SPI sandbox 复用 V1 中已有的 `provider_trace_run` 和 `trace_step` 表写入 fallback 与 Trace Evidence；P4D 只新增统一复制门禁审计表，不要求普通 `mvn test` 依赖 Docker MySQL。
+P4B/P4C 的 Provider SPI sandbox 复用 V1 中已有的 `provider_trace_run` 和 `trace_step` 表写入 fallback 与 Trace Evidence；P4D 只新增统一复制门禁审计表；P4E 只新增本地权限审计表，不要求普通 `mvn test` 依赖 Docker MySQL。
 
 ## 边界
 

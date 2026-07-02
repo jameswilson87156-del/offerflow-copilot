@@ -6,6 +6,8 @@ Human Review 是 OfferFlow 的核心安全链路。系统中的 AI 或 local-rul
 
 P4D 后，Human Review Confirmed 是复制的必要条件，但不是页面直接复制的旁路。正式复制还必须经过 Copy Permission Contract，确认 schema validate、risk guard、target status 和 Human Review 状态均通过，并写入 `copy_permission_audit_event`。
 
+P4E 后，Human Review 的 confirm / return / flag-risk 还会先经过 Local Permission Model。只有本地 `REVIEWER` 或 `OWNER` 可以执行人工复核写操作；`EDITOR`、`VIEWER` 和 `SYSTEM` 会收到清晰的 denied reason，并写入 `permission_audit_event`。
+
 ## 状态流转
 
 当前兼容状态：
@@ -42,6 +44,8 @@ P4D 后，Human Review Confirmed 是复制的必要条件，但不是页面直�
 
 P3G 前端支持点击单条事件在卡片内展开完整详情。Confirmed、Returned、Risk Flagged、Archived 属于已结束或只读状态，操作按钮会禁用并解释原因；状态标签统一显示中文语义。
 
+P4E 会在业务审计之前写入 permission audit：allowed 的人工复核动作和 blocked 的越权尝试都会保留 actor、role、action、target、reason 和 boundary notice。业务审计仍保留原有 `human_review_audit_event`。
+
 ## Match Report Handoff & Sync
 
 P3E 中，`POST /api/jobs/{id}/match-reports/generate` 会在写入 `match_report_version` 后创建或关联一个 Human Review item：
@@ -65,8 +69,8 @@ P3F 中，Human Review 自身的 confirm / return / flag-risk 仍写入 `human_r
 
 ## 当前边界
 
-- 当前 actor 是 demo user，例如 `demo-reviewer`，不是生产鉴权主体。
-- 当前不是生产级权限系统，也不包含审批角色、租户隔离、不可篡改日志或合规归档。
+- 当前 actor 是 demo local actor，例如 `demo.reviewer`，不是生产鉴权主体。
+- 当前 Local Permission Model 不是生产级权限系统，也不包含真实登录、审批角色、租户隔离、不可篡改日志或合规归档。
 - 当前数据是脱敏 seed demo，不是真实招聘数据或真实用户数据。
 - 不保存真实隐私，不保存 API Key，不接招聘平台，不爬虫。
 - 不接真实 LLM、不调用 DeepSeek、不调用中转站。
@@ -75,4 +79,4 @@ P3F 中，Human Review 自身的 confirm / return / flag-risk 仍写入 `human_r
 
 ## 后续扩展方向
 
-P3C 已将同样的审计模式扩展到证据库编辑；P3D 已扩展到 JD Intake、parse version 和 evidence binding；P3E 已将 Match Report 版本生成纳入 Human Review；P3F 已将 MATCH_REPORT 复核动作同步回 `match_report_version`；P4D 已将复制动作抽象为统一 Copy Permission Contract。生产化前还需要真实鉴权、权限模型、租户隔离和审计日志防篡改策略。
+P3C 已将同样的审计模式扩展到证据库编辑；P3D 已扩展到 JD Intake、parse version 和 evidence binding；P3E 已将 Match Report 版本生成纳入 Human Review；P3F 已将 MATCH_REPORT 复核动作同步回 `match_report_version`；P4D 已将复制动作抽象为统一 Copy Permission Contract；P4E 已增加本地角色权限与 permission audit。生产化前还需要真实鉴权、租户隔离和审计日志防篡改策略。

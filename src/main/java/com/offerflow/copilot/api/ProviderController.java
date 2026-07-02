@@ -14,11 +14,16 @@ import com.offerflow.copilot.provider.contract.PromptContractSummary;
 import com.offerflow.copilot.provider.contract.ProviderContractService;
 import com.offerflow.copilot.provider.contract.ProviderValidatedResult;
 import com.offerflow.copilot.provider.contract.ProviderValidationRequest;
+import com.offerflow.copilot.security.local.LocalActorContext;
+import com.offerflow.copilot.security.local.LocalActorResolver;
+import com.offerflow.copilot.security.local.LocalPermissionAuditService;
+import com.offerflow.copilot.security.local.PermissionAction;
 import com.offerflow.copilot.service.ProviderTraceService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,16 +35,22 @@ public class ProviderController {
     private final ProviderRouter providerRouter;
     private final ProviderExecutionService providerExecutionService;
     private final ProviderContractService providerContractService;
+    private final LocalActorResolver actorResolver;
+    private final LocalPermissionAuditService permissionAuditService;
 
     public ProviderController(
             ProviderTraceService providerTraceService,
             ProviderRouter providerRouter,
             ProviderExecutionService providerExecutionService,
-            ProviderContractService providerContractService) {
+            ProviderContractService providerContractService,
+            LocalActorResolver actorResolver,
+            LocalPermissionAuditService permissionAuditService) {
         this.providerTraceService = providerTraceService;
         this.providerRouter = providerRouter;
         this.providerExecutionService = providerExecutionService;
         this.providerContractService = providerContractService;
+        this.actorResolver = actorResolver;
+        this.permissionAuditService = permissionAuditService;
     }
 
     @GetMapping("/status")
@@ -76,8 +87,19 @@ public class ProviderController {
     }
 
     @PostMapping("/sandbox-run")
-    public ProviderResponse sandboxRun(@RequestBody ProviderSandboxRunRequest request) {
-        return providerExecutionService.sandboxRun(request);
+    public ProviderResponse sandboxRun(
+            @RequestBody ProviderSandboxRunRequest request,
+            @RequestHeader(value = "X-Demo-Actor", required = false) String headerActor,
+            @RequestHeader(value = "X-Demo-Role", required = false) String headerRole,
+            @RequestHeader(value = "X-Request-Id", required = false) String requestId) {
+        ProviderSandboxRunRequest safeRequest = request == null
+                ? new ProviderSandboxRunRequest(null, null, null, false, false, null, null)
+                : request;
+        LocalActorContext actorContext = actorResolver.resolve(
+                safeRequest.actor(), safeRequest.actorRole(), headerActor, headerRole, requestId);
+        permissionAuditService.requireAllowed(
+                actorContext, PermissionAction.PROVIDER_SANDBOX_RUN, "PROVIDER_SANDBOX", safeRequest.taskType());
+        return providerExecutionService.sandboxRun(withActor(safeRequest, actorContext));
     }
 
     @GetMapping("/contracts")
@@ -93,5 +115,16 @@ public class ProviderController {
     @PostMapping("/validate-response")
     public ProviderValidatedResult validateResponse(@RequestBody ProviderValidationRequest request) {
         return providerContractService.validate(request);
+    }
+
+    private ProviderSandboxRunRequest withActor(ProviderSandboxRunRequest request, LocalActorContext actorContext) {
+        return new ProviderSandboxRunRequest(
+                request.taskType(),
+                request.inputText(),
+                request.providerMode(),
+                request.simulateFailure(),
+                request.simulateTimeout(),
+                actorContext.actor(),
+                actorContext.actorRole().name());
     }
 }

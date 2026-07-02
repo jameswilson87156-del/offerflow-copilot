@@ -1,6 +1,6 @@
 # 架构说明
 
-## P4D 结构
+## P4E 结构
 
 ```text
 Vue 3 Workbench
@@ -17,6 +17,7 @@ Spring Boot 3
   |-- Provider SPI（local-rule/no-op adapters、router、sandbox execution）
   |-- Provider Contracts（taskType prompt/schema/risk policy、response validator）
   |-- Copy Permission Contract（统一复制门禁、Human Review gate、audit event）
+  |-- Local Permission（demo actor context、role policy、permission audit）
   |-- Repositories（MyBatis-Plus BaseMapper 封装）
   |-- JsonCodec（TEXT JSON 字段统一编解码）
   |-- PersistenceSeedService（空库 seed 脱敏 demo）
@@ -33,6 +34,7 @@ H2 demo/test 或本地 MySQL 8 persistence
   |-- match_report_version
   |-- match_report_audit_event
   |-- copy_permission_audit_event
+  |-- permission_audit_event
   |-- interview_prep
   |-- application_record
   |-- human_review_item
@@ -72,6 +74,21 @@ P4D 新增 `com.offerflow.copilot.copy`，把“能否复制 AI/local-rule 输�
 4. `CopyPermissionController`：提供 `POST /api/copy-permissions/check` 和 `GET /api/copy-permissions/audit-events`。
 
 `POST /api/match-reports/{versionId}/copy-check` 保持旧响应兼容，但内部复用 `CopyPermissionService`；因此每次旧 copy-check 会同时写旧 `match_report_audit_event` 和新 `copy_permission_audit_event`。`/interview-prep` 当前基于 `interview_prep.review_status` 做 demo gate，默认 Draft 被拦截。`copy_permission_audit_event` 不保存 requested text 或真实隐私。
+
+## Local Permission 链路
+
+P4E 新增 `com.offerflow.copilot.security.local`，用于本地 demo 角色权限和复核流程约束。它不是生产级认证授权，不包含真实用户注册、登录、租户隔离或密码体系。
+
+核心结构：
+
+1. `LocalActorContext`：包含 actor、actorRole、source、requestId。
+2. `LocalActorRole`：`OWNER`、`REVIEWER`、`EDITOR`、`VIEWER`、`SYSTEM`，并兼容旧展示型 role 名称。
+3. `PermissionAction`：覆盖 Human Review、Evidence、JD Intake、Match Report、Copy Check 和 Provider Sandbox 写动作。
+4. `LocalPermissionPolicy`：统一判断角色能否执行动作。
+5. `LocalPermissionAuditService`：保存 allowed / blocked 决策到 `permission_audit_event`。
+6. `PermissionController`：提供 `GET /api/permissions/current-actor`、`POST /api/permissions/check`、`GET /api/permissions/audit-events`。
+
+Actor 解析优先级为 request body 的 `actor/actorRole`、HTTP header `X-Demo-Actor` / `X-Demo-Role`、默认 `demo.reviewer` / `REVIEWER`。非法 role 会 fallback 到 `VIEWER` 并在权限判断中给出 denied reason。所有关键写接口会先写 permission audit；通过后继续执行原业务逻辑并写原业务审计表。
 
 ## JD Intake 审计链路
 
@@ -119,7 +136,7 @@ P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 
 5. 写入 `resume_evidence_audit_event`。
 6. 返回包含 `auditTrail` 的 evidence detail。
 
-支持的动作包括 `CREATE_DRAFT`、`UPDATE_DRAFT`、`CONFIRM`、`RETURN_TO_DRAFT`、`ARCHIVE` 和 `RESTORE`。当前 actor 是 demo user，用于展示状态流转，不是生产鉴权或生产级权限系统。
+支持的动作包括 `CREATE_DRAFT`、`UPDATE_DRAFT`、`CONFIRM`、`RETURN_TO_DRAFT`、`ARCHIVE` 和 `RESTORE`。当前 actor 是 demo local actor，用于展示状态流转和权限审计，不是生产鉴权或生产级权限系统。
 
 ## Human Review 审计链路
 
@@ -145,4 +162,4 @@ P3F 中，`HumanReviewService` 对 `review_type = MATCH_REPORT` 的 item 执行 
 
 ## 边界
 
-本架构不接真实 LLM，不调用 DeepSeek，不保存 API Key，不接招聘平台 API，不爬虫，不自动投递，不保存真实隐私，也不输出 Offer/录取概率或保证通过。当前 actor 是 demo user，不是生产鉴权或生产级权限系统。
+本架构不接真实 LLM，不调用 DeepSeek，不保存 API Key，不接招聘平台 API，不爬虫，不自动投递，不保存真实隐私，也不输出 Offer/录取概率或保证通过。当前 actor/actorRole 只是 demo local permission context，不是生产登录、注册、鉴权或生产级权限系统。

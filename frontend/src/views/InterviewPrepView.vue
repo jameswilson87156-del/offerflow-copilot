@@ -13,6 +13,7 @@ import {
   UserCheck,
 } from 'lucide-vue-next'
 import { useInterviewPrep } from '../composables/useInterviewPrep'
+import { useLocalActor } from '../composables/useLocalActor'
 import CopyPermissionPanel from '../components/CopyPermissionPanel.vue'
 
 const props = defineProps<{
@@ -32,6 +33,9 @@ const {
   checkCopyPermission,
   copyConfirmedPrep,
 } = useInterviewPrep()
+const { can, permissionReason } = useLocalActor()
+const canCheckCopy = computed(() => can('COPY_CHECK'))
+const copyPermissionReason = computed(() => permissionReason('COPY_CHECK'))
 
 const providerNotice = computed(() => props.selectedProvider === 'local-rule'
   ? '面试前准备 · local-rule mock'
@@ -88,6 +92,9 @@ const filteredQuestionGroups = computed(() => {
         :result="copyPermission"
         :audit-events="copyAuditEvents"
         :busy="actionBusy || loading"
+        :check-disabled="!canCheckCopy"
+        :copy-disabled="!canCheckCopy"
+        :disabled-reason="copyPermissionReason"
         copy-label="复制确认版准备摘要"
         @check="checkCopyPermission"
         @copy="copyConfirmedPrep"

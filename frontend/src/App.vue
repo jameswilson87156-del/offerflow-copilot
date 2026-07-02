@@ -3,12 +3,14 @@ import { computed, shallowRef } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
 import AppSidebar from './components/AppSidebar.vue'
 import AppTopbar from './components/AppTopbar.vue'
+import { useLocalActor } from './composables/useLocalActor'
 import { useProviderStatus } from './composables/useProviderStatus'
 
 const route = useRoute()
 const searchQuery = shallowRef('')
 const selectedProvider = shallowRef('local-rule')
 const { source } = useProviderStatus()
+const { actor, actorRole, localActorRoles, setActorRole } = useLocalActor()
 
 const pageStatus = computed(() => {
   if (route.name === 'evidence-library') return { label: 'Evidence Ready', tone: 'ready' as const }
@@ -42,7 +44,11 @@ const reviewStatusLabel = computed(() => route.name === 'human-review' ? '12 个
         :status-tone="pageStatus.tone"
         :search-placeholder="searchPlaceholder"
         :review-status-label="reviewStatusLabel"
+        :actor="actor"
+        :actor-role="actorRole"
+        :actor-roles="localActorRoles"
         @update:provider-mode="selectedProvider = $event"
+        @update:actor-role="setActorRole($event)"
       />
       <RouterView v-slot="{ Component }">
         <component
