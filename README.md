@@ -145,6 +145,8 @@ Current local acceptance:
 - `npm run screenshots`: 18 passed
 - `git diff --check`: passed
 
+GitHub Actions CI covers backend tests, frontend build, and screenshot validation on `push` and `pull_request`. CI runs in demo/local-rule mode and does not require real Provider API keys.
+
 If the test count changes, trust the latest command output over this README.
 
 ## Project Boundaries
